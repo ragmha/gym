@@ -1,0 +1,59 @@
+{
+  "name": "gym",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Simple app",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "husky install .husky",
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "echo \"Error: WTF\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ragmha/gym.git"
+  },
+  "author": "Raghib Hasan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ragmha/gym/issues"
+  },
+  "homepage": "https://github.com/ragmha/gym#readme",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "packageManager": "yarn@3.1.1",
+  "turbo": {
+    "pipeline": {
+      "build": {
+        "dependsOn": [
+          "^build"
+        ],
+        "outputs": [
+          ".next/**"
+        ]
+      },
+      "test": {
+        "dependsOn": [
+          "^build"
+        ],
+        "outputs": []
+      },
+      "lint": {
+        "outputs": []
+      },
+      "dev": {
+        "cache": false
+      }
+    }
+  },
+  "dependencies": {
+    "turbo": "latest"
+  },
+  "devDependencies": {
+    "husky": "7.0.4"
+  }
+}
