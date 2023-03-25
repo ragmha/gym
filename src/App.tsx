@@ -1,10 +1,18 @@
-import {FC} from 'react';
-import {SafeAreaView, Text} from 'react-native';
+import { FC } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  SafeAreaView,
+  StatusBar,
+  Text,
+  useColorScheme,
+  View,
+} from 'react-native';
+import RootNavigator from './navigation/RootNavigator';
 
-const App: FC = () => (
-  <SafeAreaView>
-    <Text>Hello world</Text>
-  </SafeAreaView>
-);
+´
 
+const App: FC = () => {
+  return <RootNavigator />;
+};
 export default App;
