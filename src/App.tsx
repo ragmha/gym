@@ -1,8 +1,12 @@
-import type { FC } from 'react'
+import { ThemeProvider } from 'styled-components/native'
 
-import RootNavigator from './navigation/RootNavigator'
+import RootNavigator from '@/navigation/RootNavigator'
+import { theme } from '@/theme'
 
-const App: FC = () => {
-  return <RootNavigator />
-}
+const App = () => (
+  <ThemeProvider theme={theme}>
+    <RootNavigator />
+  </ThemeProvider>
+)
+
 export default App
