@@ -4,6 +4,6 @@ const config = {
   preset: 'react-native',
   setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
   verbose: true,
-};
+}
 
-module.exports = config;
+module.exports = config

@@ -1,9 +1,11 @@
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import MainTabNavigator from './MainTabNavigator';
-import { RootStackPramList } from './types';
+import type { RootStackPramList } from './types'
 
-const Stack = createStackNavigator<RootStackPramList>();
+import { NavigationContainer } from '@react-navigation/native'
+import { createStackNavigator } from '@react-navigation/stack'
+
+import MainTabNavigator from './MainTabNavigator'
+
+const Stack = createStackNavigator<RootStackPramList>()
 
 const RootNavigator: React.FC = () => (
   <NavigationContainer>
@@ -15,6 +17,6 @@ const RootNavigator: React.FC = () => (
       />
     </Stack.Navigator>
   </NavigationContainer>
-);
+)
 
-export default RootNavigator;
+export default RootNavigator
