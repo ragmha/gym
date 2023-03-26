@@ -20,53 +20,30 @@ This is a React Native app for tracking workouts.
 ### Usage
 
 - Run the app on an iOS simulator: `yarn ios`
-- Run the app on an Android simulator: `npm run android` or `yarn android`
+- Run the app on an Android simulator: `yarn android`
 
 ## Directory Structure
 
 ```bash
 workout-app/
-├── App.tsx
-├── src/
-│   ├── assets/
-│   │   ├── fonts/
-│   │   ├── images/
-│   │   └── videos/
-│   ├── components/
-│   │   ├── Button/
-│   │   │   ├── Button.tsx
-│   │   │   └── Button.test.tsx
-│   │   ├── Header/
-│   │   │   ├── Header.tsx
-│   │   │   └── Header.test.tsx
-│   ├── hooks/
-│   │   └── useWorkout.ts
-│   ├── navigation/
-│   │   ├── AppNavigator.tsx
-│   │   ├── AuthNavigator.tsx
-│   ├── screens/
-│   │   ├── Home/
-│   │   │   ├── HomeScreen.tsx
-│   │   │   └── WorkoutDetailScreen.tsx
-│   │   └── Workout/
-│   │       ├── WorkoutScreen.tsx
-│   │       └── CreateWorkoutScreen.tsx
-│   ├── utils/
-│   │   ├── api.ts
-│   │   ├── validators.ts
-│   │   └── theme.ts
-│   ├── App.tsx
-│   └── index.tsx
-├── __tests__/
-│   ├── App.test.tsx
-│   └── setupTests.ts
-├── .eslintrc.js
-├── .gitignore
-├── .prettierrc
+├── readme.md
 ├── package.json
-├── README.md
 ├── tsconfig.json
-└── yarn.lock
+├── src
+│   ├── __tests__
+│   │   ├── App.test.tsx
+│   ├── App.tsx
+│   ├── components
+│   │   └── Section.tsx
+│   ├── navigation
+│   │   ├── MainTabNavigator.tsx
+│   │   ├── RootNavigator.tsx
+│   │   ├── StackNavigator.tsx
+│   │   └── types.ts
+│   └── theme
+│       ├── index.ts
+│       ├── theme.ts
+│       └── types.ts
 ```
 
 ## Contributing
