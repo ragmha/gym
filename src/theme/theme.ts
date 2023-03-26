@@ -1,6 +1,6 @@
 import type { Theme } from './types'
 
-export const theme: Theme = {
+const theme: Theme = {
   colors: {
     primary: '#3f51b5', // Blue 500
     primaryVariant: '#303f9f', // Blue 700
@@ -107,5 +107,27 @@ export const theme: Theme = {
       letterSpacing: 1.5,
       lineHeight: 16,
     },
+  },
+}
+
+export const lightTheme: Theme = {
+  ...theme,
+  colors: {
+    ...theme.colors,
+    background: '#f5f5f5',
+    surface: '#ffffff',
+    onBackground: '#000000',
+    onSurface: '#000000',
+  },
+}
+
+export const darkTheme: Theme = {
+  ...theme,
+  colors: {
+    ...theme.colors,
+    background: '#212121',
+    surface: '#333333',
+    onBackground: '#ffffff',
+    onSurface: '#ffffff',
   },
 }

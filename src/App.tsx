@@ -1,10 +1,11 @@
 import { ThemeProvider } from 'styled-components/native'
 
+import { useCurrentTheme } from './hooks/use-current-theme'
+
 import RootNavigator from '@/navigation/RootNavigator'
-import { theme } from '@/theme'
 
 const App = () => (
-  <ThemeProvider theme={theme}>
+  <ThemeProvider theme={useCurrentTheme()}>
     <RootNavigator />
   </ThemeProvider>
 )
