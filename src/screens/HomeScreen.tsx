@@ -4,11 +4,11 @@ import {
   SafeAreaView,
   StatusBar,
   useColorScheme,
-} from 'react-native';
+} from 'react-native'
 
 export const HomeScreen = () => {
-  const isDarkMode = useColorScheme() === 'dark';
-  const backgroundStyle = 'bg-neutral-300 dark:bg-slate-900';
+  const isDarkMode = useColorScheme() === 'dark'
+  const backgroundStyle = 'bg-neutral-300 dark:bg-slate-900'
 
   return (
     <View className="content-center">
@@ -19,5 +19,5 @@ export const HomeScreen = () => {
         </View>
       </SafeAreaView>
     </View>
-  );
-};
+  )
+}

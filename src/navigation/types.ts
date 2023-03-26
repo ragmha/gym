@@ -1,11 +1,11 @@
 export type RootStackPramList = {
-  MainTabNavigator: undefined;
-};
+  MainTabNavigator: undefined
+}
 
 export type MainTabParamList = {
-  Home: undefined;
-};
+  Home: undefined
+}
 
 export type StackParamList = {
-  Home: undefined;
-};
+  Home: undefined
+}
