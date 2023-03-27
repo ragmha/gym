@@ -8,6 +8,6 @@
     "paths": {
       "@/*": ["*"]
     },
-    "types": ["styled-components-react-native"]
+    "types": ["styled-components-react-native", "jest"]
   }
 }

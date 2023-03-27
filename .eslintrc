@@ -18,7 +18,8 @@
     "unused-imports",
     "jest",
     "react-hooks",
-    "jsx-a11y"
+    "jsx-a11y",
+    "testing-library"
   ],
   "env": {
     "jest/globals": true,
@@ -30,7 +31,8 @@
     "eslint:recommended",
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
+    "plugin:testing-library/react"
   ],
   "rules": {
     "@typescript-eslint/no-unused-vars": "off",
