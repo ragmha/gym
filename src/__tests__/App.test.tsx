@@ -1,5 +1,5 @@
 import App from '@/App'
-import { render, screen } from '@/utils/test-utils'
+import { render, screen } from '@/utils/test/test-utils'
 
 it('renders correctly', () => {
   render(<App />)

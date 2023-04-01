@@ -1,6 +1,6 @@
 import { useCurrentTheme } from '@/hooks/use-current-theme'
 import { darkTheme, lightTheme } from '@/theme'
-import { renderHook } from '@/utils/test-utils'
+import { renderHook } from '@/utils/test/test-utils'
 
 const mockedUseColorScheme = jest.fn()
 
