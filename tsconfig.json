@@ -8,6 +8,10 @@
     "paths": {
       "@/*": ["*"]
     },
-    "types": ["styled-components-react-native", "jest"]
+    "types": [
+      "./src/types/styled-components.d.ts",
+      "styled-components-react-native",
+      "jest"
+    ]
   }
 }
