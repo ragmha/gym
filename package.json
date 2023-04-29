@@ -1,5 +1,5 @@
 {
-  "name": "Gym",
+  "name": "gym",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -7,10 +7,9 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest --verbose --coverage",
-    "test:update": "jest --verbose --coverage --updateSnapshot",
-    "test:watch": "jest --verbose --watch",
-    "coverage": "jest --verbose --coverage && open ./coverage/lcov-report/index.html"
+    "test": "jest --verbose ",
+    "test:update": "jest --verbose  --updateSnapshot",
+    "test:watch": "jest --verbose --watch"
   },
   "dependencies": {
     "@react-navigation/bottom-tabs": "^6.5.7",
