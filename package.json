@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
     "test": "jest --verbose ",
     "test:update": "jest --verbose  --updateSnapshot",
     "test:watch": "jest --verbose --watch"
