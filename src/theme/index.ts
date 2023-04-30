@@ -108,8 +108,6 @@ const theme = {
   },
 } as const
 
-export type Theme = typeof theme
-
 export const lightTheme = {
   ...theme,
   colors: {
@@ -133,3 +131,5 @@ export const darkTheme = {
 } as const
 
 export default theme
+
+export type Theme = typeof lightTheme | typeof darkTheme
