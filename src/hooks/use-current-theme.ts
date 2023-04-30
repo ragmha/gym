@@ -1,4 +1,4 @@
-import type { Theme } from '@/theme/types'
+import type { Theme } from '@/theme'
 
 import { useMemo } from 'react'
 
