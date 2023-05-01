@@ -52,35 +52,35 @@ const theme = {
     h6: {
       fontFamily: 'Roboto',
       fontSize: 20,
-      fontWeight: 'medium',
+      fontWeight: 500,
       letterSpacing: 0.15,
       lineHeight: 24,
     },
     subtitle1: {
       fontFamily: 'Roboto',
       fontSize: 16,
-      fontWeight: 'medium',
+      fontWeight: 500,
       letterSpacing: 0.15,
       lineHeight: 24,
     },
     subtitle2: {
       fontFamily: 'Roboto',
       fontSize: 14,
-      fontWeight: 'medium',
+      fontWeight: 500,
       letterSpacing: 0.1,
       lineHeight: 20,
     },
     body1: {
       fontFamily: 'Roboto',
       fontSize: 16,
-      fontWeight: 'regular',
+      fontWeight: 'normal',
       letterSpacing: 0.5,
       lineHeight: 24,
     },
     body2: {
       fontFamily: 'Roboto',
       fontSize: 14,
-      fontWeight: 'regular',
+      fontWeight: 'normal',
       letterSpacing: 0.25,
       lineHeight: 20,
     },
@@ -94,19 +94,30 @@ const theme = {
     caption: {
       fontFamily: 'Roboto',
       fontSize: 12,
-      fontWeight: 'regular',
+      fontWeight: 'normal',
       letterSpacing: 0.4,
       lineHeight: 16,
     },
     overline: {
       fontFamily: 'Roboto',
       fontSize: 10,
-      fontWeight: 'medium',
+      fontWeight: 500,
       letterSpacing: 1.5,
       lineHeight: 16,
     },
   },
-} as const
+  grid: {
+    size: 8,
+  },
+  shadows: ['none', '0px 2px 4px rgba(0, 0, 0, 0.1)'],
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+  },
+}
 
 export const lightTheme = {
   ...theme,
@@ -132,4 +143,4 @@ export const darkTheme = {
 
 export default theme
 
-export type Theme = typeof lightTheme | typeof darkTheme
+export type Theme = typeof theme
