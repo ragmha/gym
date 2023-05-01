@@ -73,14 +73,14 @@ const theme = {
     body1: {
       fontFamily: 'Roboto',
       fontSize: 16,
-      fontWeight: 'regular',
+      fontWeight: 'normal',
       letterSpacing: 0.5,
       lineHeight: 24,
     },
     body2: {
       fontFamily: 'Roboto',
       fontSize: 14,
-      fontWeight: 'regular',
+      fontWeight: 'normal',
       letterSpacing: 0.25,
       lineHeight: 20,
     },
@@ -94,7 +94,7 @@ const theme = {
     caption: {
       fontFamily: 'Roboto',
       fontSize: 12,
-      fontWeight: 'regular',
+      fontWeight: 'normal',
       letterSpacing: 0.4,
       lineHeight: 16,
     },
@@ -132,4 +132,4 @@ export const darkTheme = {
 
 export default theme
 
-export type Theme = typeof lightTheme | typeof darkTheme
+export type Theme = typeof theme
