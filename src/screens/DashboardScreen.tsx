@@ -1,7 +1,16 @@
+import type { StackParamList } from '@/navigation/types'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+
+import type { FC } from 'react'
+
+import { TouchableOpacity } from 'react-native'
+
 import { Card } from '@/components/Card'
 import { Grid, GridProvider } from '@/components/Grid'
 
-export const DashboardScreen = () => {
+type DashboardScreenProps = NativeStackScreenProps<StackParamList, 'Home'>
+
+export const DashboardScreen: FC<DashboardScreenProps> = ({ navigation }) => {
   return (
     <GridProvider gridSize={8}>
       <Grid.Container>
@@ -15,10 +24,12 @@ export const DashboardScreen = () => {
             </Card.Container>
           </Grid.Col>
           <Grid.Col size={4}>
-            <Card.Container>
-              <Card.Title>Exercises</Card.Title>
-              <Card.Content>5</Card.Content>
-            </Card.Container>
+            <TouchableOpacity onPress={() => navigation.navigate('Exercises')}>
+              <Card.Container>
+                <Card.Title>Exercises</Card.Title>
+                <Card.Content>5</Card.Content>
+              </Card.Container>
+            </TouchableOpacity>
           </Grid.Col>
         </Grid.Row>
       </Grid.Container>
