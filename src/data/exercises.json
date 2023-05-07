@@ -1,0 +1,1275 @@
+[
+  {
+    "dayNumber": 1,
+    "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
+    "dayTitle": "DAY 1:Quads, Lower Abs & Calves",
+    "contentArray": {
+      "1": {
+        "title": "Hack Squats",
+        "action": "3 Sets x 15 Reps (1.5 rep variation)"
+      },
+      "2": {
+        "title": "Squat Press",
+        "action": "3 Sets x 15 reps (2-second pause at the bottom)"
+      },
+      "3": {
+        "a": {
+          "title": "Leg Extensions*",
+          "action": "Triple Drop Set 10/10/10 Reps"
+        },
+        "b": { "title": "Walking Forward Lunges", "action": "10 reps" },
+        "c": { "title": "Bodyweight Squats", "action": "10 reps" },
+        "d": { "title": "Walking Forward Lunges", "action": "10 Reps" }
+      },
+      "4": { "title": "Seated Calf Press", "action": " 5 Sets x 30 Reps" },
+      "5": {
+        "a": { "title": "Hanging Leg Raises", "action": "Failure" },
+        "b": { "title": "Lying Leg Raises", "action": "Failure" }
+      }
+    }
+  },
+  {
+    "dayNumber": 2,
+    "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
+    "dayTitle": "DAY 2:Chest & Shoulders",
+    "contentArray": {
+      "1": {
+        "title": "Dumbbell Chest Press",
+        "action": "Triple Drop Set 10/10/10"
+      },
+      "2": {
+        "a": { "title": "Incline Cable Fly", "action": "12 reps" },
+        "b": { "title": "Dumbbell Floor Press", "action": "10-12 pause reps" }
+      },
+      "3": {
+        "a": { "title": "Decline Dumbbell Fly", "action": "12 reps" },
+        "b": { "title": "Pushups", "action": "failure" }
+      },
+      "4": {
+        "a": {
+          "title": "Smith Machine Alternating Military Press",
+          "action": "12 reps"
+        },
+        "b": { "title": "Lying Upright Cable Row", "action": "12 reps" }
+      },
+      "5": {
+        "a": { "title": "Lying Cable Side Raises", "action": "12 reps" },
+        "b": { "title": "Lying Cable Front Raises", "action": "12 reps" }
+      },
+      "6": {
+        "a": {
+          "title": "Bent-Over Cable Rear Delt Raises",
+          "action": "10 reps"
+        },
+        "b": { "title": "Standing Rope Pulls", "action": "10 reps" }
+      }
+    }
+  },
+  {
+    "dayNumber": 3,
+    "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
+    "dayTitle": "DAY 3:Arms",
+    "contentArray": {
+      "1": {
+        "a": {
+          "title": "Reverse-Grip Cable Triceps Pushdown",
+          "action": "12 reps"
+        },
+        "b": {
+          "title": "Cable Overhead Triceps Extension",
+          "action": "12 reps"
+        }
+      },
+      "2": {
+        "a": {
+          "title": "Single-Arm Overhead Rope Extensions",
+          "action": "10 reps"
+        },
+        "b": { "title": "Bent-Over Single-Arm Kickbacks", "action": "10 reps" }
+      },
+      "3": {
+        "a": { "title": "Close-Grip Pushups", "action": "Failure" },
+        "b": { "title": "Bench Dips", "action": "Failure" }
+      },
+      "4": {
+        "a": { "title": "EZ-Bar Spider Curls", "action": "10 Reps" },
+        "b": { "title": "Narrow-Grip EZ Bar Curls", "action": "10 Reps" }
+      },
+      "5": {
+        "a": { "title": "Reverse-Grip Dumbbell Curls", "action": "10 Reps" },
+        "b": { "title": "Dumbbell Hammer Curls", "action": "10 Reps" }
+      },
+      "6": {
+        "a": { "title": "Lying Cable Curls", "action": "12 Reps" },
+        "b": { "title": "Alternating Cable Curls", "action": "10-12 Reps" }
+      }
+    }
+  },
+  {
+    "dayNumber": 4,
+    "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
+    "dayTitle": "Day 4:Lower Back, Hamstrings & Upper Abs",
+    "contentArray": {
+      "1": { "title": "Deadlifts", "action": "3 Sets x 10 reps" },
+      "2": {
+        "a": { "title": "Seated Leg Curl", "action": "10 reps" },
+        "b": { "title": "Glute Ham Raises", "action": "10 reps" }
+      },
+      "3": {
+        "title": "Cable Stiff-Legged Deadlifts",
+        "action": "3 Sets x 10 reps"
+      },
+      "4": {
+        "a": { "title": "Decline Cross-body Situp", "action": "Failure" },
+        "b": { "title": "Cross-body Situp", "action": "Failure" }
+      }
+    }
+  },
+  {
+    "dayNumber": 5,
+    "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
+    "dayTitle": "DAY 5:Upper Back & Calves",
+    "contentArray": {
+      "1": { "title": "Lat Pulldowns", "action": "3 Sets x 10-12 reps" },
+      "2": {
+        "a": { "title": "Pullups", "action": "10 Reps" },
+        "b": { "title": "Rope Lat Pulldowns", "action": "10 Reps" }
+      },
+      "3": {
+        "a": {
+          "title": "Single-Arm Dumbbell Row",
+          "action": "10 reps each arm"
+        },
+        "b": {
+          "title": "Single-Arm Inverted Row",
+          "action": "10 reps each arm"
+        }
+      },
+      "4": {
+        "a": { "title": "Dumbbell Pullovers", "action": "15 reps" },
+        "b": { "title": "Standing Dumbbell Shrugs", "action": "15 reps" }
+      },
+      "5": { "title": "Seated Calf Press", "action": "5 x 20 reps" }
+    }
+  },
+  {
+    "dayNumber": 6,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "DAY 6:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 7,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "DAY 7:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 8,
+    "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
+    "dayTitle": "DAY 8:Quads, Lower Abs & Calves",
+    "contentArray": {
+      "1": { "title": "Leg Extensions", "action": "3 Sets x 20, 10, 20* Reps" },
+      "2": {
+        "title": "Leg Press",
+        "action": "5 Sets x 30, 20, 10, 20, 30 pause reps(2 second pause)"
+      },
+      "3": { "title": "Alt", "action": "3 Sets x 10 reps each exercise" },
+      "4": {
+        "title": "Seated Calf Press",
+        "action": "5 Sets x 30, 20, 10, 20, 30 Reps"
+      },
+      "5": {
+        "a": { "title": "Lying Incline Leg Raise", "action": "15 Reps" },
+        "b": { "title": "Exercise Ball Knee Tucks", "action": "20 Reps" },
+        "c": { "title": "Bodyweight Plank", "action": "30 Second Hold" }
+      }
+    }
+  },
+  {
+    "dayNumber": 9,
+    "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
+    "dayTitle": "DAY 9:Chest & Shoulders",
+    "contentArray": {
+      "1": {
+        "title": "Hammer Press",
+        "action": "3 Sets x 20, 15, 10/10* Reps"
+      },
+      "2": {
+        "title": "Incline Smith Machine Press",
+        "action": "3 sets x 20, 10, 10/10* Reps"
+      },
+      "3": {
+        "title": "Seated Cable Fly",
+        "action": "3 Sets x 20, 15, 10/10* Reps"
+      },
+      "4": { "title": "Wide-Hands Pushup", "action": "3 Sets x Failure" },
+      "5": {
+        "title": "Barbell Front Raise & Shoulder Press Combo",
+        "action": "3 Sets x 10 Reps"
+      },
+      "6": { "title": "Barbell Side Raise", "action": "3 x 10/10*" },
+      "7": { "title": "Dumbbell Rear Delt Fly", "action": "3 Sets x 20* Reps" }
+    }
+  },
+  {
+    "dayNumber": 10,
+    "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
+    "dayTitle": "DAY 10:Arms",
+    "contentArray": {
+      "1": {
+        "title": "Overhead Tricep Extensions",
+        "action": "3 Sets x 15* Reps"
+      },
+      "2": {
+        "title": "Seated Rope Extension",
+        "action": "3 Sets x 10/10/10* Reps"
+      },
+      "3": { "title": "Dips", "action": "3 Sets x 10 Reps" },
+      "4": {
+        "a": { "title": "EZ-Bar Spider Curls", "action": "10-12 Reps" },
+        "b": { "title": "Standing Banded Bicep Curls", "action": "10-12 Reps" }
+      },
+      "5": {
+        "a": { "title": "Low Cable EZ-Bar Curls", "action": "10-12 Reps*" },
+        "b": { "title": "Low Banded Biceps Curl", "action": "8-10 Reps**" }
+      },
+      "6": {
+        "a": { "title": "Incline Dumbbell Curls", "action": "10 Reps" },
+        "b": { "title": "Seated Banded Biceps Curl", "action": "10 Reps*" }
+      }
+    }
+  },
+  {
+    "dayNumber": 11,
+    "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
+    "dayTitle": "Day 11:Lower Back, Hamstrings & Upper Abs",
+    "contentArray": {
+      "1": { "title": "Deadlifts", "action": "3 Sets x 5, 5/5*, 8/8** Reps" },
+      "2": {
+        "a": { "title": "Rack Deadlifts", "action": "10 Reps" },
+        "b": { "title": "Banded Good Mornings", "action": "20 Reps" }
+      },
+      "3": {
+        "title": "Lying Hamstring Curl",
+        "action": "3 Sets x 20, 10/10*, 10/10/10** Reps"
+      },
+      "4": {
+        "title": "Standing Cable Hamstring Curl",
+        "action": "3  Sets x 20,15*,10** reps each leg"
+      },
+      "5": {
+        "a": { "title": "Barbell Straight-Arm Situps", "action": "10 Reps" },
+        "b": { "title": "Barbell Rollouts", "action": "10 Reps" },
+        "c": { "title": "Crunches", "action": "10 Reps" }
+      }
+    }
+  },
+  {
+    "dayNumber": 12,
+    "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
+    "dayTitle": "DAY 12:Upper Back & Calves",
+    "contentArray": {
+      "1": { "title": "Pull-ups", "action": "3 Sets x 10/10* Reps" },
+      "2": { "title": "Hammer Row", "action": "3 Sets x 10/10* Reps" },
+      "3": {
+        "title": "Supported Smith Machine Row",
+        "action": "3 Sets x 10/10* Reps"
+      },
+      "4": {
+        "a": { "title": "Cable Straight-Arm Pulldown", "action": "10 reps" },
+        "b": { "title": "High-Pulley Cable Row", "action": "10 reps" }
+      },
+      "5": {
+        "title": "Single-Leg Standing Dumbbell Calf Raise",
+        "action": "5 Sets x 30,25,20,20,20* Reps each leg"
+      }
+    }
+  },
+  {
+    "dayNumber": 13,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "DAY 13:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 14,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "DAY 14:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 15,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "DAY 15:Legs, Calves & Lower Abs",
+    "contentArray": {
+      "1": {
+        "title": "Leg Extension",
+        "action": "1 set x 25/25* Reps5 Sets x 10** Reps"
+      },
+      "2": {
+        "a": { "title": "Landmine Squat", "action": "25 Reps" },
+        "b": { "title": "Hex Bar Squat", "action": "25 reps" }
+      },
+      "3": {
+        "title": "Bulgarian Split",
+        "action": "3 Sets x 20 reps each leg*"
+      },
+      "4": {
+        "title": "Smith Machine Front Squat",
+        "action": "3 Sets x 20 reps"
+      },
+      "5": { "title": "Seated Calf Raises", "action": "5 Sets x 30 Reps" },
+      "6": {
+        "a": { "title": "Captains Chair Leg Raises", "action": "20 Reps" },
+        "b": { "title": "Medicine Ball Pass", "action": "Failure" },
+        "c": { "title": "Cross-Body Mountain Climbers", "action": "Failure" }
+      }
+    }
+  },
+  {
+    "dayNumber": 16,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "DAY 16:Chest & Shoulders",
+    "contentArray": {
+      "1": {
+        "title": "Incline Dumbbell Fly & Press Combo",
+        "action": "3 Sets x 20* Reps"
+      },
+      "2": {
+        "a": {
+          "title": "Incline Close-grip Dumbbell Press",
+          "action": "10 reps"
+        },
+        "b": { "title": "Incline Dumbbell Press", "action": "10 reps" }
+      },
+      "3": {
+        "a": { "title": "Rollout Fly", "action": "10 reps" },
+        "b": { "title": "Pushups", "action": "10 reps" }
+      },
+      "4": {
+        "title": "Smith Machine Weighted Pushups",
+        "action": "3 Sets x 20 reps*"
+      },
+      "5": {
+        "title": "Smith Machine Close-Grip Press",
+        "action": "3 x 10/10* Reps"
+      },
+      "6": {
+        "title": "Squat Press Shoulder Press",
+        "action": "3 Sets x 10/10 reps* Reps"
+      },
+      "7": {
+        "title": "Single-Arm Landmine Shoulder Press",
+        "action": "3 Sets x 20 Reps Each Arm"
+      },
+      "8": {
+        "a": {
+          "title": "Single-Arm Bent Over Rear Delt",
+          "action": "10-12 reps"
+        },
+        "b": {
+          "title": "Leg Extension Single-Arm Rear Delt Raise",
+          "action": "10-12 reps"
+        }
+      }
+    }
+  },
+  {
+    "dayNumber": 17,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "DAY 17:Arms",
+    "contentArray": {
+      "1": {
+        "title": "Kneeling Cable Overhead Triceps Extension",
+        "action": "3 Sets x 10/10* Reps"
+      },
+      "2": {
+        "title": "Machine Triceps Extension",
+        "action": "3  Sets x 10/10* Reps"
+      },
+      "3": {
+        "title": "Machine Triceps Pressdown",
+        "action": "3 Sets x 10/10* Reps"
+      },
+      "4": {
+        "a": { "title": "Standing Cable Curls", "action": "10 reps*" },
+        "b": { "title": "Lying Cable Curls", "action": "10 reps" }
+      },
+      "5": {
+        "a": { "title": "Lying High Cable Curls", "action": "10 reps" },
+        "b": { "title": "Standing High Cable Curls", "action": "10 reps" }
+      },
+      "6": {
+        "a": { "title": "Reverse-Grip EZ-Bar Curls", "action": "10 reps" },
+        "b": { "title": "Close-Grip EZ-Bar Curls", "action": "10 reps" }
+      }
+    }
+  },
+  {
+    "dayNumber": 18,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 18:Hamstrings, Lower Back & Upper Abs",
+    "contentArray": {
+      "1": {
+        "title": "Single-Leg Hamstring Curl",
+        "action": "5 Sets x 12, 10, 8, 8, 6 Reps (Each Leg)"
+      },
+      "2": {
+        "title": "Dumbbell Stiff-Legged Deadlift",
+        "action": "5 Sets x 10 Reps"
+      },
+      "3": {
+        "title": "Weighted Hyperextensions",
+        "action": "3 Sets x 10/10* Reps"
+      },
+      "4": {
+        "title": "Barbell Good Mornings",
+        "action": "3 Sets x 20,18,16* Reps"
+      },
+      "5": {
+        "a": { "title": "Weighted Crunches", "action": "20 Reps" },
+        "b": { "title": "Cross-Body Crunches", "action": "20 Reps" },
+        "c": { "title": "Exercise Ball Rollouts", "action": "20 Reps" },
+        "d": { "title": "Ab Twists", "action": "50 Reps" }
+      }
+    }
+  },
+  {
+    "dayNumber": 19,
+    "cardio": { "morning": "30 Minutes", "evening": "30 Minutes" },
+    "dayTitle": "Day 19:Back & Calves",
+    "contentArray": {
+      "1": { "title": "Dumbbell Seal Row", "action": "3 Sets x 10/10 reps*" },
+      "2": {
+        "title": "Incline Straight-Arm Pullover",
+        "action": "3 Sets x 12 Reps"
+      },
+      "3": { "title": "Barbell Bentover Row", "action": "3 Sets x 10 Reps" },
+      "4": {
+        "a": { "title": "Seated EZ-Bar Shrugs", "action": "3 Sets x 20 Reps" },
+        "b": { "title": "Calf Press", "action": "5 Sets x 20 Reps" }
+      }
+    }
+  },
+  {
+    "dayNumber": 20,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 20:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 21,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 21:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 22,
+    "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
+    "dayTitle": "Day 22:Quads, Calves, and Lower Abs",
+    "contentArray": {
+      "1": {
+        "title": "Single-Leg Extension",
+        "action": "5 Sets x 15, 15, 15, 12, 6 reps each leg"
+      },
+      "2": {
+        "title": "Single-Leg Press",
+        "action": "5 Sets x 15, 15, 15, 12, 6 reps each leg"
+      },
+      "3": {
+        "title": "Single-Leg Hack Squat",
+        "action": "5 Sets x 10 reps each leg"
+      },
+      "4": {
+        "title": "Smith Machine Lunge",
+        "action": "5 Sets x 10 reps each leg"
+      },
+      "5": {
+        "title": "Seated Single-Leg Calf Raise",
+        "action": "5 Sets x 20 reps each leg"
+      },
+      "6": {
+        "a": {
+          "title": "Alternating Hanging Leg Raises",
+          "action": "10 reps each leg"
+        },
+        "b": {
+          "title": "Alternating Lying Leg Raises",
+          "action": "10 reps each leg"
+        },
+        "c": {
+          "title": "Alternating Exercise Ball Knee Tucks",
+          "action": "10 reps each leg"
+        }
+      }
+    }
+  },
+  {
+    "dayNumber": 23,
+    "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
+    "dayTitle": "Day 23:Chest & Shoulders",
+    "contentArray": {
+      "1": {
+        "title": "Incline One-Arm Dumbbell Press",
+        "action": "4 Sets x 15, 15, 15, 5 reps each arm"
+      },
+      "2": {
+        "title": "Incline One-Arm Crossover",
+        "action": "4 Sets x 15, 15, 15, 5 reps each arm"
+      },
+      "3": {
+        "title": "Decline One-Arm Dumbbell Press",
+        "action": "4 Sets x 15, 15, 15, 5 reps each arm"
+      },
+      "4": {
+        "title": "One-Arm Cable Crossover",
+        "action": "4 Sets x 15, 15, 15, 5 reps each arm"
+      },
+      "5": {
+        "title": "Standing One-Arm Shoulder Press",
+        "action": "4 Sets x 10, 10, 10, 5 reps each arm"
+      },
+      "6": {
+        "title": "One-Arm Cable Rear Delt Fly",
+        "action": "4 Sets x 10, 10, 10, 5 reps each arm"
+      },
+      "7": {
+        "title": "One-Arm Lying Cable Front Raises",
+        "action": "4 Sets x 10, 10, 10, 5 reps each arm"
+      },
+      "8": {
+        "title": "One-Arm Cable Side Raises",
+        "action": "4 Sets x 10, 10, 10, 5 reps each arm"
+      }
+    }
+  },
+  {
+    "dayNumber": 24,
+    "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
+    "dayTitle": "Day 24:Arms",
+    "contentArray": {
+      "1": {
+        "a": {
+          "title": "Seated Single-Arm Dumbbell Curls",
+          "action": "15 reps each arm"
+        },
+        "b": {
+          "title": "Lying Single-Arm OverheadDumbbell Extension",
+          "action": "15 reps each arm"
+        }
+      },
+      "2": {
+        "a": {
+          "title": "Incline Single-Arm OverheadCable Extensions",
+          "action": "15 reps each arm"
+        },
+        "b": {
+          "title": "Single-Arm Cable Concentration Curls",
+          "action": "15 reps each arm"
+        }
+      },
+      "3": {
+        "a": {
+          "title": "Single-Arm PreacherMachine Curls",
+          "action": "15 reps each arm"
+        },
+        "b": {
+          "title": "Single-Arm Cable Pushdowns",
+          "action": "15 reps each arm"
+        }
+      }
+    }
+  },
+  {
+    "dayNumber": 25,
+    "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
+    "dayTitle": "Day 25: Hamstrings, Lower Back & Abs",
+    "contentArray": {
+      "1": {
+        "title": "Single-Arm Dumbbell Deadlift",
+        "action": "3 Sets x 15 Reps"
+      },
+      "2": { "title": "Hyperextensions", "action": "3 Sets x 15 Reps" },
+      "3": {
+        "title": "Single-Leg Hamstring Curl",
+        "action": "3 Sets x 15 Reps"
+      },
+      "4": {
+        "title": "Cable Single-Leg Stiff-Legged Deadlift",
+        "action": "3 Sets x 15 Reps"
+      },
+      "5": {
+        "a": { "title": "Dumbbell Weighted Crunches", "action": "15 REPS" },
+        "b": { "title": "Crunches", "action": "15 REPS" },
+        "c": { "title": "Cable Cross-Body Pulls", "action": "15 REPS" }
+      }
+    }
+  },
+  {
+    "dayNumber": 26,
+    "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
+    "dayTitle": "Day 26:Back and Calves",
+    "contentArray": {
+      "1": {
+        "title": "Single-Arm Barbell Row",
+        "action": "3 Sets x 15 reps each arm"
+      },
+      "2": {
+        "title": "Single-Arm Cable Rows",
+        "action": "3 Sets x 15 reps each arm"
+      },
+      "3": {
+        "title": "Single-Arm Smith Machine Shrugs",
+        "action": "3 Sets x 15 reps each arm"
+      },
+      "4": {
+        "title": "Single-Arm Overhead Machine Pulldowns",
+        "action": "3 x 15 reps each arm"
+      },
+      "5": {
+        "title": "Seated Single Leg Calf Press",
+        "action": "5 Sets x 15 reps each leg"
+      }
+    }
+  },
+  {
+    "dayNumber": 27,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 27:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 28,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 28:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 29,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "DAY 29:Quads",
+    "contentArray": {
+      "1": {
+        "title": "Leg Extensions",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "2": {
+        "a": { "title": "Hack Squat", "action": "30, 25, 20 Reps" },
+        "b": { "title": "Reverse Hack Squat", "action": "20, 25, 30 Reps" }
+      },
+      "3": {
+        "title": "Leg Press",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "4": {
+        "title": "Seated Calf Raises",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "5": {
+        "a": { "title": "Hanging Windshield Wipers", "action": "FAILURE" },
+        "b": { "title": "Lying Windshield Wipers", "action": "FAILURE" }
+      }
+    }
+  },
+  {
+    "dayNumber": 30,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 30:Chest & Shoulders",
+    "contentArray": {
+      "1": {
+        "title": "Incline Dumbbell Chest Press",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "2": {
+        "title": "Decline Dumbbell Chest Press",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "3": {
+        "title": "Flat Chest Press Machine",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "4": {
+        "title": "Front Plate Raises",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "5": {
+        "title": "Bent-Over Reverse Plate Flyes",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "6": {
+        "title": "Side Lateral Plate Raises",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      }
+    }
+  },
+  {
+    "dayNumber": 31,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 31:Arms",
+    "contentArray": {
+      "1": {
+        "a": {
+          "title": "Triceps Extensions",
+          "action": "6 Sets x 30, 25, 20, 20, 25, 30 Reps"
+        },
+        "b": {
+          "title": "Dumbbell Biceps Curl",
+          "action": "6 Sets x 20, 15, 10, 10, 15, 20 Reps"
+        }
+      },
+      "2": {
+        "a": {
+          "title": "EZ-Bar Skull Crushers",
+          "action": "6 Sets x 30, 25, 20, 20, 25, 30 Reps"
+        },
+        "b": {
+          "title": "Cable EZ-Bar Preacher Curls",
+          "action": "6 Sets x 20, 15, 10, 10, 15, 20 Reps"
+        }
+      },
+      "3": {
+        "a": {
+          "title": "Dips",
+          "action": "6 Sets x 30, 25, 20, 20, 25, 30 Reps"
+        },
+        "b": {
+          "title": "Hammer Curls",
+          "action": "6 Sets x 20, 15, 10, 10, 15, 20 Reps"
+        }
+      }
+    }
+  },
+  {
+    "dayNumber": 32,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 32:Hamstrings, Lower Back & Upper Abs",
+    "contentArray": {
+      "1": {
+        "title": "Deadlifts",
+        "action": "6 Sets x 15, 10, 5, 5, 10, 15 Reps"
+      },
+      "2": {
+        "title": "Lying leg Curls",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "3": {
+        "title": "Seated leg Curls",
+        "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+      },
+      "4": {
+        "a": { "title": "Standing Cable Crunches", "action": "30 reps" },
+        "b": {
+          "title": "Exercise Ball Alternating Crunches",
+          "action": "30 reps"
+        }
+      }
+    }
+  },
+  {
+    "dayNumber": 33,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 33:Upper back & calves",
+    "contentArray": {
+      "1": {
+        "title": "Pullup",
+        "action": "6 Sets x 20, 15, 10, 10, 15, 20 Reps"
+      },
+      "2": {
+        "title": "T-Bar Rows",
+        "action": "6 Sets x 20, 15, 10, 10, 15, 20 Reps"
+      },
+      "3": {
+        "title": "Seated Machine Row",
+        "action": "6 Sets x 20, 15, 10, 10, 15, 20 Reps"
+      },
+      "4": {
+        "a": {
+          "title": "Machine Shrugs",
+          "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+        },
+        "b": {
+          "title": "Standing Calf Raises",
+          "action": "6 Sets x 30, 20, 10, 10, 20, 30 Reps"
+        }
+      }
+    }
+  },
+  {
+    "dayNumber": 34,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 34:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 35,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 35:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 36,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 36:Quads & Calves",
+    "contentArray": {
+      "1": { "title": "Leg Extensions", "action": "3 Sets x 20,15,10 REPS" },
+      "2": { "title": "Squats", "action": " 3 Sets x 20, 25, 30 Reps" },
+      "3": { "title": "Leg Press", "action": "3 Sets x 20,15,10 Reps" },
+      "4": {
+        "title": "Hack Squats (narrow)",
+        "action": "3 Sets x 20,15,10 Reps"
+      },
+      "5": {
+        "title": "Seated Calf Raises",
+        "action": "6 Sets x 30, 25, 20, 10, 15, 20 Reps"
+      }
+    }
+  },
+  {
+    "dayNumber": 37,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 37:Chest & Shoulders",
+    "contentArray": {
+      "1": {
+        "title": "Flat Dumbbell Press",
+        "action": "3 Sets x 30, 20, 10 reps"
+      },
+      "2": {
+        "title": "Incline Dumbbell Flyes",
+        "action": "3 Sets x 10, 15, 20 reps"
+      },
+      "3": {
+        "title": "Decline Smith Machine Press",
+        "action": "3 Sets x 30, 20, 10 Reps"
+      },
+      "4": {
+        "title": "Cable Crossover",
+        "action": "4 Sets x 10, 15, 20, 30 reps"
+      },
+      "5": {
+        "title": "Incline Front Barbell Raises",
+        "action": "3 Sets x 30, 20, 10 reps"
+      },
+      "6": {
+        "title": "Incline Front Dumbbell Raises",
+        "action": "3 Sets x 10, 15, 20 reps"
+      },
+      "7": { "title": "Rear Delt Flyes", "action": "3 Sets x 30, 20, 10 reps" },
+      "8": {
+        "title": "Incline Bench Rear Dumbbell Flyes",
+        "action": "3 Sets x 10, 15, 20 reps"
+      },
+      "9": {
+        "title": "Dumbbell Lateral Raise",
+        "action": "3 Sets x 30, 20, 10 reps"
+      },
+      "10": {
+        "title": "Seated Side Lateral Dumbbell Raises",
+        "action": "3 Sets x 10, 15, 20 reps"
+      }
+    }
+  },
+  {
+    "dayNumber": 38,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 38:Arms",
+    "contentArray": {
+      "1": {
+        "title": "Machine Preacher Curls",
+        "action": "3 Sets x 30, 20, 10 Reps"
+      },
+      "2": { "title": "Rope Pressdown", "action": "3 Sets x 10, 15, 20 Reps" },
+      "3": {
+        "title": "Reverse-Grip Triceps Extensions",
+        "action": "3 Sets x 30, 20, 10 Reps"
+      },
+      "4": {
+        "title": "Reverse-Grip Cable Biceps Curl",
+        "action": "3 Sets x 20, 25, 30 reps"
+      },
+      "5": {
+        "title": "Smith Machine Drag Curls",
+        "action": "3 Sets x 30, 20, 10 reps"
+      },
+      "6": {
+        "title": "Smith Machine Close-Grip Bench",
+        "action": "3 Sets x 20, 25, 30 Reps"
+      },
+      "7": {
+        "title": "Incline Overhead Dumbbell Extensions",
+        "action": "3 Sets x 30, 20, 10 reps"
+      },
+      "8": { "title": "Spider Curls", "action": "3 Sets x 20, 25, 30 Reps" }
+    }
+  },
+  {
+    "dayNumber": 39,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 39:Hamstrings, Lower Back & Upper Abs",
+    "contentArray": {
+      "1": { "title": "Glute-Ham Raise", "action": "3 Sets x 30, 20, 10 Reps" },
+      "2": {
+        "title": "Seated Leg Curls",
+        "action": "3 Sets x 20, 25, 30 Reps"
+      },
+      "3": {
+        "title": "Lying Hamstring Curls",
+        "action": "3 Sets x 30, 20, 10 Reps"
+      },
+      "4": {
+        "title": "Reverse Hack Squat",
+        "action": "3 Sets x 20, 25, 30 Reps"
+      },
+      "5": { "title": "Hyperextensions", "action": "3 Sets x 30, 20, 10 reps" },
+      "6": {
+        "title": "Dumbbell Deadlifts",
+        "action": "3 Sets x 20, 25, 30 Reps"
+      },
+      "7": {
+        "a": { "title": "Exercise Ball Cable Crunches", "action": "FAILURE" },
+        "b": { "title": "Ab wheel Rollouts", "action": "FAILURE" }
+      }
+    }
+  },
+  {
+    "dayNumber": 40,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 40:Upper back & Calves",
+    "contentArray": {
+      "1": {
+        "title": "Machine Pullover",
+        "action": "3 Sets x 30, 20, 10 Reps"
+      },
+      "2": {
+        "title": "Straight-Arm Dumbbell Pullover",
+        "action": "3 Sets x 20, 25, 30 Reps"
+      },
+      "3": {
+        "title": "Straight-Arm Pulldowns",
+        "action": "3 Sets x 30, 20, 10 Reps"
+      },
+      "4": { "title": "Lat Pulldown", "action": "3 Sets x 20, 25, 30 Reps" },
+      "5": {
+        "title": "Machine Shrugs",
+        "action": "6 Sets x 30, 20, 10, 20, 25, 30 Reps"
+      },
+      "6": {
+        "title": "Standing Calf Raise",
+        "action": "3 Sets x 30, 20, 10 Reps"
+      },
+      "7": {
+        "title": "Donkey Calf Raises",
+        "action": "3 Sets x 20, 25, 30 Reps"
+      }
+    }
+  },
+  {
+    "dayNumber": 41,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 41:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 42,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 42:Active Rest day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 43,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 43:Quads, Calves & Lower Abs",
+    "contentArray": {
+      "1": {
+        "a": { "title": "Leg Extensions", "action": "20, 15, 10 Reps" },
+        "b": { "title": "Seated Leg Press", "action": "20, 15, 10 Reps" }
+      },
+      "2": {
+        "a": { "title": "Barbell Squat", "action": "20, 15, 10 Reps" },
+        "b": { "title": "Hack Squat", "action": "20, 15, 10 Reps" }
+      },
+      "3": {
+        "a": { "title": "Seated Calf Raise", "action": "20, 15, 10 Reps" },
+        "b": { "title": "Flat Bench Lying Leg Raises", "action": "FAILURE" }
+      }
+    }
+  },
+  {
+    "dayNumber": 44,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 44:Chest & Shoulders",
+    "contentArray": {
+      "1": {
+        "a": {
+          "title": "Incline Dumbbell Fly",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": {
+          "title": "Decline Dumbbell Press",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      },
+      "2": {
+        "a": {
+          "title": "Machine Seated Chest Press",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": {
+          "title": "Pec Deck Fly",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      },
+      "3": {
+        "a": {
+          "title": "Upright rows",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": {
+          "title": "Front Dumbbell Raise",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      },
+      "4": {
+        "a": {
+          "title": "Smith Machine Behind-the-Neck Press",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": {
+          "title": "Seated Lateral Raise",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      }
+    }
+  },
+  {
+    "dayNumber": 45,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 45:Arms",
+    "contentArray": {
+      "1": {
+        "a": {
+          "title": "Cable Triceps Extensions",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": {
+          "title": "Seated Biceps Cable Curl",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      },
+      "2": {
+        "a": {
+          "title": "Overhead Machine Triceps Extension",
+          "action": "20,15,10*,10,15, 20 Reps"
+        },
+        "b": {
+          "title": "Machine Preacher Curl",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      },
+      "3": {
+        "a": {
+          "title": "Standing EZ-bar Curl",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": { "title": "Bench Dips", "action": "20, 15, 10*, 10, 15, 20 reps" }
+      }
+    }
+  },
+  {
+    "dayNumber": 46,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 46:Hamstrings, Lower Back and Upper Abs",
+    "contentArray": {
+      "1": {
+        "a": {
+          "title": "Machine Deadlifts",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": {
+          "title": "Hyperextension",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      },
+      "2": {
+        "a": {
+          "title": "Lying hamstring Curls",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": { "title": "Stiff-Legged Deadlift", "action": "" }
+      },
+      "3": {
+        "a": { "title": "Banded Crunches", "action": "Failure" },
+        "b": { "title": "Dumbbell Crunches", "action": "Failure" }
+      }
+    }
+  },
+  {
+    "dayNumber": 47,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 47:Back & calves",
+    "contentArray": {
+      "1": {
+        "a": {
+          "title": "Lat Pulldown",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": {
+          "title": "Seated Machine Row",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      },
+      "2": {
+        "a": {
+          "title": "Bent-Over Row",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        },
+        "b": {
+          "title": "Behind-the-Neck Pulldown",
+          "action": "20, 15, 10*, 10, 15, 20 Reps"
+        }
+      },
+      "3": { "title": "Calf Press", "action": "3 Sets x 20, 15, 10 Reps" },
+      "4": {
+        "title": "Smith Machine Standing Calf Raises",
+        "action": "3 Sets x 10, 15, 20 Reps"
+      }
+    }
+  },
+  {
+    "dayNumber": 48,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 48:Active Rest day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 49,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 49:Active Rest Day",
+    "contentArray": {}
+  },
+  {
+    "dayNumber": 50,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 50:Quads, Calves & Lower Abs",
+    "contentArray": {
+      "1": {
+        "title": "Hack Squat",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "2": {
+        "title": "Leg press",
+        "action": "5 Sets x 10, 15, 20, 25, 30 Reps"
+      },
+      "3": {
+        "a": {
+          "title": "Seated Calf Raises",
+          "action": "30, 25, 20, 15, 10 Reps"
+        },
+        "b": { "title": "Decline Lying Leg Raises*", "action": "" }
+      },
+      "4": {
+        "a": { "title": "Decline Lying Leg Raises*", "action": "" },
+        "b": {
+          "title": "Seated Calf Raises",
+          "action": "30, 25, 20, 15, 10 Reps"
+        }
+      }
+    }
+  },
+  {
+    "dayNumber": 51,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 51:Chest & Shoulders",
+    "contentArray": {
+      "1": {
+        "title": "Incline Dumbbell Fly",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "2": { "title": "Decline Dumbbell Fly", "action": "" },
+      "3": {
+        "title": "Front Dumbbell Raise & Press Combo",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "4": { "title": "Incline rear Delt raises", "action": "" }
+    }
+  },
+  {
+    "dayNumber": 52,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 52:Arms",
+    "contentArray": {
+      "1": {
+        "title": "Cable Incline Triceps Extension",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "2": { "title": "Decline Barbell Triceps Extension", "action": "" },
+      "3": {
+        "title": "High-Pulley Cable Curls",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "4": {
+        "title": "Seated Dumbbell Curls",
+        "action": "5 Sets x 10, 15, 20, 25, 30 Reps"
+      }
+    }
+  },
+  {
+    "dayNumber": 53,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 53:Hamstrings, Lower Back & Upper Abs",
+    "contentArray": {
+      "1": {
+        "title": "Rack Deadlifts",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "2": {
+        "title": "Seated Cable Deadlift",
+        "action": "5 Sets x 10, 15, 20, 25, 30 Reps"
+      },
+      "3": {
+        "title": "Single-Leg Hamstring Curl",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "4": {
+        "title": "Sissy Squat",
+        "action": "5 Sets x 10, 15, 20, 25, 30 Reps"
+      },
+      "5": {
+        "title": "Ab Crunch Machine",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "6": {
+        "title": "Decline Situp",
+        "action": "5 Sets x 10, 15, 20, 25, 30 Reps"
+      }
+    }
+  },
+  {
+    "dayNumber": 54,
+    "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
+    "dayTitle": "Day 54:Upper back & calves",
+    "contentArray": {
+      "1": {
+        "title": "Incline Dumbbell Row",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "2": { "title": "Bent Over Dumbbell Row", "action": "" },
+      "3": {
+        "title": "Wide-Grip Lat Pulldown",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "4": {
+        "title": "Rope Lat Pulldown",
+        "action": "5 Sets x 10, 15, 20, 25, 30 Reps"
+      },
+      "5": {
+        "title": "Calf Press*",
+        "action": "5 Sets x 30, 25, 20, 15, 10 Reps"
+      },
+      "6": {
+        "title": "Standing Calf Raises*",
+        "action": "5 Sets x 10, 15, 20, 25, 30 Reps"
+      }
+    }
+  }
+]
