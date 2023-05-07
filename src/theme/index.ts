@@ -134,10 +134,18 @@ export const darkTheme = {
   ...theme,
   colors: {
     ...theme.colors,
-    background: '#212121',
-    surface: '#333333',
-    onBackground: '#ffffff',
-    onSurface: '#ffffff',
+    primary: '#9fa8da', // Purple 200
+    primaryVariant: '#5c6bc0', // Indigo 700
+    secondary: '#ff7043', // Deep Orange 300
+    secondaryVariant: '#e64a19', // Deep Orange 900
+    background: '#212121', // Grey 900
+    surface: '#424242', // Grey 800
+    error: '#ef5350', // Red 400
+    onPrimary: '#212121', // Grey 900
+    onSecondary: '#ffffff', // White
+    onBackground: '#ffffff', // White
+    onSurface: '#ffffff', // White
+    onError: '#ffffff', // White
   },
 } as const
 
