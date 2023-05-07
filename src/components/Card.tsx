@@ -4,16 +4,11 @@ export const Card = {
   Container: styled.View(({ theme }) => ({
     backgroundColor: theme.colors.background,
     borderRadius: theme.spacing.sm,
-    shadowColor: theme.colors.onSurface,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
     padding: theme.spacing.md,
     flexDirection: 'column',
+    height: theme.spacing.xl * 3,
+    borderColor: theme.colors.onSurface,
+    borderWidth: 2,
   })),
   TitleContainer: styled.View({
     flexDirection: 'row',
