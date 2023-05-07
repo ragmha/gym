@@ -8,7 +8,19 @@ import MainTabNavigator from './MainTabNavigator'
 const Stack = createStackNavigator<RootStackPramList>()
 
 const RootNavigator: React.FC = () => (
-  <NavigationContainer>
+  <NavigationContainer
+    theme={{
+      colors: {
+        primary: 'rgb(255, 45, 85)',
+        background: '#333333',
+        card: '#333333',
+        text: '#FFFFFF',
+        border: '#000000',
+        notification: 'rgb(255, 69, 58)',
+      },
+      dark: true,
+    }}
+  >
     <Stack.Navigator>
       <Stack.Screen
         name="MainTabNavigator"

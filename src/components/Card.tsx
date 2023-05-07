@@ -23,6 +23,7 @@ export const Card = {
   Title: styled.Text(({ theme }) => ({
     fontSize: theme.typography.h6.fontSize,
     fontWeight: theme.typography.h6.fontWeight,
+    color: theme.colors.onSurface,
   })),
   Icon: styled.View({
     alignItems: 'flex-end',

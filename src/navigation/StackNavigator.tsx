@@ -2,13 +2,13 @@ import type { StackParamList } from './types'
 
 import { createStackNavigator } from '@react-navigation/stack'
 
-import { HomeScreen } from '../screens/HomeScreen'
+import { DashboardScreen } from '../screens/DashboardScreen'
 
 const Stack = createStackNavigator<StackParamList>()
 
 const StackNavigator: React.FC = () => (
   <Stack.Navigator>
-    <Stack.Screen name="Home" component={HomeScreen} />
+    <Stack.Screen name="Home" component={DashboardScreen} />
   </Stack.Navigator>
 )
 
