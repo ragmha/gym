@@ -2,7 +2,7 @@
   {
     "dayNumber": 1,
     "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
-    "dayTitle": "DAY 1:Quads, Lower Abs & Calves",
+    "dayTitle": "Quads, Lower Abs & Calves",
     "contentArray": {
       "1": {
         "title": "Hack Squats",
@@ -31,7 +31,7 @@
   {
     "dayNumber": 2,
     "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
-    "dayTitle": "DAY 2:Chest & Shoulders",
+    "dayTitle": "Chest & Shoulders",
     "contentArray": {
       "1": {
         "title": "Dumbbell Chest Press",
@@ -68,7 +68,7 @@
   {
     "dayNumber": 3,
     "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
-    "dayTitle": "DAY 3:Arms",
+    "dayTitle": "Arms",
     "contentArray": {
       "1": {
         "a": {
@@ -108,7 +108,7 @@
   {
     "dayNumber": 4,
     "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
-    "dayTitle": "Day 4:Lower Back, Hamstrings & Upper Abs",
+    "dayTitle": "Lower Back, Hamstrings & Upper Abs",
     "contentArray": {
       "1": { "title": "Deadlifts", "action": "3 Sets x 10 reps" },
       "2": {
@@ -128,7 +128,7 @@
   {
     "dayNumber": 5,
     "cardio": { "morning": "20 Minutes", "evening": "20 Minutes" },
-    "dayTitle": "DAY 5:Upper Back & Calves",
+    "dayTitle": "Upper Back & Calves",
     "contentArray": {
       "1": { "title": "Lat Pulldowns", "action": "3 Sets x 10-12 reps" },
       "2": {
@@ -155,19 +155,19 @@
   {
     "dayNumber": 6,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "DAY 6:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 7,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "DAY 7:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 8,
     "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
-    "dayTitle": "DAY 8:Quads, Lower Abs & Calves",
+    "dayTitle": "Quads, Lower Abs & Calves",
     "contentArray": {
       "1": { "title": "Leg Extensions", "action": "3 Sets x 20, 10, 20* Reps" },
       "2": {
@@ -189,7 +189,7 @@
   {
     "dayNumber": 9,
     "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
-    "dayTitle": "DAY 9:Chest & Shoulders",
+    "dayTitle": "Chest & Shoulders",
     "contentArray": {
       "1": {
         "title": "Hammer Press",
@@ -215,7 +215,7 @@
   {
     "dayNumber": 10,
     "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
-    "dayTitle": "DAY 10:Arms",
+    "dayTitle": "Arms",
     "contentArray": {
       "1": {
         "title": "Overhead Tricep Extensions",
@@ -243,7 +243,7 @@
   {
     "dayNumber": 11,
     "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
-    "dayTitle": "Day 11:Lower Back, Hamstrings & Upper Abs",
+    "dayTitle": "Lower Back, Hamstrings & Upper Abs",
     "contentArray": {
       "1": { "title": "Deadlifts", "action": "3 Sets x 5, 5/5*, 8/8** Reps" },
       "2": {
@@ -268,7 +268,7 @@
   {
     "dayNumber": 12,
     "cardio": { "morning": "25 Minutes", "evening": "25 Minutes" },
-    "dayTitle": "DAY 12:Upper Back & Calves",
+    "dayTitle": "Upper Back & Calves",
     "contentArray": {
       "1": { "title": "Pull-ups", "action": "3 Sets x 10/10* Reps" },
       "2": { "title": "Hammer Row", "action": "3 Sets x 10/10* Reps" },
@@ -289,19 +289,19 @@
   {
     "dayNumber": 13,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "DAY 13:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 14,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "DAY 14:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 15,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "DAY 15:Legs, Calves & Lower Abs",
+    "dayTitle": "Legs, Calves & Lower Abs",
     "contentArray": {
       "1": {
         "title": "Leg Extension",
@@ -330,7 +330,7 @@
   {
     "dayNumber": 16,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "DAY 16:Chest & Shoulders",
+    "dayTitle": "Chest & Shoulders",
     "contentArray": {
       "1": {
         "title": "Incline Dumbbell Fly & Press Combo",
@@ -378,7 +378,7 @@
   {
     "dayNumber": 17,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "DAY 17:Arms",
+    "dayTitle": "Arms",
     "contentArray": {
       "1": {
         "title": "Kneeling Cable Overhead Triceps Extension",
@@ -409,7 +409,7 @@
   {
     "dayNumber": 18,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 18:Hamstrings, Lower Back & Upper Abs",
+    "dayTitle": "Hamstrings, Lower Back & Upper Abs",
     "contentArray": {
       "1": {
         "title": "Single-Leg Hamstring Curl",
@@ -438,7 +438,7 @@
   {
     "dayNumber": 19,
     "cardio": { "morning": "30 Minutes", "evening": "30 Minutes" },
-    "dayTitle": "Day 19:Back & Calves",
+    "dayTitle": "Back & Calves",
     "contentArray": {
       "1": { "title": "Dumbbell Seal Row", "action": "3 Sets x 10/10 reps*" },
       "2": {
@@ -455,19 +455,19 @@
   {
     "dayNumber": 20,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 20:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 21,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 21:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 22,
     "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
-    "dayTitle": "Day 22:Quads, Calves, and Lower Abs",
+    "dayTitle": "Quads, Calves, and Lower Abs",
     "contentArray": {
       "1": {
         "title": "Single-Leg Extension",
@@ -508,7 +508,7 @@
   {
     "dayNumber": 23,
     "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
-    "dayTitle": "Day 23:Chest & Shoulders",
+    "dayTitle": "Chest & Shoulders",
     "contentArray": {
       "1": {
         "title": "Incline One-Arm Dumbbell Press",
@@ -547,7 +547,7 @@
   {
     "dayNumber": 24,
     "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
-    "dayTitle": "Day 24:Arms",
+    "dayTitle": "Arms",
     "contentArray": {
       "1": {
         "a": {
@@ -584,7 +584,7 @@
   {
     "dayNumber": 25,
     "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
-    "dayTitle": "Day 25: Hamstrings, Lower Back & Abs",
+    "dayTitle": "Hamstrings, Lower Back & Abs",
     "contentArray": {
       "1": {
         "title": "Single-Arm Dumbbell Deadlift",
@@ -609,7 +609,7 @@
   {
     "dayNumber": 26,
     "cardio": { "morning": "35 Minutes", "evening": "35 Minutes" },
-    "dayTitle": "Day 26:Back and Calves",
+    "dayTitle": "Back and Calves",
     "contentArray": {
       "1": {
         "title": "Single-Arm Barbell Row",
@@ -636,19 +636,19 @@
   {
     "dayNumber": 27,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 27:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 28,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 28:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 29,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "DAY 29:Quads",
+    "dayTitle": "Quads",
     "contentArray": {
       "1": {
         "title": "Leg Extensions",
@@ -675,7 +675,7 @@
   {
     "dayNumber": 30,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 30:Chest & Shoulders",
+    "dayTitle": "Chest & Shoulders",
     "contentArray": {
       "1": {
         "title": "Incline Dumbbell Chest Press",
@@ -706,7 +706,7 @@
   {
     "dayNumber": 31,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 31:Arms",
+    "dayTitle": "Arms",
     "contentArray": {
       "1": {
         "a": {
@@ -743,7 +743,7 @@
   {
     "dayNumber": 32,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 32:Hamstrings, Lower Back & Upper Abs",
+    "dayTitle": "Hamstrings, Lower Back & Upper Abs",
     "contentArray": {
       "1": {
         "title": "Deadlifts",
@@ -769,7 +769,7 @@
   {
     "dayNumber": 33,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 33:Upper back & calves",
+    "dayTitle": "Upper back & calves",
     "contentArray": {
       "1": {
         "title": "Pullup",
@@ -798,19 +798,19 @@
   {
     "dayNumber": 34,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 34:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 35,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 35:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 36,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 36:Quads & Calves",
+    "dayTitle": "Quads & Calves",
     "contentArray": {
       "1": { "title": "Leg Extensions", "action": "3 Sets x 20,15,10 REPS" },
       "2": { "title": "Squats", "action": " 3 Sets x 20, 25, 30 Reps" },
@@ -828,7 +828,7 @@
   {
     "dayNumber": 37,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 37:Chest & Shoulders",
+    "dayTitle": "Chest & Shoulders",
     "contentArray": {
       "1": {
         "title": "Flat Dumbbell Press",
@@ -872,7 +872,7 @@
   {
     "dayNumber": 38,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 38:Arms",
+    "dayTitle": "Arms",
     "contentArray": {
       "1": {
         "title": "Machine Preacher Curls",
@@ -905,7 +905,7 @@
   {
     "dayNumber": 39,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 39:Hamstrings, Lower Back & Upper Abs",
+    "dayTitle": "Hamstrings, Lower Back & Upper Abs",
     "contentArray": {
       "1": { "title": "Glute-Ham Raise", "action": "3 Sets x 30, 20, 10 Reps" },
       "2": {
@@ -934,7 +934,7 @@
   {
     "dayNumber": 40,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 40:Upper back & Calves",
+    "dayTitle": "Upper back & Calves",
     "contentArray": {
       "1": {
         "title": "Machine Pullover",
@@ -966,19 +966,19 @@
   {
     "dayNumber": 41,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 41:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 42,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 42:Active Rest day",
+    "dayTitle": "Active Rest day",
     "contentArray": {}
   },
   {
     "dayNumber": 43,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 43:Quads, Calves & Lower Abs",
+    "dayTitle": "Quads, Calves & Lower Abs",
     "contentArray": {
       "1": {
         "a": { "title": "Leg Extensions", "action": "20, 15, 10 Reps" },
@@ -997,7 +997,7 @@
   {
     "dayNumber": 44,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 44:Chest & Shoulders",
+    "dayTitle": "Chest & Shoulders",
     "contentArray": {
       "1": {
         "a": {
@@ -1044,7 +1044,7 @@
   {
     "dayNumber": 45,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 45:Arms",
+    "dayTitle": "Arms",
     "contentArray": {
       "1": {
         "a": {
@@ -1078,7 +1078,7 @@
   {
     "dayNumber": 46,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 46:Hamstrings, Lower Back and Upper Abs",
+    "dayTitle": "Hamstrings, Lower Back and Upper Abs",
     "contentArray": {
       "1": {
         "a": {
@@ -1106,7 +1106,7 @@
   {
     "dayNumber": 47,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 47:Back & calves",
+    "dayTitle": "Back & calves",
     "contentArray": {
       "1": {
         "a": {
@@ -1138,19 +1138,19 @@
   {
     "dayNumber": 48,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 48:Active Rest day",
+    "dayTitle": "Active Rest day",
     "contentArray": {}
   },
   {
     "dayNumber": 49,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 49:Active Rest Day",
+    "dayTitle": "Active Rest Day",
     "contentArray": {}
   },
   {
     "dayNumber": 50,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 50:Quads, Calves & Lower Abs",
+    "dayTitle": "Quads, Calves & Lower Abs",
     "contentArray": {
       "1": {
         "title": "Hack Squat",
@@ -1179,7 +1179,7 @@
   {
     "dayNumber": 51,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 51:Chest & Shoulders",
+    "dayTitle": "Chest & Shoulders",
     "contentArray": {
       "1": {
         "title": "Incline Dumbbell Fly",
@@ -1216,7 +1216,7 @@
   {
     "dayNumber": 53,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 53:Hamstrings, Lower Back & Upper Abs",
+    "dayTitle": "Hamstrings, Lower Back & Upper Abs",
     "contentArray": {
       "1": {
         "title": "Rack Deadlifts",
@@ -1247,7 +1247,7 @@
   {
     "dayNumber": 54,
     "cardio": { "morning": "0 minutes", "evening": "0 minutes" },
-    "dayTitle": "Day 54:Upper back & calves",
+    "dayTitle": "Upper back & calves",
     "contentArray": {
       "1": {
         "title": "Incline Dumbbell Row",
