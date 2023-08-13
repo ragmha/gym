@@ -128,7 +128,7 @@ export const lightTheme = {
     onBackground: '#000000',
     onSurface: '#000000',
   },
-} as const
+}
 
 export const darkTheme = {
   ...theme,
@@ -147,7 +147,7 @@ export const darkTheme = {
     onSurface: '#ffffff', // White
     onError: '#ffffff', // White
   },
-} as const
+}
 
 export default theme
 
