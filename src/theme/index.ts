@@ -117,7 +117,7 @@ const theme = {
     lg: 24,
     xl: 32,
   },
-}
+} as const
 
 export const lightTheme = {
   ...theme,
