@@ -27,6 +27,11 @@ interface ExerciseStore {
   exercises: Exercise[]
   setExercises: (exercises: Exercise[]) => void
   completeExercise: (id: string) => void
+  completeExerciseDetail: (
+    exerciseId: string | string[],
+    detailId: string,
+    completed: boolean
+  ) => void
   exercise: (id: string | string[]) => Exercise | undefined
   completedCount: () => number
   detail: (id: string | string[]) => ExerciseDetail[]
@@ -71,6 +76,33 @@ export const useExerciseStore = create<ExerciseStore>()(
       set({ exercises: reorderedExercises })
     },
 
+    completeExerciseDetail: (exerciseId, detailId, completed) => {
+      const updatedExercises = get().exercises.map((exercise) => {
+        if (exercise.id === exerciseId) {
+          const updatedDetails = exercise.exercises.map((detail) =>
+            detail.id === detailId ? { ...detail, completed } : detail
+          )
+
+          const allDetailsCompleted = updatedDetails.every(
+            (detail) => detail.completed
+          )
+
+          return {
+            ...exercise,
+            exercises: updatedDetails,
+            completed: allDetailsCompleted,
+          }
+        }
+        return exercise
+      })
+
+      const reorderedExercises = updatedExercises.sort(
+        (a, b) => Number(a.completed) - Number(b.completed)
+      )
+
+      set({ exercises: reorderedExercises })
+    },
+
     exercise: (id) => get().exercises.find((exercise) => exercise.id === id),
 
     completedCount: () =>
@@ -81,8 +113,6 @@ export const useExerciseStore = create<ExerciseStore>()(
 
       // Find the exercise by day
       const exercise = exercises.find((item) => item.id === id)
-
-      console.log({ exercise })
 
       // If the exercise is found, map its details
       if (exercise?.exercises) {

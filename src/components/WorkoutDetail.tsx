@@ -1,5 +1,4 @@
 import { useThemeColor } from '@/hooks/useThemeColor'
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import React, { useEffect, useLayoutEffect, useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import Animated, {
@@ -17,14 +16,20 @@ type Exercise = {
   variation: string | null
 }
 
-export default function WorkoutDetail({ item }: { item: Exercise }) {
+type WorkoutDetailProps = {
+  item: Exercise
+  onComplete?: (isComplete: boolean) => void
+}
+
+export default function WorkoutDetail({
+  item,
+  onComplete,
+}: WorkoutDetailProps) {
+  const defaultSets = isNaN(item.sets) ? 1 : item.sets
+
   const [selectedCircles, setSelectedCircles] = useState(
-    Number.isNaN(item.sets)
-      ? [true]
-      : Array.from({ length: item.sets }, () => false)
+    Array.from({ length: defaultSets }, () => false)
   )
-  const { title } = useLocalSearchParams()
-  const navigation = useNavigation()
 
   const opacity = useSharedValue(1)
 
@@ -34,16 +39,15 @@ export default function WorkoutDetail({ item }: { item: Exercise }) {
     })
   }, [])
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title,
-    })
-  })
-
   const toggleCircle = (index: number) => {
     const newSelectedCircles = [...selectedCircles]
-    newSelectedCircles[index] = !newSelectedCircles[index]
+    const wasCircleSelected = newSelectedCircles[index]
+
+    newSelectedCircles[index] = !wasCircleSelected
     setSelectedCircles(newSelectedCircles)
+
+    const allCompleted = newSelectedCircles.every((circle) => circle === true)
+    onComplete?.(allCompleted)
   }
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -67,13 +71,16 @@ export default function WorkoutDetail({ item }: { item: Exercise }) {
       entering={SlideInDown}
     >
       <View style={styles.workoutDetails}>
-        <Text style={[styles.workoutTitle, { color: textColor }]}>
-          {item.title}
-        </Text>
+        <View style={styles.workoutTitleWithSets}>
+          <Text style={[styles.workoutTitle, { color: textColor }]}>
+            {item.title}
+          </Text>
+          <Text style={[styles.setDetails, { color: textColor }]}>
+            {Number.isNaN(item.sets) ? 1 : item.sets} × {item.reps} 20kg
+          </Text>
+        </View>
         <View style={styles.circlesContainer}>
-          {Array.from({
-            length: typeof item.sets === 'number' ? item.sets : 1,
-          }).map((_, index) => {
+          {Array.from({ length: defaultSets }).map((_, index) => {
             return (
               <TouchableOpacity
                 key={index}
@@ -107,8 +114,8 @@ const styles = StyleSheet.create({
   workoutItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     marginHorizontal: 20,
     marginVertical: 4,
     borderRadius: 10,
@@ -121,10 +128,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
   },
+  workoutTitleWithSets: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   workoutTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    flexWrap: 'wrap',
+  },
+  setDetails: {
+    fontSize: 14,
   },
   circlesContainer: {
     flexDirection: 'row',
@@ -133,11 +146,12 @@ const styles = StyleSheet.create({
   },
   repsText: {
     fontWeight: '400',
+    fontSize: 16,
   },
   circle: {
-    width: 50,
-    height: 50,
-    borderRadius: 30,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',

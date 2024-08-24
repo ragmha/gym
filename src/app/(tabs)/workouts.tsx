@@ -8,11 +8,14 @@ import { useExerciseStore } from '@/data/store'
 
 export default function WorkoutsScreen() {
   const exercises = useExerciseStore((store) => store.exercises)
+  const completed = useExerciseStore((store) => store.completedCount)()
 
   return (
     <View style={styles.container}>
       <StatusBar />
-      <Header>Workouts</Header>
+      <Header>
+        Workouts {completed} / {exercises.length}
+      </Header>
       <FlatList
         data={exercises}
         renderItem={({ item }) => <Workout item={item} />}

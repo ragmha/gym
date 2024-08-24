@@ -1,25 +1,58 @@
-import { FlatList, View, StyleSheet } from 'react-native'
-
+import { FlatList, View, StyleSheet, Text } from 'react-native'
 import WorkoutDetail from '@/components/WorkoutDetail'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, useNavigation } from 'expo-router'
 import VideoPlayer from '@/components/VideoPlayer'
 import { useExerciseStore } from '@/data/store'
+import { useState, useCallback, useLayoutEffect, useEffect } from 'react'
 
 export default function DetailsScreen() {
-  const { id } = useLocalSearchParams()
+  const { id, title } = useLocalSearchParams()
   const exercises = useExerciseStore((store) =>
     store.exercises.find((e) => e.id === id)
   )
   const exercise = useExerciseStore((store) => store.exercise(id))
   const detail = useExerciseStore((store) => store.detail(id))
-  console.log({ detail, exercise, exercises })
+  const navigation = useNavigation()
+
+  const [completedStatus, setCompletedStatus] = useState(
+    detail.map((d) => d.completed)
+  )
+
+  const completeExerciseDetail = useExerciseStore(
+    (store) => store.completeExerciseDetail
+  )
+
+  const onExerciseComplete = useCallback(
+    (index: number, isComplete: boolean) => {
+      const newCompletedStatus = [...completedStatus]
+      newCompletedStatus[index] = isComplete
+      setCompletedStatus(newCompletedStatus)
+
+      // Update the store with the new detail completion status
+      completeExerciseDetail(id, detail[index].id, isComplete)
+    },
+    [completedStatus, id, detail, completeExerciseDetail]
+  )
+
+  useLayoutEffect(() => {
+    const completedCount = completedStatus.filter(Boolean).length
+    navigation.setOptions({
+      title: `${title} (${completedCount}/${detail.length})`,
+    })
+  }, [completedStatus, title, navigation, detail.length])
 
   return (
     <View style={styles.container}>
       {exercise && <VideoPlayer uri={exercise.videoURL} />}
       <FlatList
         data={detail}
-        renderItem={({ item }) => <WorkoutDetail item={item} />}
+        renderItem={({ item, index }) => (
+          <WorkoutDetail
+            item={item}
+            onComplete={(isComplete) => onExerciseComplete(index, isComplete)}
+          />
+        )}
+        keyExtractor={(item) => item.id}
       />
     </View>
   )

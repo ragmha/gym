@@ -61,7 +61,7 @@ const Workout = ({ item }: { item: WorkoutItem }) => {
             <Text
               style={[
                 styles.workoutTitle,
-                { color: textColor },
+                { color: item.completed ? 'gray' : textColor },
                 item.completed && styles.completed,
               ]}
             >
