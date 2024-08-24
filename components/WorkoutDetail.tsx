@@ -1,51 +1,61 @@
-import { useThemeColor } from "@/hooks/useThemeColor";
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useThemeColor } from '@/hooks/useThemeColor'
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
+import React, { useEffect, useLayoutEffect, useState } from 'react'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import Animated, {
   SlideInDown,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated'
 
 type Exercise = {
-  id: string;
-  title: string;
-  sets: number | string;
-  reps: number | null;
-  variation: string | null;
-  day: string;
-};
+  id: string
+  title: string
+  sets: number
+  reps: number
+  variation: string | null
+}
 
 export default function WorkoutDetail({ item }: { item: Exercise }) {
   const [selectedCircles, setSelectedCircles] = useState(
-    new Array(typeof item.sets === "number" ? item.sets : 1).fill(false)
-  );
+    Number.isNaN(item.sets)
+      ? [true]
+      : Array.from({ length: item.sets }, () => false)
+  )
+  const { title } = useLocalSearchParams()
+  const navigation = useNavigation()
 
-  const opacity = useSharedValue(1);
+  const opacity = useSharedValue(1)
 
   useEffect(() => {
     opacity.value = withTiming(0.2, { duration: 100 }, () => {
-      opacity.value = withTiming(1, { duration: 200 });
-    });
-  }, []);
+      opacity.value = withTiming(1, { duration: 200 })
+    })
+  }, [])
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title,
+    })
+  })
 
   const toggleCircle = (index: number) => {
-    const newSelectedCircles = [...selectedCircles];
-    newSelectedCircles[index] = !newSelectedCircles[index];
-    setSelectedCircles(newSelectedCircles);
-  };
+    const newSelectedCircles = [...selectedCircles]
+    newSelectedCircles[index] = !newSelectedCircles[index]
+    setSelectedCircles(newSelectedCircles)
+  }
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
       opacity: opacity.value,
-    };
-  });
+    }
+  })
 
-  const backgroundColor = useThemeColor({}, "background");
-  const textColor = useThemeColor({}, "text");
-  const selectedCircleColor = useThemeColor({}, "selectedCircle");
-  const shadowColor = useThemeColor({}, "shadow");
+  const backgroundColor = useThemeColor({}, 'background')
+  const textColor = useThemeColor({}, 'text')
+  const selectedCircleColor = useThemeColor({}, 'selectedCircle')
+  const shadowColor = useThemeColor({}, 'shadow')
 
   return (
     <Animated.View
@@ -62,7 +72,7 @@ export default function WorkoutDetail({ item }: { item: Exercise }) {
         </Text>
         <View style={styles.circlesContainer}>
           {Array.from({
-            length: typeof item.sets === "number" ? item.sets : 1,
+            length: typeof item.sets === 'number' ? item.sets : 1,
           }).map((_, index) => {
             return (
               <TouchableOpacity
@@ -71,7 +81,7 @@ export default function WorkoutDetail({ item }: { item: Exercise }) {
                   styles.circle,
                   selectedCircles[index] && {
                     backgroundColor: selectedCircleColor,
-                    borderColor: "#FFFFFF",
+                    borderColor: '#FFFFFF',
                   },
                 ]}
                 onPress={() => toggleCircle(index)}
@@ -79,24 +89,24 @@ export default function WorkoutDetail({ item }: { item: Exercise }) {
                 <Text
                   style={[
                     styles.repsText,
-                    { color: selectedCircles[index] ? "#FFFFFF" : textColor },
+                    { color: selectedCircles[index] ? '#FFFFFF' : textColor },
                   ]}
                 >
                   {item.reps}
                 </Text>
               </TouchableOpacity>
-            );
+            )
           })}
         </View>
       </View>
     </Animated.View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   workoutItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 20,
     paddingHorizontal: 10,
     marginHorizontal: 20,
@@ -109,28 +119,28 @@ const styles = StyleSheet.create({
   },
   workoutDetails: {
     flex: 1,
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
   },
   workoutTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    flexWrap: "wrap",
+    fontWeight: 'bold',
+    flexWrap: 'wrap',
   },
   circlesContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 10,
   },
   repsText: {
-    fontWeight: "400",
+    fontWeight: '400',
   },
   circle: {
     width: 50,
     height: 50,
     borderRadius: 30,
     borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginHorizontal: 5,
   },
-});
+})

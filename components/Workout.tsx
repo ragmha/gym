@@ -1,41 +1,42 @@
-import React, { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
 import Animated, {
   SlideInDown,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from "react-native-reanimated";
-import { Link } from "expo-router";
+} from 'react-native-reanimated'
+import { Link } from 'expo-router'
 
-import { useThemeColor } from "@/hooks/useThemeColor";
+import { useThemeColor } from '@/hooks/useThemeColor'
 
 type WorkoutItem = {
-  id: string;
-  title: string;
-  date: string;
-  color: string;
-  duration?: string;
-};
+  id: string
+  title: string
+  date: string
+  color: string
+  completed: boolean
+  duration?: string
+}
 
 const Workout = ({ item }: { item: WorkoutItem }) => {
-  const opacity = useSharedValue(1);
+  const opacity = useSharedValue(1)
 
   useEffect(() => {
     opacity.value = withTiming(0.2, { duration: 100 }, () => {
-      opacity.value = withTiming(1, { duration: 200 });
-    });
-  }, []);
+      opacity.value = withTiming(1, { duration: 200 })
+    })
+  }, [])
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
       opacity: opacity.value,
-    };
-  });
+    }
+  })
 
-  const backgroundColor = useThemeColor({}, "background");
-  const textColor = useThemeColor({}, "text");
-  const shadowColor = useThemeColor({}, "shadow");
+  const backgroundColor = useThemeColor({}, 'background')
+  const textColor = useThemeColor({}, 'text')
+  const shadowColor = useThemeColor({}, 'shadow')
 
   return (
     <Animated.View
@@ -46,13 +47,24 @@ const Workout = ({ item }: { item: WorkoutItem }) => {
       ]}
       entering={SlideInDown}
     >
-      <Link href={`/details/${item.id}`}>
+      <Link
+        href={{
+          pathname: '/details/[id]',
+          params: { id: item.id, title: item.title },
+        }}
+      >
         <View style={styles.container}>
           <View
             style={[styles.workoutColorBlock, { backgroundColor: item.color }]}
           />
           <View style={styles.workoutDetails}>
-            <Text style={[styles.workoutTitle, { color: textColor }]}>
+            <Text
+              style={[
+                styles.workoutTitle,
+                { color: textColor },
+                item.completed && styles.completed,
+              ]}
+            >
               {item.title}
             </Text>
             <Text style={[styles.workoutDate, { color: textColor }]}>
@@ -62,12 +74,12 @@ const Workout = ({ item }: { item: WorkoutItem }) => {
         </View>
       </Link>
     </Animated.View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
+    flexDirection: 'row',
   },
   workoutItem: {
     flex: 1,
@@ -89,18 +101,22 @@ const styles = StyleSheet.create({
   },
   workoutDetails: {
     flexShrink: 1,
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   workoutTitle: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     flexShrink: 1,
   },
   workoutDate: {
     marginTop: 5,
     fontSize: 14,
   },
-});
+  completed: {
+    textDecorationLine: 'line-through',
+    color: 'gray',
+  },
+})
 
-export default Workout;
+export default Workout
