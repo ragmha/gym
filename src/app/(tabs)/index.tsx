@@ -1,13 +1,15 @@
-import { StyleSheet, View } from 'react-native'
+import React from 'react'
+import { View, StyleSheet, StatusBar } from 'react-native'
 
-import Header from '@/components/Header'
-import { StatusBar } from 'expo-status-bar'
+import { CalendarStrip } from '@/components/CalendarStrip'
+import { WorkoutProgress } from '@/components/WorkoutProgress'
 
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar />
-      <Header>Home</Header>
+      <CalendarStrip />
+      <WorkoutProgress />
     </View>
   )
 }
