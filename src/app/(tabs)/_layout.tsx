@@ -27,7 +27,30 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/** TODO: Add more tabs E.g Settings, Progress */}
+      <Tabs.Screen
+        name="workouts"
+        options={{
+          title: 'Workouts',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? 'barbell' : 'barbell-outline'}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? 'settings' : 'settings-outline'}
+              color={color}
+            />
+          ),
+        }}
+      />
     </Tabs>
   )
 }
