@@ -1,10 +1,10 @@
-import { FlatList, StyleSheet, View } from "react-native"
+import { FlatList, StyleSheet, View } from 'react-native'
 
-import Workout from "@/components/Workout"
+import Workout from '@/components/Workout'
 
-import Header from "@/components/Header"
-import { StatusBar } from "expo-status-bar"
-import { useExerciseStore } from "@/data/store"
+import Header from '@/components/Header'
+import { StatusBar } from 'expo-status-bar'
+import { useExerciseStore } from '@/data/store'
 
 export default function HomeScreen() {
   const exercises = useExerciseStore((store) => store.exercises)

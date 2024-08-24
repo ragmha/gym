@@ -1,9 +1,9 @@
-import { FlatList, View, StyleSheet } from "react-native"
+import { FlatList, View, StyleSheet } from 'react-native'
 
-import WorkoutDetail from "@/components/WorkoutDetail"
-import { useLocalSearchParams } from "expo-router"
-import VideoPlayer from "@/components/VideoPlayer"
-import { useExerciseStore } from "@/data/store"
+import WorkoutDetail from '@/components/WorkoutDetail'
+import { useLocalSearchParams } from 'expo-router'
+import VideoPlayer from '@/components/VideoPlayer'
+import { useExerciseStore } from '@/data/store'
 
 export default function DetailsScreen() {
   const { id } = useLocalSearchParams()
