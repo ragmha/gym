@@ -4,7 +4,7 @@ import Workout from '@/components/Workout'
 
 import Header from '@/components/Header'
 import { StatusBar } from 'expo-status-bar'
-import { useExerciseStore } from '@/data/store'
+import { useExerciseStore } from '@/stores/ExerciseStore'
 
 export default function WorkoutsScreen() {
   const exercises = useExerciseStore((store) => store.exercises)

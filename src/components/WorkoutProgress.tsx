@@ -1,4 +1,4 @@
-import { useExerciseStore } from '@/data/store'
+import { useExerciseStore } from '@/stores/ExerciseStore'
 import { useThemeColor } from '@/hooks/useThemeColor'
 import { ProgressCard } from './ProgessCard'
 
