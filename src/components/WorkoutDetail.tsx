@@ -1,5 +1,5 @@
 import { useThemeColor } from '@/hooks/useThemeColor'
-import React, { useEffect, useLayoutEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import Animated, {
   SlideInDown,
@@ -28,7 +28,7 @@ export default function WorkoutDetail({
   const defaultSets = isNaN(item.sets) ? 1 : item.sets
 
   const [selectedCircles, setSelectedCircles] = useState(
-    Array.from({ length: defaultSets }, () => false)
+    Array.from({ length: defaultSets }, () => false),
   )
 
   const opacity = useSharedValue(1)
@@ -37,7 +37,7 @@ export default function WorkoutDetail({
     opacity.value = withTiming(0.2, { duration: 100 }, () => {
       opacity.value = withTiming(1, { duration: 200 })
     })
-  }, [])
+  }, [opacity])
 
   const toggleCircle = (index: number) => {
     const newSelectedCircles = [...selectedCircles]

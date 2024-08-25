@@ -1,17 +1,17 @@
-import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
-import { WebView } from "react-native-webview";
+import React from 'react'
+import { Platform, StyleSheet, View } from 'react-native'
+import { WebView } from 'react-native-webview'
 
 export default function VideoPlayer({
   uri,
   autoPlay,
 }: {
-  uri: string;
-  autoPlay?: boolean;
+  uri: string
+  autoPlay?: boolean
 }) {
-  const videoUri = `${uri}?autoplay=${autoPlay ? 1 : 0}&fs=0`;
+  const videoUri = `${uri}?autoplay=${autoPlay ? 1 : 0}&fs=0`
 
-  if (Platform.OS === "web") {
+  if (Platform.OS === 'web') {
     return (
       <View style={styles.webContainer}>
         <iframe
@@ -22,7 +22,7 @@ export default function VideoPlayer({
           allowFullScreen={false}
         />
       </View>
-    );
+    )
   }
 
   return (
@@ -35,7 +35,7 @@ export default function VideoPlayer({
         allowsFullscreenVideo={false}
       />
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -51,4 +51,4 @@ const styles = StyleSheet.create({
   video: {
     flex: 1,
   },
-});
+})

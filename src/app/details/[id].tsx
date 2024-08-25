@@ -1,4 +1,4 @@
-import { FlatList, View, StyleSheet, Text } from 'react-native'
+import { FlatList, View, StyleSheet } from 'react-native'
 import WorkoutDetail from '@/components/WorkoutDetail'
 import { useLocalSearchParams, useNavigation } from 'expo-router'
 import VideoPlayer from '@/components/VideoPlayer'
@@ -7,19 +7,17 @@ import { useState, useCallback, useLayoutEffect } from 'react'
 
 export default function DetailsScreen() {
   const { id, title } = useLocalSearchParams()
-  const exercises = useExerciseStore((store) =>
-    store.exercises.find((e) => e.id === id)
-  )
+
   const exercise = useExerciseStore((store) => store.exercise(id))
   const detail = useExerciseStore((store) => store.detail(id))
   const navigation = useNavigation()
 
   const [completedStatus, setCompletedStatus] = useState(
-    detail.map((d) => d.completed)
+    detail.map((d) => d.completed),
   )
 
   const completeExerciseDetail = useExerciseStore(
-    (store) => store.completeExerciseDetail
+    (store) => store.completeExerciseDetail,
   )
 
   const onExerciseComplete = useCallback(
@@ -31,7 +29,7 @@ export default function DetailsScreen() {
       // Update the store with the new detail completion status
       completeExerciseDetail(id, detail[index].id, isComplete)
     },
-    [completedStatus, id, detail, completeExerciseDetail]
+    [completedStatus, id, detail, completeExerciseDetail],
   )
 
   useLayoutEffect(() => {

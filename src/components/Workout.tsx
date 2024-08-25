@@ -26,7 +26,7 @@ const Workout = ({ item }: { item: WorkoutItem }) => {
     opacity.value = withTiming(0.2, { duration: 100 }, () => {
       opacity.value = withTiming(1, { duration: 200 })
     })
-  }, [])
+  }, [opacity])
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

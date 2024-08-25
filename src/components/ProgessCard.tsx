@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import { ProgressCircle } from 'react-native-svg-charts'
 
 interface ProgressCardProps {

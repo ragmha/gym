@@ -30,7 +30,7 @@ interface ExerciseStore {
   completeExerciseDetail: (
     exerciseId: string | string[],
     detailId: string,
-    completed: boolean
+    completed: boolean,
   ) => void
   exercise: (id: string | string[]) => Exercise | undefined
   completedCount: () => number
@@ -46,7 +46,7 @@ const initialExercises: Exercise[] = exercisesData.map((e) => ({
   date: new Date(
     today.getFullYear(),
     today.getMonth(),
-    today.getDate() + Number(e.day) - 1
+    today.getDate() + Number(e.day) - 1,
   ).toLocaleString(),
   color: getRandomPastelColor(),
   completed: false,
@@ -67,11 +67,11 @@ export const useExerciseStore = create<ExerciseStore>()(
 
       completeExercise: (id) => {
         const updatedExercises = get().exercises.map((exercise) =>
-          exercise.id === id ? { ...exercise, completed: true } : exercise
+          exercise.id === id ? { ...exercise, completed: true } : exercise,
         )
 
         const reorderedExercises = updatedExercises.sort(
-          (a, b) => Number(a.completed) - Number(b.completed)
+          (a, b) => Number(a.completed) - Number(b.completed),
         )
 
         set({ exercises: reorderedExercises })
@@ -81,11 +81,11 @@ export const useExerciseStore = create<ExerciseStore>()(
         const updatedExercises = get().exercises.map((exercise) => {
           if (exercise.id === exerciseId) {
             const updatedDetails = exercise.exercises.map((detail) =>
-              detail.id === detailId ? { ...detail, completed } : detail
+              detail.id === detailId ? { ...detail, completed } : detail,
             )
 
             const allDetailsCompleted = updatedDetails.every(
-              (detail) => detail.completed
+              (detail) => detail.completed,
             )
 
             return {
@@ -98,7 +98,7 @@ export const useExerciseStore = create<ExerciseStore>()(
         })
 
         const reorderedExercises = updatedExercises.sort(
-          (a, b) => Number(a.completed) - Number(b.completed)
+          (a, b) => Number(a.completed) - Number(b.completed),
         )
 
         set({ exercises: reorderedExercises })
@@ -133,6 +133,6 @@ export const useExerciseStore = create<ExerciseStore>()(
     {
       name: 'exercise-storage',
       storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
+    },
+  ),
 )
