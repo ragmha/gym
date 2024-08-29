@@ -1,11 +1,6 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import Animated, {
-  SlideInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import { Link } from 'expo-router'
 
 import { useThemeColor } from '@/hooks/useThemeColor'
@@ -20,33 +15,10 @@ type WorkoutItem = {
 }
 
 const Workout = ({ item }: { item: WorkoutItem }) => {
-  const opacity = useSharedValue(1)
-
-  useEffect(() => {
-    opacity.value = withTiming(0.2, { duration: 100 }, () => {
-      opacity.value = withTiming(1, { duration: 200 })
-    })
-  }, [opacity])
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-    }
-  })
-
-  const backgroundColor = useThemeColor({}, 'background')
   const textColor = useThemeColor({}, 'text')
-  const shadowColor = useThemeColor({}, 'shadow')
 
   return (
-    <Animated.View
-      style={[
-        styles.workoutItem,
-        animatedStyle,
-        { backgroundColor, shadowColor },
-      ]}
-      entering={SlideInDown}
-    >
+    <Animated.View style={[styles.workoutItem]}>
       <Link
         href={{
           pathname: '/details/[id]',

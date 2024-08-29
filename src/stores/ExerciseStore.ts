@@ -63,6 +63,7 @@ export const useExerciseStore = create<ExerciseStore>()(
   persist(
     (set, get) => ({
       exercises: initialExercises,
+
       setExercises: (exercises) => set({ exercises }),
 
       completeExercise: (id) => {
@@ -112,10 +113,8 @@ export const useExerciseStore = create<ExerciseStore>()(
       detail: (id: string | string[]) => {
         const exercises = get().exercises
 
-        // Find the exercise by day
         const exercise = exercises.find((item) => item.id === id)
 
-        // If the exercise is found, map its details
         if (exercise?.exercises) {
           return exercise.exercises.map((exerciseDetail) => ({
             id: exerciseDetail.id,
@@ -131,7 +130,7 @@ export const useExerciseStore = create<ExerciseStore>()(
       },
     }),
     {
-      name: 'exercise-storage',
+      name: 'exercise',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),
