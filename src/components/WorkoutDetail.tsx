@@ -7,6 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
+import { useExerciseStore } from '@/stores/ExerciseStore'
 
 type Exercise = {
   id: string
@@ -18,17 +19,25 @@ type Exercise = {
 
 type WorkoutDetailProps = {
   item: Exercise
-  onComplete?: (isComplete: boolean) => void
+  exerciseId: string
+  onComplete?: (isComplete: boolean, selectedSets: boolean[]) => void
 }
 
 export default function WorkoutDetail({
   item,
+  exerciseId,
   onComplete,
 }: WorkoutDetailProps) {
   const defaultSets = isNaN(item.sets) ? 1 : item.sets
 
-  const [selectedCircles, setSelectedCircles] = useState(
-    Array.from({ length: defaultSets }, () => false),
+  const getSelectedSets = useExerciseStore((store) => store.getSelectedSets)
+
+  const initialSelectedCircles = getSelectedSets(exerciseId, item.id)
+
+  const [selectedCircles, setSelectedCircles] = useState<boolean[]>(
+    initialSelectedCircles.length > 0
+      ? initialSelectedCircles
+      : Array.from({ length: defaultSets }, () => false),
   )
 
   const opacity = useSharedValue(1)
@@ -41,13 +50,11 @@ export default function WorkoutDetail({
 
   const toggleCircle = (index: number) => {
     const newSelectedCircles = [...selectedCircles]
-    const wasCircleSelected = newSelectedCircles[index]
-
-    newSelectedCircles[index] = !wasCircleSelected
+    newSelectedCircles[index] = !newSelectedCircles[index]
     setSelectedCircles(newSelectedCircles)
 
     const allCompleted = newSelectedCircles.every((circle) => circle === true)
-    onComplete?.(allCompleted)
+    onComplete?.(allCompleted, newSelectedCircles)
   }
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -76,34 +83,32 @@ export default function WorkoutDetail({
             {item.title}
           </Text>
           <Text style={[styles.setDetails, { color: textColor }]}>
-            {Number.isNaN(item.sets) ? 1 : item.sets} × {item.reps} 20kg
+            {Number.isNaN(item.sets) ? 1 : item.sets} × {item.reps} reps
           </Text>
         </View>
         <View style={styles.circlesContainer}>
-          {Array.from({ length: defaultSets }).map((_, index) => {
-            return (
-              <TouchableOpacity
-                key={index}
+          {Array.from({ length: defaultSets }).map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.circle,
+                selectedCircles[index] && {
+                  backgroundColor: selectedCircleColor,
+                  borderColor: '#FFFFFF',
+                },
+              ]}
+              onPress={() => toggleCircle(index)}
+            >
+              <Text
                 style={[
-                  styles.circle,
-                  selectedCircles[index] && {
-                    backgroundColor: selectedCircleColor,
-                    borderColor: '#FFFFFF',
-                  },
+                  styles.repsText,
+                  { color: selectedCircles[index] ? '#FFFFFF' : textColor },
                 ]}
-                onPress={() => toggleCircle(index)}
               >
-                <Text
-                  style={[
-                    styles.repsText,
-                    { color: selectedCircles[index] ? '#FFFFFF' : textColor },
-                  ]}
-                >
-                  {item.reps}
-                </Text>
-              </TouchableOpacity>
-            )
-          })}
+                {item.reps}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     </Animated.View>

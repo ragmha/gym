@@ -10,6 +10,7 @@ export default function DetailsScreen() {
 
   const exercise = useExerciseStore((store) => store.exercise(id))
   const detail = useExerciseStore((store) => store.detail(id))
+
   const navigation = useNavigation()
 
   const [completedStatus, setCompletedStatus] = useState(
@@ -21,13 +22,13 @@ export default function DetailsScreen() {
   )
 
   const onExerciseComplete = useCallback(
-    (index: number, isComplete: boolean) => {
+    (index: number, isComplete: boolean, selectedSets: boolean[]) => {
       const newCompletedStatus = [...completedStatus]
       newCompletedStatus[index] = isComplete
       setCompletedStatus(newCompletedStatus)
 
       // Update the store with the new detail completion status
-      completeExerciseDetail(id, detail[index].id, isComplete)
+      completeExerciseDetail(id, detail[index].id, isComplete, selectedSets)
     },
     [completedStatus, id, detail, completeExerciseDetail],
   )
@@ -41,17 +42,24 @@ export default function DetailsScreen() {
 
   return (
     <View style={styles.container}>
-      {exercise && <VideoPlayer uri={exercise.videoURL} />}
-      <FlatList
-        data={detail}
-        renderItem={({ item, index }) => (
-          <WorkoutDetail
-            item={item}
-            onComplete={(isComplete) => onExerciseComplete(index, isComplete)}
+      {exercise && (
+        <>
+          <VideoPlayer uri={exercise.videoURL} />
+          <FlatList
+            data={detail}
+            renderItem={({ item, index }) => (
+              <WorkoutDetail
+                item={item}
+                onComplete={(isComplete, selectedSets) =>
+                  onExerciseComplete(index, isComplete, selectedSets)
+                }
+                exerciseId={exercise?.id}
+              />
+            )}
+            keyExtractor={(item) => item.id}
           />
-        )}
-        keyExtractor={(item) => item.id}
-      />
+        </>
+      )}
     </View>
   )
 }

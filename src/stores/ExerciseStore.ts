@@ -11,6 +11,7 @@ interface ExerciseDetail {
   reps: number
   variation: string | null
   completed: boolean
+  selectedSets: boolean[]
 }
 
 interface Exercise {
@@ -31,7 +32,9 @@ interface ExerciseStore {
     exerciseId: string | string[],
     detailId: string,
     completed: boolean,
+    selectedSets: boolean[],
   ) => void
+  getSelectedSets: (exerciseId: string, detailId: string) => boolean[]
   exercise: (id: string | string[]) => Exercise | undefined
   completedCount: () => number
   detail: (id: string | string[]) => ExerciseDetail[]
@@ -56,6 +59,7 @@ const initialExercises: Exercise[] = exercisesData.map((e) => ({
     reps: Number(exercise.reps),
     variation: exercise.variation,
     completed: false,
+    selectedSets: Array.from({ length: Number(exercise.sets) }, () => false),
   })),
 }))
 
@@ -78,31 +82,36 @@ export const useExerciseStore = create<ExerciseStore>()(
         set({ exercises: reorderedExercises })
       },
 
-      completeExerciseDetail: (exerciseId, detailId, completed) => {
-        const updatedExercises = get().exercises.map((exercise) => {
-          if (exercise.id === exerciseId) {
-            const updatedDetails = exercise.exercises.map((detail) =>
-              detail.id === detailId ? { ...detail, completed } : detail,
-            )
+      completeExerciseDetail: (
+        exerciseId,
+        detailId,
+        completed,
+        selectedSets,
+      ) => {
+        set((state) => ({
+          exercises: state.exercises.map((exercise) =>
+            exercise.id === exerciseId
+              ? {
+                  ...exercise,
+                  exercises: exercise.exercises.map((detail) =>
+                    detail.id === detailId
+                      ? { ...detail, completed, selectedSets }
+                      : detail,
+                  ),
+                }
+              : exercise,
+          ),
+        }))
+      },
 
-            const allDetailsCompleted = updatedDetails.every(
-              (detail) => detail.completed,
-            )
-
-            return {
-              ...exercise,
-              exercises: updatedDetails,
-              completed: allDetailsCompleted,
-            }
-          }
-          return exercise
-        })
-
-        const reorderedExercises = updatedExercises.sort(
-          (a, b) => Number(a.completed) - Number(b.completed),
+      getSelectedSets: (exerciseId, detailId) => {
+        const exercise = get().exercises.find(
+          (exercise) => exercise.id === exerciseId,
         )
-
-        set({ exercises: reorderedExercises })
+        const detail = exercise?.exercises.find(
+          (detail) => detail.id === detailId,
+        )
+        return detail?.selectedSets || []
       },
 
       exercise: (id) => get().exercises.find((exercise) => exercise.id === id),
@@ -123,6 +132,7 @@ export const useExerciseStore = create<ExerciseStore>()(
             reps: exerciseDetail.reps,
             variation: exerciseDetail.variation,
             completed: exerciseDetail.completed,
+            selectedSets: exerciseDetail.selectedSets,
           }))
         }
 
@@ -130,7 +140,7 @@ export const useExerciseStore = create<ExerciseStore>()(
       },
     }),
     {
-      name: 'exercise',
+      name: 'exercises_',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),
