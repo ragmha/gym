@@ -3,7 +3,7 @@ import WorkoutDetail from '@/components/WorkoutDetail'
 import { useLocalSearchParams, useNavigation } from 'expo-router'
 import VideoPlayer from '@/components/VideoPlayer'
 import { useExerciseStore } from '@/stores/ExerciseStore'
-import { useState, useCallback, useLayoutEffect } from 'react'
+import React, { useState, useCallback, useLayoutEffect, useEffect } from 'react'
 
 export default function DetailsScreen() {
   const { id, title } = useLocalSearchParams()
@@ -21,6 +21,8 @@ export default function DetailsScreen() {
     (store) => store.completeExerciseDetail,
   )
 
+  const completeExercise = useExerciseStore((store) => store.completeExercise)
+
   const onExerciseComplete = useCallback(
     (index: number, isComplete: boolean, selectedSets: boolean[]) => {
       const newCompletedStatus = [...completedStatus]
@@ -30,7 +32,7 @@ export default function DetailsScreen() {
       // Update the store with the new detail completion status
       completeExerciseDetail(id, detail[index].id, isComplete, selectedSets)
     },
-    [completedStatus, id, detail, completeExerciseDetail],
+    [completedStatus, completeExerciseDetail, id, detail],
   )
 
   useLayoutEffect(() => {
@@ -38,7 +40,13 @@ export default function DetailsScreen() {
     navigation.setOptions({
       title: `${title} (${completedCount}/${detail.length})`,
     })
-  }, [completedStatus, title, navigation, detail.length])
+  }, [completedStatus, detail.length, navigation, title])
+
+  useEffect(() => {
+    if (completedStatus.every(Boolean)) {
+      completeExercise(id)
+    }
+  }, [completedStatus, completeExercise, id])
 
   return (
     <View style={styles.container}>

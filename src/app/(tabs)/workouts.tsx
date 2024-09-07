@@ -9,7 +9,8 @@ import { useThemeColor } from '@/hooks/useThemeColor'
 
 export default function WorkoutsScreen() {
   const exercises = useExerciseStore((store) => store.exercises)
-  const completedExercises = exercises.filter((exercise) => exercise.completed)
+  const activeWorkouts = exercises.filter((exercise) => !exercise.completed)
+  const completedWorkouts = exercises.filter((exercise) => exercise.completed)
 
   const completed = useExerciseStore((store) => store.completedCount)()
   const [index, setIndex] = useState(0)
@@ -22,7 +23,7 @@ export default function WorkoutsScreen() {
 
   const renderActiveWorkouts = () => (
     <FlatList
-      data={exercises}
+      data={activeWorkouts}
       renderItem={({ item }) => <Workout item={item} />}
       keyExtractor={(item) => item.id}
     />
@@ -30,7 +31,7 @@ export default function WorkoutsScreen() {
 
   const renderCompletedWorkouts = () => (
     <FlatList
-      data={completedExercises}
+      data={completedWorkouts}
       renderItem={({ item }) => <Workout item={item} />}
       keyExtractor={(item) => item.id}
     />

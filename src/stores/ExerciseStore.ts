@@ -1,6 +1,6 @@
-import { create } from 'zustand'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { create } from 'zustand'
 import exercisesData from '@/data/exercises.json'
 import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
 
@@ -27,7 +27,7 @@ interface Exercise {
 interface ExerciseStore {
   exercises: Exercise[]
   setExercises: (exercises: Exercise[]) => void
-  completeExercise: (id: string) => void
+  completeExercise: (id: string | string[]) => void
   completeExerciseDetail: (
     exerciseId: string | string[],
     detailId: string,
@@ -55,11 +55,22 @@ const initialExercises: Exercise[] = exercisesData.map((e) => ({
   completed: false,
   exercises: e.exercises.map((exercise) => ({
     ...exercise,
-    sets: Number(exercise.sets),
+    sets:
+      exercise.sets === 'To Failure' || exercise.sets == null
+        ? 1
+        : Number(exercise.sets),
     reps: Number(exercise.reps),
     variation: exercise.variation,
     completed: false,
-    selectedSets: Array.from({ length: Number(exercise.sets) }, () => false),
+    selectedSets: Array.from(
+      {
+        length:
+          exercise.sets === 'To Failure' || exercise.sets == null
+            ? 1
+            : Number(exercise.sets),
+      },
+      () => false,
+    ),
   })),
 }))
 
@@ -69,17 +80,12 @@ export const useExerciseStore = create<ExerciseStore>()(
       exercises: initialExercises,
 
       setExercises: (exercises) => set({ exercises }),
-
       completeExercise: (id) => {
         const updatedExercises = get().exercises.map((exercise) =>
           exercise.id === id ? { ...exercise, completed: true } : exercise,
         )
 
-        const reorderedExercises = updatedExercises.sort(
-          (a, b) => Number(a.completed) - Number(b.completed),
-        )
-
-        set({ exercises: reorderedExercises })
+        set({ exercises: updatedExercises })
       },
 
       completeExerciseDetail: (
@@ -116,8 +122,9 @@ export const useExerciseStore = create<ExerciseStore>()(
 
       exercise: (id) => get().exercises.find((exercise) => exercise.id === id),
 
-      completedCount: () =>
-        get().exercises.filter((exercise) => exercise.completed).length,
+      completedCount: () => {
+        return get().exercises.filter((exercise) => exercise.completed).length
+      },
 
       detail: (id: string | string[]) => {
         const exercises = get().exercises
@@ -140,7 +147,7 @@ export const useExerciseStore = create<ExerciseStore>()(
       },
     }),
     {
-      name: 'exercises_',
+      name: 'exercises1',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),
