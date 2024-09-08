@@ -11,6 +11,7 @@ import 'react-native-reanimated'
 import 'react-native-get-random-values' // required for @aws-sdk/client-s3
 
 import { useColorScheme } from '@/hooks/useColorScheme'
+import { useExerciseStore } from '@/stores/ExerciseStore'
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync()
@@ -20,6 +21,12 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
+
+  const intializeStore = useExerciseStore((store) => store.initializeStore)
+
+  useEffect(() => {
+    intializeStore()
+  }, [intializeStore])
 
   useEffect(() => {
     if (loaded) {

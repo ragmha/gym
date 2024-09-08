@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { create } from 'zustand'
-import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
 import { fetchExercies } from '@/data/fetch-exercises'
+import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
 
 interface Workout {
   day: string
@@ -54,6 +54,7 @@ interface ExerciseStore {
   exercise: (id: string | string[]) => Exercise | undefined
   completedCount: () => number
   detail: (id: string | string[]) => ExerciseDetail[]
+  initializeStore: () => Promise<void>
 }
 
 const today = new Date()
@@ -62,7 +63,6 @@ export const useExerciseStore = create<ExerciseStore>()(
   persist(
     (set, get) => ({
       exercises: [],
-
       setExercises: (exercises) => set({ exercises }),
       completeExercise: (id) => {
         const updatedExercises = get().exercises.map((exercise) =>
@@ -129,52 +129,54 @@ export const useExerciseStore = create<ExerciseStore>()(
 
         return []
       },
-    }),
-    {
-      name: 'exercises1',
-      storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => async (state) => {
-        try {
-          const exercisesData = (await fetchExercies()) as Workout[]
+      initializeStore: async () => {
+        if (get().exercises.length === 0) {
+          try {
+            const exercisesData = (await fetchExercies()) as Workout[]
 
-          const initialExercises = exercisesData.map((e) => ({
-            id: e.day,
-            title: e.title,
-            videoURL: e.videoURL,
-            date: new Date(
-              today.getFullYear(),
-              today.getMonth(),
-              today.getDate() + Number(e.day) - 1,
-            ).toLocaleString(),
-            color: getRandomPastelColor(),
-            completed: false,
-            cardio: e.cardio,
-            exercises: e.exercises.map((exercise) => ({
-              ...exercise,
-              sets:
-                exercise.sets === 'To Failure' || exercise.sets == null
-                  ? 1
-                  : Number(exercise.sets),
-              reps: Number(exercise.reps),
-              variation: exercise.variation,
+            const initialExercises = exercisesData.map((e) => ({
+              id: e.day,
+              title: e.title,
+              videoURL: e.videoURL,
+              date: new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                today.getDate() + Number(e.day) - 1,
+              ).toLocaleString(),
+              color: getRandomPastelColor(),
               completed: false,
-              selectedSets: Array.from(
-                {
-                  length:
-                    exercise.sets === 'To Failure' || exercise.sets == null
-                      ? 1
-                      : Number(exercise.sets),
-                },
-                () => false,
-              ),
-            })),
-          }))
+              cardio: e.cardio,
+              exercises: e.exercises.map((exercise) => ({
+                ...exercise,
+                sets:
+                  exercise.sets === 'To Failure' || exercise.sets == null
+                    ? 1
+                    : Number(exercise.sets),
+                reps: Number(exercise.reps),
+                variation: exercise.variation,
+                completed: false,
+                selectedSets: Array.from(
+                  {
+                    length:
+                      exercise.sets === 'To Failure' || exercise.sets == null
+                        ? 1
+                        : Number(exercise.sets),
+                  },
+                  () => false,
+                ),
+              })),
+            }))
 
-          state?.setExercises(initialExercises)
-        } catch (error) {
-          console.error('Error fetching exercises:', error)
+            set({ exercises: initialExercises })
+          } catch (error) {
+            console.error('Error fetching exercises:', error)
+          }
         }
       },
+    }),
+    {
+      name: 'exercises_',
+      storage: createJSONStorage(() => AsyncStorage),
     },
   ),
 )
