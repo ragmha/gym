@@ -175,7 +175,7 @@ export const useExerciseStore = create<ExerciseStore>()(
       },
     }),
     {
-      name: 'exercises_',
+      name: 'exercises_september',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

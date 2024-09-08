@@ -35,10 +35,7 @@ export default function WorkoutDetail({
   const initialSelectedCircles = getSelectedSets(exerciseId, item.id)
 
   console.log({
-    initialSelectedCircles,
-    defaultSets,
-    x: isNaN(item.sets),
-    y: item.sets,
+    item,
   })
 
   const [selectedCircles, setSelectedCircles] = useState<boolean[]>(

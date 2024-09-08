@@ -1,9 +1,10 @@
-import { FlatList, View, StyleSheet } from 'react-native'
-import WorkoutDetail from '@/components/WorkoutDetail'
+import { View, StyleSheet, FlatList } from 'react-native'
 import { useLocalSearchParams, useNavigation } from 'expo-router'
 import VideoPlayer from '@/components/VideoPlayer'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import React, { useState, useCallback, useLayoutEffect, useEffect } from 'react'
+import { CardioDetails } from '@/components/CardioDetails'
+import WorkoutDetail from '@/components/WorkoutDetail'
 
 export default function DetailsScreen() {
   const { id, title } = useLocalSearchParams()
@@ -48,11 +49,17 @@ export default function DetailsScreen() {
     }
   }, [completedStatus, completeExercise, id])
 
+  console.log(exercise)
+
   return (
     <View style={styles.container}>
       {exercise && (
         <>
           <VideoPlayer uri={exercise.videoURL} />
+          <CardioDetails
+            morning={exercise.cardio.morning}
+            evening={exercise.cardio.evening}
+          />
           <FlatList
             data={detail}
             renderItem={({ item, index }) => (
