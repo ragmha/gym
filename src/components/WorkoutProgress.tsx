@@ -1,8 +1,12 @@
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import { useThemeColor } from '@/hooks/useThemeColor'
 import { ProgressCard } from './ProgessCard'
+import { TouchableOpacity } from 'react-native'
+import { useRouter } from 'expo-router'
+import { useCallback } from 'react'
 
 export function WorkoutProgress() {
+  const router = useRouter()
   const cardBackgroundColor = useThemeColor({}, 'cardBackground')
   const textColor = useThemeColor({}, 'text')
   const progressColor = useThemeColor({}, 'selectedCircle')
@@ -13,14 +17,20 @@ export function WorkoutProgress() {
   const progress =
     totalExercises > 0 ? exercisesCompleted() / totalExercises : 0
 
+  const handleNavigation = useCallback(() => {
+    router.push('/workouts')
+  }, [router])
+
   return (
-    <ProgressCard
-      title="Workout Progress"
-      subtitle={`${totalExercises - exercisesCompleted()} Workouts left`}
-      progress={progress}
-      progressColor={progressColor}
-      cardBackgroundColor={cardBackgroundColor}
-      textColor={textColor}
-    />
+    <TouchableOpacity onPress={handleNavigation}>
+      <ProgressCard
+        title="Workout Progress"
+        subtitle={`${totalExercises - exercisesCompleted()} Workouts left`}
+        progress={progress}
+        progressColor={progressColor}
+        cardBackgroundColor={cardBackgroundColor}
+        textColor={textColor}
+      />
+    </TouchableOpacity>
   )
 }
