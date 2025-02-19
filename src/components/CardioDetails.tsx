@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useThemeColor } from '@/hooks/useThemeColor'
 
 interface CardioProps {
-  morning: string
-  evening: string
+  morning: number
+  evening: number
 }
 
 export const CardioDetails: React.FC<CardioProps> = ({ morning, evening }) => {
@@ -38,7 +38,7 @@ export const CardioDetails: React.FC<CardioProps> = ({ morning, evening }) => {
           />
         </TouchableOpacity>
         <Text style={[styles.label, { color: textColor }]}>Morning:</Text>
-        <Text style={[styles.value, { color: textColor }]}>{morning}</Text>
+        <Text style={[styles.value, { color: textColor }]}>{morning} min</Text>
       </View>
       <View style={styles.row}>
         <TouchableOpacity
@@ -53,7 +53,7 @@ export const CardioDetails: React.FC<CardioProps> = ({ morning, evening }) => {
           />
         </TouchableOpacity>
         <Text style={[styles.label, { color: textColor }]}>Evening:</Text>
-        <Text style={[styles.value, { color: textColor }]}>{evening}</Text>
+        <Text style={[styles.value, { color: textColor }]}>{evening} min</Text>
       </View>
     </View>
   )

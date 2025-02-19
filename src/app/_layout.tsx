@@ -44,7 +44,10 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="details/[id]"
-          options={{ headerBackTitleVisible: false }}
+          options={{
+            headerBackVisible: true,
+            headerBackTitle: '',
+          }}
         />
         <Stack.Screen name="+not-found" />
       </Stack>
