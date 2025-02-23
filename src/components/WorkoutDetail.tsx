@@ -1,4 +1,5 @@
 import { useThemeColor } from '@/hooks/useThemeColor'
+import { useExerciseStore } from '@/stores/ExerciseStore'
 import React, { useEffect, useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import Animated, {
@@ -7,7 +8,6 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
-import { useExerciseStore } from '@/stores/ExerciseStore'
 
 type Exercise = {
   id: string
@@ -29,14 +29,8 @@ export default function WorkoutDetail({
   onComplete,
 }: WorkoutDetailProps) {
   const defaultSets = isNaN(item.sets) ? 1 : item.sets
-
-  const getSelectedSets = useExerciseStore((store) => store.getSelectedSets)
-
+  const { getSelectedSets } = useExerciseStore()
   const initialSelectedCircles = getSelectedSets(exerciseId, item.id)
-
-  console.log({
-    item,
-  })
 
   const [selectedCircles, setSelectedCircles] = useState<boolean[]>(
     initialSelectedCircles.length > 0

@@ -8,7 +8,6 @@ import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import 'react-native-reanimated'
-import 'react-native-get-random-values' // required for @aws-sdk/client-s3
 
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useExerciseStore } from '@/stores/ExerciseStore'
@@ -22,11 +21,11 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
 
-  const intializeStore = useExerciseStore((store) => store.initializeStore)
+  const { initialize } = useExerciseStore()
 
   useEffect(() => {
-    intializeStore()
-  }, [intializeStore])
+    initialize()
+  }, [initialize])
 
   useEffect(() => {
     if (loaded) {

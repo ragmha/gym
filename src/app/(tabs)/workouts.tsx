@@ -1,18 +1,16 @@
-import React, { useState } from 'react'
-import { FlatList, StyleSheet, View, Dimensions } from 'react-native'
-import { TabView, SceneMap, TabBar } from 'react-native-tab-view'
-import Workout from '@/components/Workout'
 import Header from '@/components/Header'
-import { StatusBar } from 'expo-status-bar'
-import { useExerciseStore } from '@/stores/ExerciseStore'
+import Workout from '@/components/Workout'
 import { useThemeColor } from '@/hooks/useThemeColor'
+import { useExerciseStore } from '@/stores/ExerciseStore'
+import { StatusBar } from 'expo-status-bar'
+import React, { useState } from 'react'
+import { Dimensions, FlatList, StyleSheet, View } from 'react-native'
+import { SceneMap, TabBar, TabView } from 'react-native-tab-view'
 
 export default function WorkoutsScreen() {
-  const exercises = useExerciseStore((store) => store.exercises)
-  const activeWorkouts = exercises.filter((exercise) => !exercise.completed)
-  const completedWorkouts = exercises.filter((exercise) => exercise.completed)
+  const { activeExercises, completedExercises, completedCount, exercises } =
+    useExerciseStore()
 
-  const completed = useExerciseStore((store) => store.completedCount)()
   const [index, setIndex] = useState(0)
   const [routes] = useState([
     { key: 'active', title: 'Active' },
@@ -23,7 +21,7 @@ export default function WorkoutsScreen() {
 
   const renderActiveWorkouts = () => (
     <FlatList
-      data={activeWorkouts}
+      data={activeExercises}
       renderItem={({ item }) => <Workout item={item} />}
       keyExtractor={(item) => item.id}
     />
@@ -31,7 +29,7 @@ export default function WorkoutsScreen() {
 
   const renderCompletedWorkouts = () => (
     <FlatList
-      data={completedWorkouts}
+      data={completedExercises}
       renderItem={({ item }) => <Workout item={item} />}
       keyExtractor={(item) => item.id}
     />
@@ -46,7 +44,7 @@ export default function WorkoutsScreen() {
     <View style={styles.container}>
       <StatusBar />
       <Header>
-        Workouts {completed} / {exercises.length}
+        Workouts {completedCount} / {exercises.length}
       </Header>
       <TabView
         navigationState={{ index, routes }}
