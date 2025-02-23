@@ -45,4 +45,15 @@ export default [
       ],
     },
   },
+  ...compat.config({
+    root: true,
+    extends: ['universe/native'],
+    settings: {
+      'import/resolver': {
+        typescript: {
+          project: './tsconfig.json',
+        },
+      },
+    },
+  }),
 ]
