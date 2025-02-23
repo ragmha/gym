@@ -1,42 +1,27 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { Database } from '@/lib/database.types'
+import { supabase } from '@/lib/supabase'
 
-const accessKeyId =
-  process.env.AWS_ACCESS_KEY_ID || process.env.EXPO_PUBLIC_AWS_ACCESS_KEY_ID
-const secretAccessKey =
-  process.env.AWS_SECRET_ACCESS_KEY ||
-  process.env.EXPO_PUBLIC_AWS_SECRET_ACCESS_KEY
-const region = process.env.AWS_REGION || process.env.EXPO_PUBLIC_AWS_REGION
-const bucketName =
-  process.env.AWS_BUCKET_NAME || process.env.EXPO_PUBLIC_AWS_BUCKET_NAME
+type Exercise = Database['public']['Tables']['exercises']['Row']
 
-export const fetchExercies = async () => {
-  if (!region || !accessKeyId || !secretAccessKey || !bucketName) {
-    throw new Error('Missing AWS environment variables')
-  }
-
-  const s3 = new S3Client({
-    region,
-    credentials: {
-      accessKeyId,
-      secretAccessKey,
-    },
-  })
-
-  const command = new GetObjectCommand({
-    Bucket: bucketName,
-    Key: 'exercises.json',
-  })
-
+export const fetchExercies = async (): Promise<Exercise[]> => {
   try {
-    const response = await s3.send(command)
-    const body = await response.Body?.transformToString()
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .order('day')
 
-    if (!body) {
-      throw new Error('No body returned from S3')
+    if (error) {
+      console.error('Supabase error:', error.message)
+      throw new Error('Failed to fetch exercises')
     }
 
-    return JSON.parse(body)
+    if (!data || data.length === 0) {
+      throw new Error('No exercises found')
+    }
+
+    return data
   } catch (err) {
-    console.error(`Error fetching from S3: ${err}`)
+    console.error('Error fetching exercises:', err)
+    throw err // Re-throw to handle in the store
   }
 }

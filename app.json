@@ -2,11 +2,11 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "io.raghib.gym",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./src/assets/images/splash.png",

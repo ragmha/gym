@@ -1,20 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { persist, createJSONStorage } from 'zustand/middleware'
-import { create } from 'zustand'
-import { fetchExercies } from '@/data/fetch-exercises'
+import { supabase } from '@/lib/supabase'
 import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
+import { observable } from '@legendapp/state'
+import { enableReactTracking } from '@legendapp/state/config/enableReactTracking'
+import { useEffect } from 'react'
+import 'react-native-get-random-values'
+import { v4 as uuidv4 } from 'uuid'
 
-interface Workout {
-  day: string
-  week: string
-  title: string
-  videoURL: string
-  cardio: {
-    morning: number
-    evening: number
-  }
-  exercises: ExerciseDetail[]
-}
+// Enable React tracking
+enableReactTracking({
+  auto: true,
+})
 
 interface ExerciseDetail {
   id: string
@@ -38,103 +33,117 @@ interface Exercise {
     evening: number
   }
   exercises: ExerciseDetail[]
+  localId: string
+  synced: boolean
+  deleted?: boolean
 }
 
-interface ExerciseStore {
-  exercises: Exercise[]
-  setExercises: (exercises: Exercise[]) => void
-  completeExercise: (id: string | string[]) => void
-  completeExerciseDetail: (
-    exerciseId: string | string[],
-    detailId: string,
-    completed: boolean,
-    selectedSets: boolean[],
-  ) => void
-  getSelectedSets: (exerciseId: string, detailId: string) => boolean[]
-  exercise: (id: string | string[]) => Exercise | undefined
-  completedCount: () => number
-  detail: (id: string | string[]) => ExerciseDetail[]
-  initializeStore: () => Promise<void>
+// Create the store
+export const state$ = observable({
+  exercises: {} as Record<string, Exercise>,
+  error: null as string | null,
+  loading: false,
+  initialized: false,
+})
+
+// Create computed values
+export const computed$ = {
+  completedCount: () =>
+    Object.values(state$.exercises.get()).filter((e) => e.completed).length,
+  activeExercises: () =>
+    Object.values(state$.exercises.get()).filter((e) => !e.completed),
+  completedExercises: () =>
+    Object.values(state$.exercises.get()).filter((e) => e.completed),
 }
 
-const today = new Date()
-
-export const useExerciseStore = create<ExerciseStore>()(
-  persist(
-    (set, get) => ({
-      exercises: [],
-      setExercises: (exercises) => set({ exercises }),
-      completeExercise: (id) => {
-        const updatedExercises = get().exercises.map((exercise) =>
-          exercise.id === id ? { ...exercise, completed: true } : exercise,
-        )
-
-        set({ exercises: updatedExercises })
+// Mock data for initial development
+const MOCK_EXERCISES = [
+  {
+    day: '1',
+    title: 'Push Day',
+    videoURL: 'https://www.youtube.com/watch?v=IODxDxX7oi4',
+    cardio: {
+      morning: 30,
+      evening: 20,
+    },
+    exercises: [
+      {
+        id: '1',
+        title: 'Bench Press',
+        sets: 4,
+        reps: 12,
+        variation: null,
       },
-
-      completeExerciseDetail: (
-        exerciseId,
-        detailId,
-        completed,
-        selectedSets,
-      ) => {
-        set((state) => ({
-          exercises: state.exercises.map((exercise) =>
-            exercise.id === exerciseId
-              ? {
-                  ...exercise,
-                  exercises: exercise.exercises.map((detail) =>
-                    detail.id === detailId
-                      ? { ...detail, completed, selectedSets }
-                      : detail,
-                  ),
-                }
-              : exercise,
-          ),
-        }))
+      {
+        id: '2',
+        title: 'Shoulder Press',
+        sets: 3,
+        reps: 15,
+        variation: 'Dumbbell',
       },
-
-      getSelectedSets: (exerciseId, detailId) => {
-        const exercise = get().exercises.find(
-          (exercise) => exercise.id === exerciseId,
-        )
-        const detail = exercise?.exercises.find(
-          (detail) => detail.id === detailId,
-        )
-        return detail?.selectedSets || []
+      {
+        id: '3',
+        title: 'Tricep Extensions',
+        sets: 'To Failure',
+        reps: 20,
+        variation: 'Rope',
       },
-
-      exercise: (id) => get().exercises.find((exercise) => exercise.id === id),
-
-      completedCount: () => {
-        return get().exercises.filter((exercise) => exercise.completed).length
+    ],
+  },
+  {
+    day: '2',
+    title: 'Pull Day',
+    videoURL: 'https://www.youtube.com/watch?v=IODxDxX7oi4',
+    cardio: {
+      morning: 25,
+      evening: 15,
+    },
+    exercises: [
+      {
+        id: '4',
+        title: 'Deadlifts',
+        sets: 4,
+        reps: 8,
+        variation: null,
       },
-
-      detail: (id: string | string[]) => {
-        const exercises = get().exercises
-
-        const exercise = exercises.find((item) => item.id === id)
-
-        if (exercise?.exercises) {
-          return exercise.exercises.map((exerciseDetail) => ({
-            id: exerciseDetail.id,
-            title: exerciseDetail.title,
-            sets: exerciseDetail.sets,
-            reps: exerciseDetail.reps,
-            variation: exerciseDetail.variation,
-            completed: exerciseDetail.completed,
-            selectedSets: exerciseDetail.selectedSets,
-          }))
-        }
-
-        return []
+      {
+        id: '5',
+        title: 'Barbell Rows',
+        sets: 3,
+        reps: 12,
+        variation: null,
       },
-      initializeStore: async () => {
-        if (get().exercises.length === 0) {
-          try {
-            const exercisesData = (await fetchExercies()) as Workout[]
+      {
+        id: '6',
+        title: 'Bicep Curls',
+        sets: 4,
+        reps: 15,
+        variation: 'Dumbbell',
+      },
+    ],
+  },
+]
 
-            const initialExercises = exercisesData.map((e) => ({
+// Store actions
+export const actions = {
+  initialize: async () => {
+    if (state$.initialized.get()) return
+
+    state$.loading.set(true)
+    try {
+      // Try to fetch from Supabase first
+      const { data, error } = await supabase
+        .from('exercises')
+        .select('*')
+        .order('day')
+
+      // If Supabase table doesn't exist, use mock data
+      const exercisesData = error ? MOCK_EXERCISES : data
+
+      if (exercisesData) {
+        const exercises = exercisesData.reduce(
+          (acc, e) => {
+            const exercise: Exercise = {
               id: e.day,
               title: e.title,
               videoURL: e.videoURL,
@@ -146,37 +155,121 @@ export const useExerciseStore = create<ExerciseStore>()(
               color: getRandomPastelColor(),
               completed: false,
               cardio: e.cardio,
-              exercises: e.exercises.map((exercise) => ({
-                ...exercise,
+              exercises: e.exercises.map((detail: ExerciseDetail) => ({
+                ...detail,
                 sets:
-                  exercise.sets === 'To Failure' || exercise.sets == null
+                  detail.sets === 'To Failure' || detail.sets == null
                     ? 1
-                    : Number(exercise.sets),
-                reps: Number(exercise.reps),
-                variation: exercise.variation,
+                    : Number(detail.sets),
+                reps: Number(detail.reps),
+                variation: detail.variation,
                 completed: false,
                 selectedSets: Array.from(
                   {
                     length:
-                      exercise.sets === 'To Failure' || exercise.sets == null
+                      detail.sets === 'To Failure' || detail.sets == null
                         ? 1
-                        : Number(exercise.sets),
+                        : Number(detail.sets),
                   },
                   () => false,
                 ),
               })),
-            }))
+              localId: uuidv4(),
+              synced: true,
+            }
+            acc[exercise.localId] = exercise
+            return acc
+          },
+          {} as Record<string, Exercise>,
+        )
 
-            set({ exercises: initialExercises })
-          } catch (error) {
-            console.error('Error fetching exercises:', error)
-          }
-        }
-      },
-    }),
-    {
-      name: 'exercises_september',
-      storage: createJSONStorage(() => AsyncStorage),
-    },
-  ),
-)
+        state$.exercises.set(exercises)
+      }
+      state$.initialized.set(true)
+    } catch (error) {
+      console.error('Error initializing store:', error)
+      state$.error.set('Failed to initialize exercises')
+    } finally {
+      state$.loading.set(false)
+    }
+  },
+
+  completeExercise: (localId: string) => {
+    state$.exercises[localId].completed.set(true)
+    state$.exercises[localId].synced.set(false)
+  },
+
+  completeExerciseDetail: (
+    exerciseLocalId: string,
+    detailId: string,
+    completed: boolean,
+    selectedSets: boolean[],
+  ) => {
+    const exercise = state$.exercises[exerciseLocalId].exercises.get()
+    const updatedExercises = exercise.map((detail) =>
+      detail.id === detailId ? { ...detail, completed, selectedSets } : detail,
+    )
+    state$.exercises[exerciseLocalId].exercises.set(updatedExercises)
+    state$.exercises[exerciseLocalId].synced.set(false)
+  },
+
+  getSelectedSets: (exerciseLocalId: string, detailId: string) => {
+    const exercise = state$.exercises[exerciseLocalId].get()
+    const detail = exercise.exercises.find((d) => d.id === detailId)
+    return detail?.selectedSets || []
+  },
+
+  getExercise: (localId: string) => {
+    return state$.exercises[localId].get()
+  },
+
+  getDetail: (localId: string) => {
+    const exercise = state$.exercises[localId].get()
+    return exercise?.exercises || []
+  },
+
+  // Sync changes with Supabase
+  sync: async () => {
+    const exercises = state$.exercises.get()
+    const unsyncedExercises = Object.values(exercises).filter((e) => !e.synced)
+
+    for (const exercise of unsyncedExercises) {
+      try {
+        const { error } = await supabase
+          .from('exercises')
+          .update({
+            completed: exercise.completed,
+            exercises: exercise.exercises,
+          })
+          .eq('day', exercise.id)
+
+        if (error) throw error
+
+        state$.exercises[exercise.localId].synced.set(true)
+      } catch (error) {
+        console.error('Error syncing exercise:', error)
+      }
+    }
+  },
+}
+
+// Helper functions
+const today = new Date()
+
+// Create the hook
+export const useExerciseStore = () => {
+  useEffect(() => {
+    actions.initialize()
+  }, [])
+
+  return {
+    exercises: state$.exercises.get(),
+    error: state$.error.get(),
+    loading: state$.loading.get(),
+    initialized: state$.initialized.get(),
+    completedCount: computed$.completedCount(),
+    activeExercises: computed$.activeExercises(),
+    completedExercises: computed$.completedExercises(),
+    ...actions,
+  }
+}

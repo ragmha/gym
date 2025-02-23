@@ -1,6 +1,6 @@
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
-import { ProgressCircle } from 'react-native-svg-charts'
+import { StyleSheet, Text, TextStyle, View } from 'react-native'
+import CircularProgress from 'react-native-circular-progress-indicator'
 
 interface ProgressCardProps {
   title?: string
@@ -18,7 +18,7 @@ export function ProgressCard({
   title = 'Progress',
   subtitle,
   progress = 0,
-  progressColor,
+  progressColor = '#007AFF',
   cardBackgroundColor,
   textColor,
   strokeWidth = 8,
@@ -27,31 +27,45 @@ export function ProgressCard({
 }: ProgressCardProps) {
   const percentage = Math.round(progress * 100)
 
+  const progressTextStyle: TextStyle = {
+    ...styles.percentage,
+    ...(textColor ? { color: textColor } : {}),
+  }
+
   return (
-    <View style={[styles.card, { backgroundColor: cardBackgroundColor }]}>
-      <View style={styles.textContainer}>
-        <Text style={[styles.title, { color: textColor }]}>{title}</Text>
-        {subtitle && (
-          <Text style={[styles.subtitle, { color: textColor }]}>
-            {subtitle}
+    <View
+      style={[
+        styles.container,
+        cardBackgroundColor ? { backgroundColor: cardBackgroundColor } : {},
+      ]}
+    >
+      <View style={styles.content}>
+        <View style={styles.textContainer}>
+          <Text style={[styles.title, textColor ? { color: textColor } : {}]}>
+            {title}
           </Text>
-        )}
-      </View>
-      <View style={styles.progressContainer}>
-        <ProgressCircle
-          style={[
-            styles.progressCircle,
-            { height: progressCircleSize, width: progressCircleSize },
-          ]}
-          progress={progress}
-          progressColor={progressColor}
-          backgroundColor={circleBackgroundColor}
-          strokeWidth={strokeWidth}
-        />
-        <View style={styles.progressTextContainer}>
-          <Text style={[styles.percentageText, { color: textColor }]}>
-            {percentage}%
-          </Text>
+          {subtitle && (
+            <Text
+              style={[styles.subtitle, textColor ? { color: textColor } : {}]}
+            >
+              {subtitle}
+            </Text>
+          )}
+        </View>
+        <View style={styles.progressContainer}>
+          <CircularProgress
+            value={percentage}
+            radius={progressCircleSize / 2}
+            duration={1000}
+            valueSuffix="%"
+            activeStrokeWidth={strokeWidth}
+            inActiveStrokeWidth={strokeWidth}
+            progressValueColor={textColor}
+            maxValue={100}
+            activeStrokeColor={progressColor}
+            inActiveStrokeColor={circleBackgroundColor}
+            progressValueStyle={progressTextStyle}
+          />
         </View>
       </View>
     </View>
@@ -59,41 +73,39 @@ export function ProgressCard({
 }
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  content: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    borderRadius: 15,
     justifyContent: 'space-between',
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    marginTop: 5,
+    color: '#666',
   },
   progressContainer: {
-    position: 'relative',
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  progressCircle: {
-    // height and width are now controlled via props
-  },
-  progressTextContainer: {
-    position: 'absolute',
     justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
   },
-  percentageText: {
+  percentage: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 })
