@@ -10,7 +10,7 @@
     "android": "bunx expo run:android",
     "ios": "bunx expo run:ios",
     "web": "bunx expo start --web",
-    "test": "bunx jest",
+    "test": "bunx jest --watchAll",
     "test:watch": "bunx jest --watch",
     "lint": "bunx eslint .",
     "typecheck": "tsc --noEmit",
@@ -20,7 +20,10 @@
     "db:reset": "bun run src/scripts/reset-db.ts"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
+    ]
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
@@ -62,7 +65,7 @@
     "@eslint/js": "^9.20.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/jest-native": "^5.4.3",
-    "@testing-library/react-native": "^12.4.3",
+    "@testing-library/react-native": "^13.0.1",
     "@types/jest": "^29.5.14",
     "@types/react": "~18.3.18",
     "@types/react-native": "^0.73.0",
@@ -74,7 +77,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-unused-imports": "^4.1.4",
-    "jest": "^29.7.0",
+    "jest": "~29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-expo": "~52.0.5",
     "prettier": "^3.5.1",
