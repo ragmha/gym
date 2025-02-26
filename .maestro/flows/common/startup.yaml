@@ -1,0 +1,11 @@
+appId: com.gym.app
+name: Application Startup
+onFlowStart:
+  - clearState
+  - clearKeychain
+  - launchApp
+
+---
+# Wait for the app to load
+- waitForAnimationToEnd
+- assertVisible: "Home" 
