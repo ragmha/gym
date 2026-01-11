@@ -1,0 +1,23 @@
+appId: com.gym.app
+name: App Navigation Test Flow
+onFlowStart:
+  - launchApp
+
+---
+- runFlow:
+    file: common/startup.yaml
+    
+# Test Home Screen
+- assertVisible: "Calendar"
+- tapOn: "Workouts"
+
+# Test Workouts Screen
+- assertVisible: "Workouts"
+- assertVisible: "Active"
+- assertVisible: "Completed"
+- tapOn: "Active"
+- waitForAnimationToEnd
+
+# Test tab navigation to switch back to Home
+- tapOn: "Home"
+- assertVisible: "Calendar" 

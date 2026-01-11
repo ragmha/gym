@@ -1,0 +1,63 @@
+name: Maestro UI Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ui-tests:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        api-level: [30]
+        target: [google_apis]
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Build Android app
+      run: bunx expo run:android --variant release --no-packager
+
+    - name: Install Maestro
+      run: |
+        curl -Ls "https://get.maestro.mobile.dev" | bash
+        echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+    - name: Set up Android Emulator
+      uses: ReactiveCircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        target: ${{ matrix.target }}
+        arch: x86_64
+        profile: pixel
+        script: |
+          adb devices
+          maestro test .maestro/flows
+          
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: maestro-test-results
+        path: ~/.maestro/tests 

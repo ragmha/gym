@@ -1,0 +1,14 @@
+{
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+        "source.organizeImports": "explicit"
+    },
+    "editor.formatOnSave": true,
+    "eslint.validate": [
+        "javascript",
+        "javascriptreact",
+        "typescript",
+        "typescriptreact"
+    ]
+}
