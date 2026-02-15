@@ -1,4 +1,5 @@
 import React from 'react'
+import { act } from 'react'
 import renderer from 'react-test-renderer'
 import { Platform } from 'react-native'
 
@@ -9,16 +10,30 @@ jest.mock('@/hooks/useThemeColor', () => ({
   useThemeColor: () => '#000000',
 }))
 
+function renderToJSON(element: React.ReactElement) {
+  let component: renderer.ReactTestRenderer
+  act(() => {
+    component = renderer.create(element)
+  })
+  return component!.toJSON()
+}
+
 describe('DailySteps', () => {
   const originalPlatform = Platform.OS
 
   afterEach(() => {
-    Object.defineProperty(Platform, 'OS', { value: originalPlatform })
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: originalPlatform,
+    })
   })
 
   it('renders on iOS with step count and goal', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer.create(<DailySteps steps={5432} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(<DailySteps steps={5432} />)
 
     expect(tree).not.toBeNull()
     const json = JSON.stringify(tree)
@@ -30,15 +45,21 @@ describe('DailySteps', () => {
   })
 
   it('returns null on Android', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'android' })
-    const tree = renderer.create(<DailySteps steps={5000} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'android',
+    })
+    const tree = renderToJSON(<DailySteps steps={5000} />)
 
     expect(tree).toBeNull()
   })
 
   it('shows goal reached when steps >= goal', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer.create(<DailySteps steps={12000} goal={10000} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(<DailySteps steps={12000} goal={10000} />)
 
     const json = JSON.stringify(tree)
     expect(json).toContain('Goal reached!')
@@ -46,8 +67,11 @@ describe('DailySteps', () => {
   })
 
   it('shows exactly at goal', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer.create(<DailySteps steps={10000} goal={10000} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(<DailySteps steps={10000} goal={10000} />)
 
     const json = JSON.stringify(tree)
     expect(json).toContain('Goal reached!')
@@ -55,8 +79,11 @@ describe('DailySteps', () => {
   })
 
   it('accepts a custom goal', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer.create(<DailySteps steps={3000} goal={5000} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(<DailySteps steps={3000} goal={5000} />)
 
     const json = JSON.stringify(tree)
     expect(json).toContain('2,000 steps to go')
@@ -65,8 +92,11 @@ describe('DailySteps', () => {
   })
 
   it('handles zero steps', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer.create(<DailySteps steps={0} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(<DailySteps steps={0} />)
 
     const json = JSON.stringify(tree)
     expect(json).toContain('0')
@@ -74,8 +104,11 @@ describe('DailySteps', () => {
   })
 
   it('has the testID for querying', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer.create(<DailySteps steps={1000} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(<DailySteps steps={1000} />)
 
     expect(tree).toHaveProperty('props.testID', 'daily-steps-card')
   })

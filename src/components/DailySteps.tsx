@@ -11,7 +11,10 @@ export interface DailyStepsProps {
 
 const DEFAULT_STEP_GOAL = 10_000
 
-export function DailySteps({ steps, goal = DEFAULT_STEP_GOAL }: DailyStepsProps) {
+export function DailySteps({
+  steps,
+  goal = DEFAULT_STEP_GOAL,
+}: DailyStepsProps) {
   const cardBg = useThemeColor({}, 'cardBackground')
   const textColor = useThemeColor({}, 'text')
   const subtextColor = useThemeColor({}, 'icon')
