@@ -1,0 +1,28 @@
+appId: io.raghib.gym
+name: Settings HealthKit Test
+
+---
+- runFlow:
+    file: common/startup.yaml
+
+# Navigate to Settings tab
+- tapOn: "Settings"
+- waitForAnimationToEnd
+
+# Verify Settings screen loaded
+- assertVisible: "Settings"
+
+# Apple Health section should be visible on iOS
+- assertVisible: "Health"
+- assertVisible: "Apple Health"
+- assertVisible: "Connect to see health data on the home screen"
+
+# Tap the Apple Health switch to trigger authorization
+- tapOn:
+    id: "Apple Health"
+- waitForAnimationToEnd
+
+# Navigate back to Home to verify integration
+- tapOn: "Home"
+- waitForAnimationToEnd
+- assertVisible: "Workout Progress"
