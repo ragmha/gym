@@ -8,7 +8,7 @@ on:
 
 jobs:
   ui-tests:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         api-level: [34]
@@ -52,10 +52,15 @@ jobs:
           arch: x86_64
           profile: pixel_6
           script: |
-            curl -Ls "https://get.maestro.mobile.dev" | bash
-            export PATH="$HOME/.maestro/bin:$PATH"
+            MAESTRO_VERSION="1.36.0"
+            MAESTRO_DIR="$HOME/.maestro"
+            MAESTRO_BIN_DIR="$MAESTRO_DIR/bin"
+            mkdir -p "$MAESTRO_BIN_DIR"
+            curl -L "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip" -o "$MAESTRO_DIR/maestro.zip"
+            unzip -q -o "$MAESTRO_DIR/maestro.zip" -d "$MAESTRO_DIR"
+            export PATH="$MAESTRO_BIN_DIR:$PATH"
             adb install android/app/build/outputs/apk/release/app-release.apk
-            maestro test .maestro/flows/app_navigation.yaml .maestro/flows/workouts_test.yaml
+            maestro test .maestro/flows/android
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
