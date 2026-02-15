@@ -1,7 +1,5 @@
-import { Database } from '@/lib/database.types'
 import { supabase } from '@/lib/supabase'
-
-type Exercise = Database['public']['Tables']['exercises']['Row']
+import { Exercise } from '@/types/models'
 
 export const fetchExercies = async (): Promise<Exercise[]> => {
   try {

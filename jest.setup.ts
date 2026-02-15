@@ -46,6 +46,7 @@ jest.mock('react-native-webview', () => ({
 
 // Mock react-native-reanimated
 jest.mock('react-native-reanimated', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const View = require('react-native').View
   return {
     __esModule: true,
