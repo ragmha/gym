@@ -1,0 +1,21 @@
+appId: io.raghib.gym
+name: Workouts Screen Test
+
+---
+- runFlow:
+    file: common/startup.yaml
+
+# Navigate to Workouts tab  
+- tapOn: "Workouts"
+- waitForAnimationToEnd
+- assertVisible: "Workouts"
+
+# Test tab switching between Active and Completed
+- assertVisible: "Active"
+- assertVisible: "Completed"
+- tapOn: "Completed"
+- waitForAnimationToEnd
+
+# Switch back to Active tab
+- tapOn: "Active"
+- waitForAnimationToEnd 
