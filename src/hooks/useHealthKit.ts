@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   getDailyCalories,
@@ -20,6 +20,7 @@ interface HealthKitState {
 }
 
 export function useHealthKit() {
+  const hasInitialized = useRef(false)
   const [state, setState] = useState<HealthKitState>({
     isAvailable: isHealthKitAvailable(),
     isAuthorized: false,
@@ -85,10 +86,12 @@ export function useHealthKit() {
 
   // Auto-initialize on mount if available
   useEffect(() => {
-    if (isHealthKitAvailable()) {
+    if (isHealthKitAvailable() && !hasInitialized.current) {
+      hasInitialized.current = true
       requestAuthorization()
     }
-  }, [requestAuthorization])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return {
     ...state,
