@@ -25,11 +25,13 @@ export const RootStore = observable<RootState>({
   initialized: false,
 })
 
-// Setup persistence with type-safe configuration
-persistObservable(RootStore, {
-  name: 'gym-app-state',
-  storage: AsyncStorage,
-})
+// Setup persistence with type-safe configuration (skip during SSR)
+if (typeof window !== 'undefined') {
+  persistObservable(RootStore, {
+    name: 'gym-app-state',
+    storage: AsyncStorage,
+  })
+}
 
 // Type-safe selectors using computed values
 export const selectors = {
