@@ -9,6 +9,8 @@ on:
 jobs:
   ui-tests:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         api-level: [34]
