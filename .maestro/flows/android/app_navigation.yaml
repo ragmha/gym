@@ -3,7 +3,7 @@ name: App Navigation Test Flow
 
 ---
 - runFlow:
-    file: common/startup.yaml
+    file: ../common/startup.yaml
 
 # Test Home Screen — verify Workout Progress card is visible
 - assertVisible: 'Workout Progress'
