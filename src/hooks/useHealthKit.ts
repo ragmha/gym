@@ -90,7 +90,8 @@ export function useHealthKit() {
       hasInitialized.current = true
       requestAuthorization()
     }
-  }, [requestAuthorization])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return {
     ...state,
