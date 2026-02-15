@@ -3,7 +3,7 @@ name: HealthKit Home Screen Test
 
 ---
 - runFlow:
-    file: common/startup.yaml
+    file: ../common/startup.yaml
 
 # Verify core Home screen elements are present
 - assertVisible: 'Workout Progress'

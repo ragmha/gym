@@ -3,7 +3,7 @@ name: Workouts Screen Test
 
 ---
 - runFlow:
-    file: common/startup.yaml
+    file: ../common/startup.yaml
 
 # Navigate to Workouts tab
 - tapOn: 'Workouts'

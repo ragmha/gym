@@ -3,7 +3,7 @@ name: Settings HealthKit Test
 
 ---
 - runFlow:
-    file: common/startup.yaml
+    file: ../common/startup.yaml
 
 # Navigate to Settings tab
 - tapOn: 'Settings'
