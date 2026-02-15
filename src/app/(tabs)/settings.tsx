@@ -54,6 +54,7 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <Switch
+                testID="apple-health-switch"
                 value={isAuthorized}
                 onValueChange={handleToggle}
                 trackColor={{ true: '#34C759' }}
