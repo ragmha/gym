@@ -1,7 +1,8 @@
 import React from 'react'
-import { ScrollView, StyleSheet, StatusBar } from 'react-native'
+import { ScrollView, StatusBar, StyleSheet } from 'react-native'
 
 import { CalendarStrip } from '@/components/CalendarStrip'
+import { DailySteps } from '@/components/DailySteps'
 import { HealthMetrics } from '@/components/HealthMetrics'
 import { WorkoutProgress } from '@/components/WorkoutProgress'
 import { useHealthKit } from '@/hooks/useHealthKit'
@@ -23,11 +24,11 @@ export default function HomeScreen() {
       <StatusBar />
       <CalendarStrip />
       <WorkoutProgress />
+      {isAuthorized && <DailySteps steps={steps} />}
       <HealthMetrics
         isAvailable={isAvailable}
         isAuthorized={isAuthorized}
         isLoading={isLoading}
-        steps={steps}
         calories={calories}
         workouts={workouts}
         onRequestAuth={requestAuthorization}

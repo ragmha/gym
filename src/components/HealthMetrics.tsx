@@ -16,21 +16,18 @@ interface HealthMetricsProps {
   isAvailable: boolean
   isAuthorized: boolean
   isLoading: boolean
-  steps: number
   calories: number
   workouts: HealthKitWorkout[]
   onRequestAuth: () => void
   onRefresh: () => void
 }
 
-const STEP_GOAL = 10_000
 const CALORIE_GOAL = 500
 
 export function HealthMetrics({
   isAvailable,
   isAuthorized,
   isLoading,
-  steps,
   calories,
   workouts,
   onRequestAuth,
@@ -106,19 +103,6 @@ export function HealthMetrics({
       </View>
 
       <View style={styles.metricsRow}>
-        <View style={styles.metricCard}>
-          <ProgressCard
-            title="Steps"
-            subtitle={`${steps.toLocaleString()} / ${STEP_GOAL.toLocaleString()}`}
-            progress={Math.min(steps / STEP_GOAL, 1)}
-            progressColor="#34C759"
-            cardBackgroundColor={cardBackgroundColor}
-            textColor={textColor}
-            progressCircleSize={44}
-            strokeWidth={6}
-          />
-        </View>
-
         <View style={styles.metricCard}>
           <ProgressCard
             title="Calories"
