@@ -4,20 +4,23 @@ name: App Navigation Test Flow
 ---
 - runFlow:
     file: common/startup.yaml
-    
+
 # Test Home Screen — verify Workout Progress card is visible
-- assertVisible: "Workout Progress"
-- tapOn: "Workouts"
+- assertVisible: 'Workout Progress'
+- takeScreenshot: nav_home_screen
+- tapOn: 'Workouts'
 
 # Test Workouts Screen
 - waitForAnimationToEnd
-- assertVisible: "Workouts"
-- assertVisible: "Active"
-- assertVisible: "Completed"
-- tapOn: "Active"
+- assertVisible: 'Workouts'
+- assertVisible: 'Active'
+- assertVisible: 'Completed'
+- tapOn: 'Active'
 - waitForAnimationToEnd
+- takeScreenshot: nav_workouts_screen
 
 # Test tab navigation to switch back to Home
-- tapOn: "Home"
+- tapOn: 'Home'
 - waitForAnimationToEnd
-- assertVisible: "Workout Progress" 
+- assertVisible: 'Workout Progress'
+- takeScreenshot: nav_back_to_home
