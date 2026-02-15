@@ -6,23 +6,26 @@ name: Settings HealthKit Test
     file: common/startup.yaml
 
 # Navigate to Settings tab
-- tapOn: "Settings"
+- tapOn: 'Settings'
 - waitForAnimationToEnd
 
 # Verify Settings screen loaded
-- assertVisible: "Settings"
+- assertVisible: 'Settings'
+- takeScreenshot: settings_screen
 
 # Apple Health section should be visible on iOS
-- assertVisible: "Health"
-- assertVisible: "Apple Health"
-- assertVisible: "Connect to see health data on the home screen"
+- assertVisible: 'Health'
+- assertVisible: 'Apple Health'
+- assertVisible: 'Connect to see health data on the home screen'
+- takeScreenshot: settings_healthkit_section
 
 # Tap the Apple Health switch to trigger authorization
 - tapOn:
-    id: "Apple Health"
+    id: 'Apple Health'
 - waitForAnimationToEnd
 
 # Navigate back to Home to verify integration
-- tapOn: "Home"
+- tapOn: 'Home'
 - waitForAnimationToEnd
-- assertVisible: "Workout Progress"
+- assertVisible: 'Workout Progress'
+- takeScreenshot: settings_back_to_home

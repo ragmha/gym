@@ -9,13 +9,16 @@ name: Workouts Screen Test
 - tapOn: "Workouts"
 - waitForAnimationToEnd
 - assertVisible: "Workouts"
+- takeScreenshot: workouts_active_tab
 
 # Test tab switching between Active and Completed
 - assertVisible: "Active"
 - assertVisible: "Completed"
 - tapOn: "Completed"
 - waitForAnimationToEnd
+- takeScreenshot: workouts_completed_tab
 
 # Switch back to Active tab
 - tapOn: "Active"
-- waitForAnimationToEnd 
+- waitForAnimationToEnd
+- takeScreenshot: workouts_back_to_active
