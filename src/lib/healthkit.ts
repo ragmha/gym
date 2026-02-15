@@ -114,7 +114,7 @@ export function getDailyCalories(date?: Date): Promise<number> {
   return new Promise((resolve) => {
     AppleHealthKit.getActiveEnergyBurned(
       options,
-      (err: string, results: Array<{ value: number }>) => {
+      (err: string, results: { value: number }[]) => {
         if (err) {
           console.warn('[HealthKit] Calories error:', err)
           resolve(0)
