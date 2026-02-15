@@ -4,10 +4,9 @@ import { Exercise } from '@/types/models'
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useEffect } from 'react'
 
-type ExercisePayload = RealtimePostgresChangesPayload<{
-  [key: string]: any
-  id: string
-}>
+type ExerciseRow = {
+  [K in keyof Exercise]: Exercise[K]
+}
 
 export const useRealtimeSync = () => {
   useEffect(() => {
@@ -16,25 +15,25 @@ export const useRealtimeSync = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'exercises' },
-        (payload: ExercisePayload) => {
+        (payload: RealtimePostgresChangesPayload<ExerciseRow>) => {
           try {
             switch (payload.eventType) {
               case 'INSERT':
-              case 'UPDATE':
-                if (payload.new && 'id' in payload.new) {
-                  const exercise = payload.new as Exercise
-                  RootStore.exercises[exercise.id].set(exercise)
-                }
+              case 'UPDATE': {
+                const exercise: Exercise = payload.new
+                RootStore.exercises[exercise.id].set(exercise)
                 break
-              case 'DELETE':
-                if (payload.old && 'id' in payload.old) {
-                  const id = payload.old.id
-                  RootStore.exercises[id].set((prev) => ({
+              }
+              case 'DELETE': {
+                const { id } = payload.old
+                if (id) {
+                  RootStore.exercises[id].set((prev: Exercise) => ({
                     ...prev,
                     deleted: true,
                   }))
                 }
                 break
+              }
             }
           } catch (error) {
             console.error('Error processing realtime update:', error)
