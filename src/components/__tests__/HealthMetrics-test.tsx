@@ -1,4 +1,5 @@
 import React from 'react'
+import { act } from 'react'
 import renderer from 'react-test-renderer'
 import { Platform } from 'react-native'
 
@@ -19,35 +20,55 @@ const defaultProps = {
   onRefresh: jest.fn(),
 }
 
+function renderToJSON(element: React.ReactElement) {
+  let component: renderer.ReactTestRenderer
+  act(() => {
+    component = renderer.create(element)
+  })
+  return component!.toJSON()
+}
+
 describe('HealthMetrics', () => {
   const originalPlatform = Platform.OS
 
   afterEach(() => {
-    Object.defineProperty(Platform, 'OS', { value: originalPlatform })
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: originalPlatform,
+    })
     jest.clearAllMocks()
   })
 
   it('returns null on Android', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'android' })
-    const tree = renderer.create(<HealthMetrics {...defaultProps} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'android',
+    })
+    const tree = renderToJSON(<HealthMetrics {...defaultProps} />)
 
     expect(tree).toBeNull()
   })
 
   it('returns null when not available', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer
-      .create(<HealthMetrics {...defaultProps} isAvailable={false} />)
-      .toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(
+      <HealthMetrics {...defaultProps} isAvailable={false} />,
+    )
 
     expect(tree).toBeNull()
   })
 
   it('shows connect prompt when not authorized', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer
-      .create(<HealthMetrics {...defaultProps} isAuthorized={false} />)
-      .toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(
+      <HealthMetrics {...defaultProps} isAuthorized={false} />,
+    )
 
     const json = JSON.stringify(tree)
     expect(json).toContain('Connect Apple Health')
@@ -55,18 +76,24 @@ describe('HealthMetrics', () => {
   })
 
   it('shows loading indicator when loading', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer
-      .create(<HealthMetrics {...defaultProps} isLoading={true} />)
-      .toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(
+      <HealthMetrics {...defaultProps} isLoading={true} />,
+    )
 
     const json = JSON.stringify(tree)
     expect(json).toContain("Today's Health")
   })
 
   it('shows calories when authorized', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
-    const tree = renderer.create(<HealthMetrics {...defaultProps} />).toJSON()
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    const tree = renderToJSON(<HealthMetrics {...defaultProps} />)
 
     const json = JSON.stringify(tree)
     expect(json).toContain('Calories')
@@ -76,7 +103,10 @@ describe('HealthMetrics', () => {
   })
 
   it('shows workout summary when there are today workouts', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
     const now = new Date()
     const workouts = [
       {
@@ -97,9 +127,9 @@ describe('HealthMetrics', () => {
       },
     ]
 
-    const tree = renderer
-      .create(<HealthMetrics {...defaultProps} workouts={workouts} />)
-      .toJSON()
+    const tree = renderToJSON(
+      <HealthMetrics {...defaultProps} workouts={workouts} />,
+    )
 
     const json = JSON.stringify(tree)
     expect(json).toContain('2')
@@ -110,7 +140,10 @@ describe('HealthMetrics', () => {
   })
 
   it('does not show workout summary when no workouts today', () => {
-    Object.defineProperty(Platform, 'OS', { value: 'ios' })
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
     const workouts = [
@@ -124,9 +157,9 @@ describe('HealthMetrics', () => {
       },
     ]
 
-    const tree = renderer
-      .create(<HealthMetrics {...defaultProps} workouts={workouts} />)
-      .toJSON()
+    const tree = renderToJSON(
+      <HealthMetrics {...defaultProps} workouts={workouts} />,
+    )
 
     const json = JSON.stringify(tree)
     expect(json).not.toContain('workout')

@@ -1,3 +1,4 @@
+/* global jest */
 const HealthPermission = {
   StepCount: 'StepCount',
   ActiveEnergyBurned: 'ActiveEnergyBurned',
