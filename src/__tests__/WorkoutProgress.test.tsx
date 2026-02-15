@@ -20,12 +20,31 @@ interface ThemeColors {
 // Define a timeout for CI environments
 const CI_TIMEOUT = process.env.CI ? 10000 : 5000
 
+const createStoreState = (completedCount: number, total: number) => {
+  const exercises = Object.fromEntries(
+    Array.from({ length: total }, (_, index) => {
+      const id = `exercise-${index + 1}`
+      return [
+        id,
+        {
+          id: String(index + 1),
+          localId: id,
+          completed: index < completedCount,
+        },
+      ]
+    }),
+  )
+  return { exercises }
+}
+
 // Mock external dependencies
 jest.mock('@/stores/ExerciseStore', () => ({
-  useExerciseStore: jest.fn().mockImplementation(() => ({
-    completedCount: 2,
-    exercises: Array(5).fill({}),
-  })),
+  selectCompletedCount: (state: any) =>
+    Object.values(state.exercises).filter((e: any) => e.completed).length,
+  useExerciseStore: jest.fn().mockImplementation((selector?: any) => {
+    const state = createStoreState(2, 5)
+    return selector ? selector(state) : state
+  }),
 }))
 
 jest.mock('expo-router', () => ({
@@ -55,10 +74,12 @@ describe('WorkoutProgress Component', () => {
     jest.clearAllMocks()
 
     // Reset the exercise store mock implementation to default values
-    mockedExerciseStore.useExerciseStore.mockImplementation(() => ({
-      completedCount: 2,
-      exercises: Array(5).fill({}),
-    }))
+    mockedExerciseStore.useExerciseStore.mockImplementation(
+      (selector?: any) => {
+        const state = createStoreState(2, 5)
+        return selector ? selector(state) : state
+      },
+    )
   })
 
   afterEach(() => {
@@ -94,10 +115,12 @@ describe('WorkoutProgress Component', () => {
 
   test('calculates and displays the correct progress when most exercises are completed', async () => {
     // Override the mock to return different values for this test
-    mockedExerciseStore.useExerciseStore.mockImplementation(() => ({
-      completedCount: 4,
-      exercises: Array(5).fill({}),
-    }))
+    mockedExerciseStore.useExerciseStore.mockImplementation(
+      (selector?: any) => {
+        const state = createStoreState(4, 5)
+        return selector ? selector(state) : state
+      },
+    )
 
     render(<WorkoutProgress />)
 
@@ -112,10 +135,12 @@ describe('WorkoutProgress Component', () => {
 
   test('handles empty exercise list gracefully', async () => {
     // Test edge case with no exercises
-    mockedExerciseStore.useExerciseStore.mockImplementation(() => ({
-      completedCount: 0,
-      exercises: [],
-    }))
+    mockedExerciseStore.useExerciseStore.mockImplementation(
+      (selector?: any) => {
+        const state = createStoreState(0, 0)
+        return selector ? selector(state) : state
+      },
+    )
 
     render(<WorkoutProgress />)
 
@@ -153,10 +178,12 @@ describe('WorkoutProgress Component', () => {
 
   test('shows 5 workouts left with 0/5 completion', async () => {
     // Test with 0/5 completed
-    mockedExerciseStore.useExerciseStore.mockImplementation(() => ({
-      completedCount: 0,
-      exercises: Array(5).fill({}),
-    }))
+    mockedExerciseStore.useExerciseStore.mockImplementation(
+      (selector?: any) => {
+        const state = createStoreState(0, 5)
+        return selector ? selector(state) : state
+      },
+    )
 
     render(<WorkoutProgress />)
     await waitFor(
@@ -169,10 +196,12 @@ describe('WorkoutProgress Component', () => {
 
   test('shows 4 workouts left with 1/5 completion', async () => {
     // Test with 1/5 completed
-    mockedExerciseStore.useExerciseStore.mockImplementation(() => ({
-      completedCount: 1,
-      exercises: Array(5).fill({}),
-    }))
+    mockedExerciseStore.useExerciseStore.mockImplementation(
+      (selector?: any) => {
+        const state = createStoreState(1, 5)
+        return selector ? selector(state) : state
+      },
+    )
 
     render(<WorkoutProgress />)
     await waitFor(
@@ -185,10 +214,12 @@ describe('WorkoutProgress Component', () => {
 
   test('shows 1 workout left with 4/5 completion', async () => {
     // Test with 4/5 completed
-    mockedExerciseStore.useExerciseStore.mockImplementation(() => ({
-      completedCount: 4,
-      exercises: Array(5).fill({}),
-    }))
+    mockedExerciseStore.useExerciseStore.mockImplementation(
+      (selector?: any) => {
+        const state = createStoreState(4, 5)
+        return selector ? selector(state) : state
+      },
+    )
 
     render(<WorkoutProgress />)
     await waitFor(
@@ -201,10 +232,12 @@ describe('WorkoutProgress Component', () => {
 
   test('shows 0 workouts left with 5/5 completion', async () => {
     // Test with all completed
-    mockedExerciseStore.useExerciseStore.mockImplementation(() => ({
-      completedCount: 5,
-      exercises: Array(5).fill({}),
-    }))
+    mockedExerciseStore.useExerciseStore.mockImplementation(
+      (selector?: any) => {
+        const state = createStoreState(5, 5)
+        return selector ? selector(state) : state
+      },
+    )
 
     render(<WorkoutProgress />)
     await waitFor(

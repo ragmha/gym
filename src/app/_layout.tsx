@@ -21,7 +21,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
 
-  const { initialize } = useExerciseStore()
+  const initialize = useExerciseStore((state) => state.initialize)
 
   useEffect(() => {
     initialize()

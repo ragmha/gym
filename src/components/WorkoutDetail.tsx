@@ -29,7 +29,7 @@ export default function WorkoutDetail({
   onComplete,
 }: WorkoutDetailProps) {
   const defaultSets = isNaN(item.sets) ? 1 : item.sets
-  const { getSelectedSets } = useExerciseStore()
+  const getSelectedSets = useExerciseStore((state) => state.getSelectedSets)
   const initialSelectedCircles = getSelectedSets(exerciseId, item.id)
 
   const [selectedCircles, setSelectedCircles] = useState<boolean[]>(

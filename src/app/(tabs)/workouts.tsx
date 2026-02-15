@@ -1,15 +1,24 @@
 import Header from '@/components/Header'
 import Workout from '@/components/Workout'
 import { useThemeColor } from '@/hooks/useThemeColor'
-import { useExerciseStore } from '@/stores/ExerciseStore'
+import {
+  selectActiveExercises,
+  selectCompletedCount,
+  selectCompletedExercises,
+  useExerciseStore,
+} from '@/stores/ExerciseStore'
 import { StatusBar } from 'expo-status-bar'
 import React, { useState } from 'react'
 import { Dimensions, FlatList, StyleSheet, View } from 'react-native'
 import { SceneMap, TabBar, TabView } from 'react-native-tab-view'
 
 export default function WorkoutsScreen() {
-  const { activeExercises, completedExercises, completedCount, exercises } =
-    useExerciseStore()
+  const activeExercises = useExerciseStore(selectActiveExercises)
+  const completedExercises = useExerciseStore(selectCompletedExercises)
+  const completedCount = useExerciseStore(selectCompletedCount)
+  const totalExercises = useExerciseStore(
+    (state) => Object.keys(state.exercises).length,
+  )
 
   const [index, setIndex] = useState(0)
   const [routes] = useState([
@@ -23,7 +32,7 @@ export default function WorkoutsScreen() {
     <FlatList
       data={activeExercises}
       renderItem={({ item }) => <Workout item={item} />}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.localId}
     />
   )
 
@@ -31,7 +40,7 @@ export default function WorkoutsScreen() {
     <FlatList
       data={completedExercises}
       renderItem={({ item }) => <Workout item={item} />}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.localId}
     />
   )
 
@@ -44,7 +53,7 @@ export default function WorkoutsScreen() {
     <View style={styles.container}>
       <StatusBar />
       <Header>
-        Workouts {completedCount} / {exercises.length}
+        Workouts {completedCount} / {totalExercises}
       </Header>
       <TabView
         navigationState={{ index, routes }}

@@ -1,48 +1,38 @@
 import { supabase } from '@/lib/supabase'
-import { RootStore } from '@/stores/RootStore'
-import { Exercise } from '@/types/models'
+import { useExerciseStore } from '@/stores/ExerciseStore'
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useEffect } from 'react'
 
-type ExercisePayload = RealtimePostgresChangesPayload<{
-  [key: string]: any
+type TablePayload = RealtimePostgresChangesPayload<{
+  [key: string]: unknown
   id: string
 }>
 
 export const useRealtimeSync = () => {
+  const initialize = useExerciseStore((state) => state.initialize)
+
   useEffect(() => {
     const subscription = supabase
-      .channel('exercises')
+      .channel('workout_days_and_exercises')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'exercises' },
-        (payload: ExercisePayload) => {
+        { event: '*', schema: 'public', table: 'workout_days' },
+        async (_payload: TablePayload) => {
           try {
-            switch (payload.eventType) {
-              case 'INSERT':
-              case 'UPDATE':
-                if (payload.new && 'id' in payload.new) {
-                  const exercise = payload.new as Exercise
-                  RootStore.exercises[exercise.id].set(exercise)
-                }
-                break
-              case 'DELETE':
-                if (payload.old && 'id' in payload.old) {
-                  const id = payload.old.id
-                  RootStore.exercises[id].set((prev) => ({
-                    ...prev,
-                    deleted: true,
-                  }))
-                }
-                break
-            }
+            await initialize(3, true)
           } catch (error) {
             console.error('Error processing realtime update:', error)
-            RootStore.ui.error.set(
-              error instanceof Error
-                ? error.message
-                : 'Error processing realtime update',
-            )
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'exercise_definitions' },
+        async (_payload: TablePayload) => {
+          try {
+            await initialize(3, true)
+          } catch (error) {
+            console.error('Error processing realtime update:', error)
           }
         },
       )
@@ -51,7 +41,7 @@ export const useRealtimeSync = () => {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [initialize])
 
   return null
 }

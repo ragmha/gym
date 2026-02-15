@@ -1,14 +1,17 @@
 import VideoPlayer from '@/components/VideoPlayer'
-import { state$ } from '@/stores/ExerciseStore'
-import { observer } from '@legendapp/state/react'
+import { useExerciseStore } from '@/stores/ExerciseStore'
 import { useLocalSearchParams, useNavigation } from 'expo-router'
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 
-const DetailsScreen = observer(() => {
+const DetailsScreen = () => {
   const navigation = useNavigation()
-  const { localId, title } = useLocalSearchParams()
-  const exercise = state$.exercises[localId as string].get()
+  const { id, title } = useLocalSearchParams()
+  const exercise = useExerciseStore((state) => {
+    const byLocalId = state.exercises[id as string]
+    if (byLocalId) return byLocalId
+    return Object.values(state.exercises).find((item) => item.id === id)
+  })
 
   useEffect(() => {
     navigation.setOptions({
@@ -18,10 +21,10 @@ const DetailsScreen = observer(() => {
 
   return (
     <View style={styles.container}>
-      {exercise && <VideoPlayer uri={exercise.videoURL} />}
+      {exercise?.videoURL && <VideoPlayer uri={exercise.videoURL} />}
     </View>
   )
-})
+}
 
 export default DetailsScreen
 

@@ -1,101 +1,347 @@
--- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pg_jsonschema";
+-- Seed data for normalized gym schema
+-- Auto-generated from exercises.json — do not edit by hand
 
--- Create the exercises table with improved structure
-CREATE TABLE IF NOT EXISTS public.exercises (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  day TEXT NOT NULL,
-  week TEXT NOT NULL,
-  title TEXT NOT NULL,
-  videoURL TEXT,
-  cardio JSONB NOT NULL,
-  exercises JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  CONSTRAINT valid_cardio CHECK (
-    json_matches_schema(
-      '{
-        "type": "object",
-        "required": ["morning", "evening"],
-        "properties": {
-          "morning": {"type": "number"},
-          "evening": {"type": "number"}
-        }
-      }',
-      cardio::json
-    )
-  ),
-  CONSTRAINT valid_exercises CHECK (
-    json_matches_schema(
-      '{
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": ["id", "title", "sets", "reps"],
-          "properties": {
-            "id": {"type": "string"},
-            "title": {"type": "string"},
-            "sets": {"type": ["string", "number"]},
-            "reps": {"type": "number"},
-            "variation": {"type": ["string", "null"]}
-          }
-        }
-      }',
-      exercises::json
-    )
-  )
-);
+TRUNCATE TABLE public.exercise_definitions CASCADE;
+TRUNCATE TABLE public.workout_days CASCADE;
 
--- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS exercises_day_week_idx ON public.exercises (day, week);
-CREATE INDEX IF NOT EXISTS exercises_title_idx ON public.exercises USING GIN (to_tsvector('english', title));
-CREATE INDEX IF NOT EXISTS exercises_exercises_idx ON public.exercises USING GIN (exercises);
+-- Insert 54 workout days
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (1, 1, 'Quads, Lower Abs & Calves', 'https://www.youtube.com/embed/P7ak9G2A8to', 20, 20);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (2, 1, 'Chest & Shoulders', 'https://www.youtube.com/embed/d9GJksb0o3c', 20, 20);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (3, 1, 'Arms', 'https://www.youtube.com/embed/dDxyceJq_wI', 20, 20);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (4, 1, 'Lower Back, Hamstrings & Upper Abs', 'https://www.youtube.com/embed/oLBvfFgnKmE?si=e6dGxug2QQxP5Fcz', 20, 20);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (5, 1, 'Upper Back & Calves', 'https://www.youtube.com/embed/_wzelL_oVdo', 20, 20);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (6, 1, 'Active Rest Day', 'https://www.youtube.com/embed/CZ3waXuNhvM', 20, 20);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (7, 1, 'Active Rest Day', 'https://www.youtube.com/embed/SWL-SU1wNpQ', 20, 20);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (8, 2, 'Quads, Lower Abs & Calves', 'https://www.youtube.com/embed/FANSxLhUmMc', 25, 25);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (9, 2, 'Chest & Shoulders', 'https://www.youtube.com/embed/pIegIZOK7z4', 25, 25);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (10, 2, 'Arms', 'https://www.youtube.com/embed/Pp-MfvlVqpM', 25, 25);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (11, 2, 'Lower Back, Hamstrings & Upper Abs', 'https://www.youtube.com/embed/DpZXfPl9IWo', 25, 25);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (12, 2, 'Upper Back & Calves', 'https://www.youtube.com/embed/i9ekqAJBZBI', 25, 25);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (13, 2, 'Active Rest Day', 'https://www.youtube.com/embed/VgDeoYUOXDc', 25, 25);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (14, 2, 'Active Rest Day', 'https://www.youtube.com/embed/C70zdLl6pOY', 25, 25);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (15, 3, 'Legs, Calves & Lower Abs', 'https://www.youtube.com/embed/J_sCt1HYOGo', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (16, 3, 'Chest & Shoulders', 'https://www.youtube.com/embed/zvLNd70bqNA', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (17, 3, 'Arms', 'https://www.youtube.com/embed/g26gYXJor-k', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (18, 3, 'Hamstrings, Lower Back & Upper Abs', 'https://www.youtube.com/embed/Ht-465kJBl0', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (19, 3, 'Back & Calves', 'https://www.youtube.com/embed/ms_3z4FjGgA', 30, 30);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (20, 3, 'Active Rest Day', 'https://www.youtube.com/embed/mcWZ5NHGCng', 30, 30);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (21, 3, 'Active Rest Day', 'https://www.youtube.com/embed/6Xe3QIqXEvU', 30, 30);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (22, 4, 'Quads, Calves, and Lower Abs', 'https://www.youtube.com/embed/r1VvIN3l6P0', 35, 35);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (23, 4, 'Chest & Shoulders', 'https://www.youtube.com/embed/A180W6XkNi8', 35, 35);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (24, 4, 'Arms', 'https://www.youtube.com/embed/uMdsN-v-i5Q', 35, 35);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (25, 4, 'Hamstrings, Lower Back & Abs', 'https://www.youtube.com/embed/pb9T4aodtrs', 35, 35);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (26, 4, 'Back and Calves', 'https://www.youtube.com/embed/VJHR7ZX-ggA', 35, 35);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (27, 4, 'Active Rest Day', 'https://www.youtube.com/embed/TVHKeIC_-3M', 35, 35);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (28, 4, 'Active Rest Day', 'https://www.youtube.com/embed/v1vPHGEuyj4', 35, 35);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (29, 5, 'Quads', 'https://www.youtube.com/embed/dkWMSTJKnoo', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (30, 5, 'Chest & Shoulders', 'https://www.youtube.com/embed/GszJfy0MmyU', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (31, 5, 'Arms', 'https://www.youtube.com/embed/fEN5FCdVcgU', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (32, 5, 'Hamstrings, Lower Back & Upper Abs', 'https://www.youtube.com/embed/9USIrEUB_PQ', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (33, 5, 'Upper back & calves', 'https://www.youtube.com/embed/bftWCf64AKY', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (34, 5, 'Active Rest Day', 'https://www.youtube.com/embed/5bhA5P8DsZ4', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (35, 5, 'Active Rest Day', 'https://www.youtube.com/embed/xTbLxfKhfZ8', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (36, 6, 'Quads & Calves', 'https://www.youtube.com/embed/6ZlhxlKa6BE', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (37, 6, 'Chest & Shoulders', 'https://www.youtube.com/embed/p05tHzqgxpE', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (38, 6, 'Arms', 'https://www.youtube.com/embed/NOvuvP7ZoZU', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (39, 6, 'Hamstrings, Lower Back & Upper Abs', 'https://www.youtube.com/embed/_-AjnfDmH6c', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (40, 6, 'Upper back & Calves', 'https://www.youtube.com/embed/rTA1L7bleuY', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (41, 6, 'Active Rest Day', 'https://www.youtube.com/embed/0ipboDKtlv4', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (42, 6, 'Active Rest day', 'https://www.youtube.com/embed/fRK6nc7mwqs', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (43, 7, 'Quads, Calves & Lower Abs', 'https://www.youtube.com/embed/uyOY8lBpPcg', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (44, 7, 'Chest & Shoulders', 'https://www.youtube.com/embed/2mD3_V4bHZ8', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (45, 7, 'Arms', 'https://www.youtube.com/embed/5DbhD1vkG80', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (46, 7, 'Hamstrings, Lower Back & Upper Abs', 'https://www.youtube.com/embed/4B5DVaGu9IY', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (47, 7, 'Back & calves', 'https://www.youtube.com/embed/CdqzY6THYDs', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (48, 7, 'Active Rest day', 'https://www.youtube.com/embed/a1DbKqq9Yt8', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (49, 7, 'Active Rest Day', 'https://www.youtube.com/embed/wdFN6H40acM', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (50, 8, 'Quads, Calves & Lower Abs', 'https://www.youtube.com/embed/LOKilx-Hpsw', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (51, 8, 'Chest & Shoulders', 'https://www.youtube.com/embed/inEDOt6azNg', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (52, 8, 'Arms', 'https://www.youtube.com/embed/hNdDBbhEAQA', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (53, 8, 'Hamstrings, Lower Back & Upper Abs', 'https://www.youtube.com/embed/cEQU6o6dlyA', 0, 0);
+INSERT INTO public.workout_days (day, week, title, video_url, cardio_morning, cardio_evening) VALUES (54, 8, 'Upper back & calves', 'https://www.youtube.com/embed/vTbOM-0C0-8', 0, 0);
 
--- Function to update timestamps
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Trigger to automatically update timestamps
-DROP TRIGGER IF EXISTS update_exercises_updated_at ON public.exercises;
-CREATE TRIGGER update_exercises_updated_at
-    BEFORE UPDATE ON public.exercises
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Delete existing data
-TRUNCATE TABLE public.exercises RESTART IDENTITY CASCADE;
-
--- Insert data from exercises.json
-INSERT INTO public.exercises (day, week, title, videoURL, cardio, exercises) 
-SELECT 
-  day,
-  week,
-  title,
-  videoURL,
-  cardio::jsonb,
-  exercises::jsonb
-FROM json_populate_recordset(null::record,
-'[
-  {"day":"1","week":"1","title":"Quads, Lower Abs & Calves","videoURL":"https://www.youtube.com/embed/P7ak9G2A8to","cardio":{"morning":20,"evening":20},"exercises":[{"id":"exercise-1","title":"Hack Squats","sets":3,"reps":15,"variation":"1.5 rep variation"},{"id":"exercise-2","title":"Squat Press","sets":3,"reps":15,"variation":"2-second pause at the bottom"},{"id":"exercise-3","title":"Leg Extensions","sets":3,"reps":10,"variation":"Drop Set"},{"id":"exercise-4","title":"Walking Forward Lunges","sets":"To Failure","reps":10,"variation":null},{"id":"exercise-5","title":"Bodyweight Squats","sets":"To Failure","reps":10,"variation":null},{"id":"exercise-6","title":"Walking Forward Lunges","sets":"To Failure","reps":10,"variation":null},{"id":"exercise-7","title":"Seated Calf Press","sets":5,"reps":30,"variation":null},{"id":"exercise-8","title":"Hanging Leg Raises","sets":"To Failure","reps":15,"variation":null},{"id":"exercise-9","title":"Lying Leg Raises","sets":"To Failure","reps":15,"variation":null}]},
-  {"day":"2","week":"1","title":"Chest & Shoulders","videoURL":"https://www.youtube.com/embed/d9GJksb0o3c","cardio":{"morning":20,"evening":20},"exercises":[{"id":"exercise-1","title":"Dumbbell Chest Press","sets":3,"reps":15,"variation":"Drop Set"},{"id":"exercise-2","title":"Incline Cable Fly","sets":"To Failure","reps":12,"variation":null},{"id":"exercise-3","title":"Dumbbell Floor Press","sets":"To Failure","reps":15,"variation":null},{"id":"exercise-4","title":"Decline Dumbbell Fly","sets":"To Failure","reps":12,"variation":null},{"id":"exercise-5","title":"Pushups","sets":"To Failure","reps":15,"variation":null},{"id":"exercise-6","title":"Smith Machine Alternating Military Press","sets":"To Failure","reps":12,"variation":null},{"id":"exercise-7","title":"Lying Upright Cable Row","sets":"To Failure","reps":12,"variation":null},{"id":"exercise-8","title":"Lying Cable Side Raises","sets":"To Failure","reps":12,"variation":null},{"id":"exercise-9","title":"Lying Cable Front Raises","sets":"To Failure","reps":12,"variation":null},{"id":"exercise-10","title":"Bent-Over Cable Rear Delt Raises","sets":"To Failure","reps":10,"variation":null},{"id":"exercise-11","title":"Standing Rope Pulls","sets":"To Failure","reps":10,"variation":null}]}
-]'::json);
-
--- Add more data in batches of 2-3 exercises to avoid query length limits
-INSERT INTO public.exercises (day, week, title, videoURL, cardio, exercises) 
-SELECT 
-  day,
-  week,
-  title,
-  videoURL,
-  cardio::jsonb,
-  exercises::jsonb
-FROM json_populate_recordset(null::record,
-'[
-  -- Add more exercises here in batches
-]'::json); 
+-- Insert exercise definitions
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 1, 'Hack Squats', 3, false, 15, '1.5 rep variation');
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 2, 'Squat Press', 3, false, 15, '2-second pause at the bottom');
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 3, 'Leg Extensions', 3, false, 10, 'Drop Set');
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 4, 'Walking Forward Lunges', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 5, 'Bodyweight Squats', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 6, 'Walking Forward Lunges', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 7, 'Seated Calf Press', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 8, 'Hanging Leg Raises', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 1 AND week = 1), 9, 'Lying Leg Raises', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 1, 'Dumbbell Chest Press', 3, false, 15, 'Drop Set');
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 2, 'Incline Cable Fly', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 3, 'Dumbbell Floor Press', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 4, 'Decline Dumbbell Fly', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 5, 'Pushups', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 6, 'Smith Machine Alternating Military Press', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 7, 'Lying Upright Cable Row', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 8, 'Lying Cable Side Raises', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 9, 'Lying Cable Front Raises', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 10, 'Bent-Over Cable Rear Delt Raises', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 2 AND week = 1), 11, 'Standing Rope Pulls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 1, 'Reverse-Grip Cable Triceps Pushdown', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 2, 'Cable Overhead Triceps Extension', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 3, 'Single-Arm Overhead Rope Extensions', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 4, 'Bent-Over Single-Arm Kickbacks', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 5, 'Close-Grip Pushups', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 6, 'Bench Dips', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 7, 'EZ-Bar Spider Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 8, 'Narrow-Grip EZ Bar Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 9, 'Reverse-Grip Dumbbell Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 10, 'Dumbbell Hammer Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 11, 'Lying Cable Curls', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 3 AND week = 1), 12, 'Alternating Cable Curls', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 4 AND week = 1), 1, 'Deadlifts', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 4 AND week = 1), 2, 'Seated Leg Curl', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 4 AND week = 1), 3, 'Glute Ham Raises', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 4 AND week = 1), 4, 'Cable Stiff-Legged Deadlifts', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 4 AND week = 1), 5, 'Decline Cross-body Situp', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 4 AND week = 1), 6, 'Cross-body Situp', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 5 AND week = 1), 1, 'Lat Pulldowns', 3, false, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 5 AND week = 1), 2, 'Pullups', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 5 AND week = 1), 3, 'Rope Lat Pulldowns', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 5 AND week = 1), 4, 'Single-Arm Dumbbell Row', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 5 AND week = 1), 5, 'Single-Arm Inverted Row', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 5 AND week = 1), 6, 'Dumbbell Pullovers', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 5 AND week = 1), 7, 'Standing Dumbbell Shrugs', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 5 AND week = 1), 8, 'Seated Calf Press', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 8 AND week = 2), 1, 'Leg Extensions', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 8 AND week = 2), 2, 'Leg Press', 5, false, 15, '2 second pause');
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 8 AND week = 2), 3, 'Alt', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 8 AND week = 2), 4, 'Seated Calf Press', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 8 AND week = 2), 5, 'Lying Incline Leg Raise', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 8 AND week = 2), 6, 'Exercise Ball Knee Tucks', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 8 AND week = 2), 7, 'Bodyweight Plank', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 9 AND week = 2), 1, 'Hammer Press', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 9 AND week = 2), 2, 'Incline Smith Machine Press', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 9 AND week = 2), 3, 'Seated Cable Fly', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 9 AND week = 2), 4, 'Wide-Hands Pushup', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 9 AND week = 2), 5, 'Barbell Front Raise & Shoulder Press Combo', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 9 AND week = 2), 6, 'Barbell Side Raise', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 9 AND week = 2), 7, 'Dumbbell Rear Delt Fly', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 1, 'Overhead Tricep Extensions', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 2, 'Seated Rope Extension', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 3, 'Dips', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 4, 'EZ-Bar Spider Curls', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 5, 'Standing Banded Bicep Curls', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 6, 'Low Cable EZ-Bar Curls', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 7, 'Low Banded Biceps Curl', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 8, 'Incline Dumbbell Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 10 AND week = 2), 9, 'Seated Banded Biceps Curl', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 11 AND week = 2), 1, 'Deadlifts', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 11 AND week = 2), 2, 'Rack Deadlifts', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 11 AND week = 2), 3, 'Banded Good Mornings', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 11 AND week = 2), 4, 'Lying Hamstring Curl', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 11 AND week = 2), 5, 'Standing Cable Hamstring Curl', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 11 AND week = 2), 6, 'Barbell Straight-Arm Situps', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 11 AND week = 2), 7, 'Barbell Rollouts', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 11 AND week = 2), 8, 'Crunches', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 12 AND week = 2), 1, 'Pull-ups', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 12 AND week = 2), 2, 'Hammer Row', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 12 AND week = 2), 3, 'Supported Smith Machine Row', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 12 AND week = 2), 4, 'Cable Straight-Arm Pulldown', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 12 AND week = 2), 5, 'High-Pulley Cable Row', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 12 AND week = 2), 6, 'Single-Leg Standing Dumbbell Calf Raise', 5, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 1, 'Leg Extension', 1, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 2, 'Landmine Squat', 1, true, 25, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 3, 'Hex Bar Squat', 1, true, 25, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 4, 'Bulgarian Split', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 5, 'Smith Machine Front Squat', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 6, 'Seated Calf Raises', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 7, 'Captains Chair Leg Raises', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 8, 'Medicine Ball Pass', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 15 AND week = 3), 9, 'Cross-Body Mountain Climbers', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 1, 'Incline Dumbbell Fly & Press Combo', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 2, 'Incline Close-grip Dumbbell Press', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 3, 'Incline Dumbbell Press', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 4, 'Rollout Fly', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 5, 'Pushups', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 6, 'Smith Machine Weighted Pushups', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 7, 'Smith Machine Close-Grip Press', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 8, 'Squat Press Shoulder Press', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 9, 'Single-Arm Landmine Shoulder Press', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 10, 'Single-Arm Bent Over Rear Delt', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 16 AND week = 3), 11, 'Leg Extension Single-Arm Rear Delt Raise', 1, true, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 1, 'Kneeling Cable Overhead Triceps Extension', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 2, 'Machine Triceps Extension', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 3, 'Machine Triceps Pressdown', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 4, 'Standing Cable Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 5, 'Lying Cable Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 6, 'Lying High Cable Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 7, 'Standing High Cable Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 8, 'Reverse-Grip EZ-Bar Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 17 AND week = 3), 9, 'Close-Grip EZ-Bar Curls', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 18 AND week = 3), 1, 'Single-Leg Hamstring Curl', 5, false, 6, 'Each Leg');
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 18 AND week = 3), 2, 'Dumbbell Stiff-Legged Deadlift', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 18 AND week = 3), 3, 'Weighted Hyperextensions', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 18 AND week = 3), 4, 'Barbell Good Mornings', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 18 AND week = 3), 5, 'Weighted Crunches', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 18 AND week = 3), 6, 'Cross-Body Crunches', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 18 AND week = 3), 7, 'Exercise Ball Rollouts', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 18 AND week = 3), 8, 'Ab Twists', 1, true, 50, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 19 AND week = 3), 1, 'Dumbbell Seal Row', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 19 AND week = 3), 2, 'Incline Straight-Arm Pullover', 3, false, 12, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 19 AND week = 3), 3, 'Barbell Bentover Row', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 19 AND week = 3), 4, 'Seated EZ-Bar Shrugs', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 19 AND week = 3), 5, 'Calf Press', 5, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 22 AND week = 4), 1, 'Single-Leg Extension', 5, false, 6, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 22 AND week = 4), 2, 'Single-Leg Press', 5, false, 6, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 22 AND week = 4), 3, 'Single-Leg Hack Squat', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 22 AND week = 4), 4, 'Smith Machine Lunge', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 22 AND week = 4), 5, 'Seated Single-Leg Calf Raise', 5, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 22 AND week = 4), 6, 'Alternating Hanging Leg Raises', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 22 AND week = 4), 7, 'Alternating Lying Leg Raises', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 22 AND week = 4), 8, 'Alternating Exercise Ball Knee Tucks', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 23 AND week = 4), 1, 'Incline One-Arm Dumbbell Press', 4, false, 5, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 23 AND week = 4), 2, 'Incline One-Arm Crossover', 4, false, 5, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 23 AND week = 4), 3, 'Decline One-Arm Dumbbell Press', 4, false, 5, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 23 AND week = 4), 4, 'One-Arm Cable Crossover', 4, false, 5, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 23 AND week = 4), 5, 'Standing One-Arm Shoulder Press', 4, false, 5, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 23 AND week = 4), 6, 'One-Arm Cable Rear Delt Fly', 4, false, 5, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 23 AND week = 4), 7, 'One-Arm Lying Cable Front Raises', 4, false, 5, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 23 AND week = 4), 8, 'One-Arm Cable Side Raises', 4, false, 5, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 24 AND week = 4), 1, 'Seated Single-Arm Dumbbell Curls', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 24 AND week = 4), 2, 'Lying Single-Arm OverheadDumbbell Extension', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 24 AND week = 4), 3, 'Incline Single-Arm OverheadCable Extensions', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 24 AND week = 4), 4, 'Single-Arm Cable Concentration Curls', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 24 AND week = 4), 5, 'Single-Arm PreacherMachine Curls', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 24 AND week = 4), 6, 'Single-Arm Cable Pushdowns', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 25 AND week = 4), 1, 'Single-Arm Dumbbell Deadlift', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 25 AND week = 4), 2, 'Hyperextensions', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 25 AND week = 4), 3, 'Single-Leg Hamstring Curl', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 25 AND week = 4), 4, 'Cable Single-Leg Stiff-Legged Deadlift', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 25 AND week = 4), 5, 'Dumbbell Weighted Crunches', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 25 AND week = 4), 6, 'Crunches', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 25 AND week = 4), 7, 'Cable Cross-Body Pulls', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 26 AND week = 4), 1, 'Single-Arm Barbell Row', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 26 AND week = 4), 2, 'Single-Arm Cable Rows', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 26 AND week = 4), 3, 'Single-Arm Smith Machine Shrugs', 3, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 26 AND week = 4), 4, 'Single-Arm Overhead Machine Pulldowns', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 26 AND week = 4), 5, 'Seated Single Leg Calf Press', 5, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 29 AND week = 5), 1, 'Leg Extensions', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 29 AND week = 5), 2, 'Hack Squat', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 29 AND week = 5), 3, 'Reverse Hack Squat', 1, true, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 29 AND week = 5), 4, 'Leg Press', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 29 AND week = 5), 5, 'Seated Calf Raises', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 29 AND week = 5), 6, 'Hanging Windshield Wipers', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 29 AND week = 5), 7, 'Lying Windshield Wipers', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 30 AND week = 5), 1, 'Incline Dumbbell Chest Press', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 30 AND week = 5), 2, 'Decline Dumbbell Chest Press', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 30 AND week = 5), 3, 'Flat Chest Press Machine', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 30 AND week = 5), 4, 'Front Plate Raises', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 30 AND week = 5), 5, 'Bent-Over Reverse Plate Flyes', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 30 AND week = 5), 6, 'Side Lateral Plate Raises', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 31 AND week = 5), 1, 'Triceps Extensions', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 31 AND week = 5), 2, 'Dumbbell Biceps Curl', 6, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 31 AND week = 5), 3, 'EZ-Bar Skull Crushers', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 31 AND week = 5), 4, 'Cable EZ-Bar Preacher Curls', 6, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 31 AND week = 5), 5, 'Dips', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 31 AND week = 5), 6, 'Hammer Curls', 6, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 32 AND week = 5), 1, 'Deadlifts', 6, false, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 32 AND week = 5), 2, 'Lying leg Curls', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 32 AND week = 5), 3, 'Seated leg Curls', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 32 AND week = 5), 4, 'Standing Cable Crunches', 1, true, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 32 AND week = 5), 5, 'Exercise Ball Alternating Crunches', 1, true, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 33 AND week = 5), 1, 'Pullup', 6, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 33 AND week = 5), 2, 'T-Bar Rows', 6, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 33 AND week = 5), 3, 'Seated Machine Row', 6, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 33 AND week = 5), 4, 'Machine Shrugs', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 33 AND week = 5), 5, 'Standing Calf Raises', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 36 AND week = 6), 1, 'Leg Extensions', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 36 AND week = 6), 2, 'Squats', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 36 AND week = 6), 3, 'Leg Press', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 36 AND week = 6), 4, 'Hack Squats (narrow)', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 36 AND week = 6), 5, 'Seated Calf Raises', 6, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 1, 'Flat Dumbbell Press', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 2, 'Incline Dumbbell Flyes', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 3, 'Decline Smith Machine Press', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 4, 'Cable Crossover', 4, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 5, 'Incline Front Barbell Raises', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 6, 'Incline Front Dumbbell Raises', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 7, 'Rear Delt Flyes', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 8, 'Incline Bench Rear Dumbbell Flyes', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 9, 'Dumbbell Lateral Raise', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 37 AND week = 6), 10, 'Seated Side Lateral Dumbbell Raises', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 38 AND week = 6), 1, 'Machine Preacher Curls', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 38 AND week = 6), 2, 'Rope Pressdown', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 38 AND week = 6), 3, 'Reverse-Grip Triceps Extensions', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 38 AND week = 6), 4, 'Reverse-Grip Cable Biceps Curl', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 38 AND week = 6), 5, 'Smith Machine Drag Curls', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 38 AND week = 6), 6, 'Smith Machine Close-Grip Bench', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 38 AND week = 6), 7, 'Incline Overhead Dumbbell Extensions', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 38 AND week = 6), 8, 'Spider Curls', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 39 AND week = 6), 1, 'Glute-Ham Raise', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 39 AND week = 6), 2, 'Seated Leg Curls', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 39 AND week = 6), 3, 'Lying Hamstring Curls', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 39 AND week = 6), 4, 'Reverse Hack Squat', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 39 AND week = 6), 5, 'Hyperextensions', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 39 AND week = 6), 6, 'Dumbbell Deadlifts', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 39 AND week = 6), 7, 'Exercise Ball Cable Crunches', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 39 AND week = 6), 8, 'Ab wheel Rollouts', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 40 AND week = 6), 1, 'Machine Pullover', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 40 AND week = 6), 2, 'Straight-Arm Dumbbell Pullover', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 40 AND week = 6), 3, 'Straight-Arm Pulldowns', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 40 AND week = 6), 4, 'Lat Pulldown', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 40 AND week = 6), 5, 'Machine Shrugs', 6, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 40 AND week = 6), 6, 'Standing Calf Raise', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 40 AND week = 6), 7, 'Donkey Calf Raises', 3, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 43 AND week = 7), 1, 'Leg Extensions', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 43 AND week = 7), 2, 'Seated Leg Press', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 43 AND week = 7), 3, 'Barbell Squat', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 43 AND week = 7), 4, 'Hack Squat', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 43 AND week = 7), 5, 'Seated Calf Raise', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 43 AND week = 7), 6, 'Flat Bench Lying Leg Raises', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 44 AND week = 7), 1, 'Incline Dumbbell Fly', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 44 AND week = 7), 2, 'Decline Dumbbell Press', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 44 AND week = 7), 3, 'Machine Seated Chest Press', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 44 AND week = 7), 4, 'Pec Deck Fly', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 44 AND week = 7), 5, 'Upright rows', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 44 AND week = 7), 6, 'Front Dumbbell Raise', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 44 AND week = 7), 7, 'Smith Machine Behind-the-Neck Press', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 44 AND week = 7), 8, 'Seated Lateral Raise', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 45 AND week = 7), 1, 'Cable Triceps Extensions', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 45 AND week = 7), 2, 'Seated Biceps Cable Curl', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 45 AND week = 7), 3, 'Overhead Machine Triceps Extension', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 45 AND week = 7), 4, 'Machine Preacher Curl', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 45 AND week = 7), 5, 'Standing EZ-bar Curl', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 45 AND week = 7), 6, 'Bench Dips', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 46 AND week = 7), 1, 'Machine Deadlifts', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 46 AND week = 7), 2, 'Hyperextension', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 46 AND week = 7), 3, 'Lying hamstring Curls', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 46 AND week = 7), 4, 'Stiff-Legged Deadlift', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 46 AND week = 7), 5, 'Banded Crunches', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 46 AND week = 7), 6, 'Dumbbell Crunches', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 47 AND week = 7), 1, 'Lat Pulldown', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 47 AND week = 7), 2, 'Seated Machine Row', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 47 AND week = 7), 3, 'Bent-Over Row', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 47 AND week = 7), 4, 'Behind-the-Neck Pulldown', 1, true, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 47 AND week = 7), 5, 'Calf Press', 3, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 47 AND week = 7), 6, 'Smith Machine Standing Calf Raises', 3, false, 20, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 50 AND week = 8), 1, 'Hack Squat', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 50 AND week = 8), 2, 'Leg press', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 50 AND week = 8), 3, 'Seated Calf Raises', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 50 AND week = 8), 4, 'Decline Lying Leg Raises', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 50 AND week = 8), 5, 'Decline Lying Leg Raises', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 50 AND week = 8), 6, 'Seated Calf Raises', 1, true, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 51 AND week = 8), 1, 'Incline Dumbbell Fly', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 51 AND week = 8), 2, 'Decline Dumbbell Fly', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 51 AND week = 8), 3, 'Front Dumbbell Raise & Press Combo', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 51 AND week = 8), 4, 'Incline rear Delt raises', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 52 AND week = 8), 1, 'Cable Incline Triceps Extension', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 52 AND week = 8), 2, 'Decline Barbell Triceps Extension', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 52 AND week = 8), 3, 'High-Pulley Cable Curls', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 52 AND week = 8), 4, 'Seated Dumbbell Curls', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 53 AND week = 8), 1, 'Rack Deadlifts', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 53 AND week = 8), 2, 'Seated Cable Deadlift', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 53 AND week = 8), 3, 'Single-Leg Hamstring Curl', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 53 AND week = 8), 4, 'Sissy Squat', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 53 AND week = 8), 5, 'Ab Crunch Machine', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 53 AND week = 8), 6, 'Decline Situp', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 54 AND week = 8), 1, 'Incline Dumbbell Row', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 54 AND week = 8), 2, 'Bent Over Dumbbell Row', 1, true, 15, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 54 AND week = 8), 3, 'Wide-Grip Lat Pulldown', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 54 AND week = 8), 4, 'Rope Lat Pulldown', 5, false, 30, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 54 AND week = 8), 5, 'Calf Press', 5, false, 10, NULL);
+INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation) VALUES ((SELECT id FROM public.workout_days WHERE day = 54 AND week = 8), 6, 'Standing Calf Raises', 5, false, 30, NULL);

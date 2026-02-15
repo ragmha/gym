@@ -1,5 +1,5 @@
 import { useThemeColor } from '@/hooks/useThemeColor'
-import { useExerciseStore } from '@/stores/ExerciseStore'
+import { selectCompletedCount, useExerciseStore } from '@/stores/ExerciseStore'
 import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { TouchableOpacity } from 'react-native'
@@ -11,8 +11,10 @@ export function WorkoutProgress() {
   const textColor = useThemeColor({}, 'text')
   const progressColor = useThemeColor({}, 'selectedCircle')
 
-  const { completedCount, exercises } = useExerciseStore()
-  const totalExercises = Object.keys(exercises).length
+  const completedCount = useExerciseStore(selectCompletedCount)
+  const totalExercises = useExerciseStore(
+    (state) => Object.keys(state.exercises).length,
+  )
 
   const progress = totalExercises > 0 ? completedCount / totalExercises : 0
   const workoutsLeft = totalExercises - completedCount
