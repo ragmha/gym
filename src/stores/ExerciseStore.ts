@@ -255,9 +255,20 @@ export const useExerciseStore = create<ExerciseStore>((set, get) => ({
               {} as Record<string, ClientWorkoutDay>,
             )
 
+            // Fallback to bundled exercises if normalized data is empty
+            if (Object.keys(exercises).length === 0) {
+              console.warn('Normalized data is empty, falling back to bundled exercises')
+              const fallbackExercises = toLegacyExerciseMap(
+                bundledExercises as unknown[],
+                runtimeDeps,
+              )
+              set({ exercises: fallbackExercises, initialized: true, error: null })
+              return
+            }
+
             set({ exercises })
           }
-          set({ initialized: true })
+          set({ initialized: true, error: null })
           return
         } catch (networkError) {
           lastError = networkError as Error

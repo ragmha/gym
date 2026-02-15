@@ -15,8 +15,8 @@ export const WorkoutDayRowSchema = z.object({
 })
 
 export const ExerciseDefinitionRowSchema = z.object({
-  id: z.string(),
-  workout_day_id: z.string(),
+  id: z.string().uuid(),
+  workout_day_id: z.string().uuid(),
   sort_order: z.number().int(),
   title: z.string(),
   sets: z.number().int().min(1),

@@ -19,7 +19,6 @@ lines = []
 lines.append("-- Seed data for normalized gym schema")
 lines.append("-- Auto-generated from exercises.json — do not edit by hand")
 lines.append("")
-lines.append("TRUNCATE TABLE public.exercise_definitions CASCADE;")
 lines.append("TRUNCATE TABLE public.workout_days CASCADE;")
 lines.append("")
 lines.append(f"-- Insert {len(data)} workout days")

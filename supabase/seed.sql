@@ -1,7 +1,6 @@
 -- Seed data for normalized gym schema
 -- Auto-generated from exercises.json — do not edit by hand
 
-TRUNCATE TABLE public.exercise_definitions CASCADE;
 TRUNCATE TABLE public.workout_days CASCADE;
 
 -- Insert 54 workout days

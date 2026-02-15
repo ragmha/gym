@@ -48,7 +48,9 @@ CREATE TABLE public.user_progress (
 
 CREATE INDEX workout_days_day_week_idx ON public.workout_days (day, week);
 CREATE INDEX exercise_definitions_workout_day_idx ON public.exercise_definitions (workout_day_id);
+CREATE INDEX exercise_definitions_workout_day_sort_idx ON public.exercise_definitions (workout_day_id, sort_order);
 CREATE INDEX user_progress_user_idx ON public.user_progress (user_id);
+CREATE INDEX user_progress_user_exercise_idx ON public.user_progress (user_id, exercise_id);
 
 -- ────────────────────────────────────────────────────────────────────
 -- 3. Updated_at trigger (reuse function if it exists)
@@ -68,45 +70,58 @@ CREATE TRIGGER update_workout_days_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- ────────────────────────────────────────────────────────────────────
--- 4. Migrate data from old exercises table
+-- 4. Migrate data from old exercises table (if it exists)
 -- ────────────────────────────────────────────────────────────────────
 
-INSERT INTO public.workout_days (id, day, week, title, video_url, cardio_morning, cardio_evening, created_at, updated_at)
-SELECT
-  id,
-  day::INTEGER,
-  week::INTEGER,
-  title,
-  "videoURL",
-  (cardio->>'morning')::INTEGER,
-  (cardio->>'evening')::INTEGER,
-  created_at,
-  updated_at
-FROM public.exercises;
+DO $$
+BEGIN
+  -- Only migrate data and drop the old table if it exists.
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name = 'exercises'
+  ) THEN
 
-INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation)
-SELECT
-  e.id,
-  ex.ordinality::INTEGER,
-  ex.value->>'title',
-  CASE
-    WHEN ex.value->>'sets' = 'To Failure' OR ex.value->>'sets' IS NULL THEN 1
-    ELSE (ex.value->>'sets')::INTEGER
-  END,
-  CASE
-    WHEN ex.value->>'sets' = 'To Failure' THEN true
-    ELSE false
-  END,
-  (ex.value->>'reps')::INTEGER,
-  NULLIF(ex.value->>'variation', 'null')
-FROM public.exercises e,
-LATERAL jsonb_array_elements(e.exercises) WITH ORDINALITY AS ex(value, ordinality);
+    INSERT INTO public.workout_days (id, day, week, title, video_url, cardio_morning, cardio_evening, created_at, updated_at)
+    SELECT
+      id,
+      day::INTEGER,
+      week::INTEGER,
+      title,
+      "videoURL",
+      (cardio->>'morning')::INTEGER,
+      (cardio->>'evening')::INTEGER,
+      created_at,
+      updated_at
+    FROM public.exercises;
 
--- ────────────────────────────────────────────────────────────────────
--- 5. Drop old table
--- ────────────────────────────────────────────────────────────────────
+    INSERT INTO public.exercise_definitions (workout_day_id, sort_order, title, sets, is_amrap, reps, variation)
+    SELECT
+      e.id,
+      ex.ordinality::INTEGER,
+      ex.value->>'title',
+      CASE
+        WHEN ex.value->>'sets' = 'To Failure' OR ex.value->>'sets' IS NULL THEN 1
+        ELSE (ex.value->>'sets')::INTEGER
+      END,
+      CASE
+        WHEN ex.value->>'sets' = 'To Failure' THEN true
+        ELSE false
+      END,
+      (ex.value->>'reps')::INTEGER,
+      NULLIF(ex.value->>'variation', 'null')
+    FROM public.exercises e,
+    LATERAL jsonb_array_elements(e.exercises) WITH ORDINALITY AS ex(value, ordinality);
 
-DROP TABLE public.exercises CASCADE;
+    -- ────────────────────────────────────────────────────────────────
+    -- 5. Drop old table
+    -- ────────────────────────────────────────────────────────────────
+    DROP TABLE public.exercises CASCADE;
+
+  END IF;
+END
+$$;
 
 -- ────────────────────────────────────────────────────────────────────
 -- 6. Row Level Security
@@ -122,7 +137,7 @@ CREATE POLICY "Public read exercise_definitions" ON public.exercise_definitions
 
 ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage own progress" ON public.user_progress
-  USING (auth.uid() = user_id)
+  FOR ALL USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
 -- ────────────────────────────────────────────────────────────────────
