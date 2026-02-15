@@ -136,6 +136,8 @@ CREATE POLICY "Public read exercise_definitions" ON public.exercise_definitions
   FOR SELECT USING (true);
 
 ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
+-- FOR ALL applies to SELECT, INSERT, UPDATE, and DELETE operations.
+-- This is appropriate here since we want consistent auth check across all operations.
 CREATE POLICY "Users manage own progress" ON public.user_progress
   FOR ALL USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);

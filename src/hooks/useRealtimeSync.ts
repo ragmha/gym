@@ -24,6 +24,9 @@ export const useRealtimeSync = () => {
         clearTimeout(refreshTimer.current)
       }
       
+      // Debounce refetches to avoid multiple rapid re-initializations.
+      // 1 second delay balances responsiveness with avoiding excessive API calls.
+      // Multiple rapid changes (e.g., bulk data operations) trigger only one refetch.
       refreshTimer.current = setTimeout(async () => {
         try {
           await initialize(3, true)
