@@ -10,11 +10,12 @@ const supabasePublishableKey = env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 // which is unavailable during Expo Router's server-side render pass.
 const isSSR = typeof window === 'undefined'
 const safeStorage = {
-  getItem: (key: string) => (isSSR ? null : AsyncStorage.getItem(key)),
+  getItem: (key: string) =>
+    isSSR ? Promise.resolve(null) : AsyncStorage.getItem(key),
   setItem: (key: string, value: string) =>
-    isSSR ? undefined : AsyncStorage.setItem(key, value),
+    isSSR ? Promise.resolve() : AsyncStorage.setItem(key, value),
   removeItem: (key: string) =>
-    isSSR ? undefined : AsyncStorage.removeItem(key),
+    isSSR ? Promise.resolve() : AsyncStorage.removeItem(key),
 }
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
