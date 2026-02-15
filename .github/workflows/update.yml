@@ -1,9 +1,33 @@
 name: update
-on: push
+
+on:
+  push:
+    branches: [main]
 
 jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run linter
+        run: bun run lint
+
+      - name: Run tests
+        run: bunx jest --no-watchman
+
   update:
     name: EAS Update
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
