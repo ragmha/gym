@@ -1,9 +1,11 @@
-import prettier from 'eslint-plugin-prettier'
+// https://docs.expo.dev/guides/using-eslint/
+import { FlatCompat } from '@eslint/eslintrc'
+import js from '@eslint/js'
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 import unusedImports from 'eslint-plugin-unused-imports'
+import globals from 'globals'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import js from '@eslint/js'
-import { FlatCompat } from '@eslint/eslintrc'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -14,17 +16,23 @@ const compat = new FlatCompat({
 })
 
 export default [
-  ...compat.extends('expo', 'prettier'),
+  ...compat.extends('expo'),
+  eslintPluginPrettierRecommended,
+  {
+    ignores: ['dist/*', '.expo/*', 'android/*', 'ios/*', 'eslint.config.mjs'],
+  },
+  {
+    files: ['babel.config.js', 'metro.config.js', 'app.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
   {
     plugins: {
-      prettier,
       'unused-imports': unusedImports,
     },
-
     rules: {
-      'prettier/prettier': 'error',
       'unused-imports/no-unused-imports': 'error',
-
       'unused-imports/no-unused-vars': [
         'warn',
         {
@@ -34,15 +42,19 @@ export default [
           argsIgnorePattern: '^_',
         },
       ],
-
-      'react-hooks/rules-of-hooks': 'error',
-
+      // Enforce exhaustive deps for React hooks with autofix enabled
       'react-hooks/exhaustive-deps': [
         'warn',
         {
           enableDangerousAutofixThisMayCauseInfiniteLoops: true,
         },
       ],
+      // Allow @ alias imports (configured in tsconfig.json)
+      'import/no-unresolved': 'off',
+      // Disable deprecated eslint-plugin-node rules (incompatible with ESLint 9+)
+      'node/handle-callback-err': 'off',
+      'node/no-callback-literal': 'off',
+      'node/no-deprecated-api': 'off',
     },
   },
 ]

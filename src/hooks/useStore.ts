@@ -59,6 +59,6 @@ export const useStore = (): UseStoreReturn => {
       getActiveExercises: selectors.getActiveExercises,
       getCompletedExercises: selectors.getCompletedExercises,
     }),
-    [],
+    [addExercise, deleteExercise, syncExercises, updateExercise],
   )
 }

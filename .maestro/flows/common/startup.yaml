@@ -1,0 +1,10 @@
+appId: io.raghib.gym
+name: Application Startup
+onFlowStart:
+  - clearState
+  - launchApp
+
+---
+# Wait for the app to load
+- waitForAnimationToEnd
+- assertVisible: "Home" 

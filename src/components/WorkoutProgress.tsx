@@ -15,6 +15,8 @@ export function WorkoutProgress() {
   const totalExercises = Object.keys(exercises).length
 
   const progress = totalExercises > 0 ? completedCount / totalExercises : 0
+  const workoutsLeft = totalExercises - completedCount
+  const workoutLabel = workoutsLeft === 1 ? 'Workout' : 'Workouts'
 
   const handleNavigation = useCallback(() => {
     router.push('/workouts')
@@ -24,7 +26,7 @@ export function WorkoutProgress() {
     <TouchableOpacity onPress={handleNavigation}>
       <ProgressCard
         title="Workout Progress"
-        subtitle={`${totalExercises - completedCount} Workouts left`}
+        subtitle={`${workoutsLeft} ${workoutLabel} left`}
         progress={progress}
         progressColor={progressColor}
         cardBackgroundColor={cardBackgroundColor}
