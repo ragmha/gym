@@ -1,58 +1,176 @@
 # gym
 
-## Native workflow (CNG)
+Expo React Native gym tracker with Supabase backend.
 
-This project uses Expo Continuous Native Generation (CNG).
+## 1) Quick start (5 minutes)
 
-- `ios/` and `android/` are generated artifacts and are git-ignored.
-- Keep native config in `app.json` + plugins.
-- Regenerate native projects when needed:
+### Prerequisites
 
-```bash
-bun run prebuild:clean
-```
+- Bun (`bun --version`)
+- Node.js (for some Expo tooling)
+- Expo Go on phone, or Xcode/Android Studio for simulators
 
-- Full native reset (delete + regenerate):
+### Install
 
 ```bash
-bun run native:reset
+bun install
 ```
 
-## Database debugging
+### Configure environment
 
-Use the built-in Supabase debug script to verify env setup and database connectivity.
+Create `.env.local` with:
 
-### 1) Configure environment
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-anon-key>
+```
 
-Set one of these pairs:
-
-- `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (recommended for app + script)
-- `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` (accepted by script for CLI-only checks)
-
-Local development usually uses `.env.local`.
-
-### 2) Run the debug check
+### Verify DB connectivity
 
 ```bash
 bun run db:debug
 ```
 
-### 3) What the script checks
+### Run the app
 
-- Env variables are present and valid
-- Supabase auth endpoint is reachable (`/auth/v1/settings`)
-- `public.exercises` is accessible via REST
-- `exercises` can be queried with `@supabase/supabase-js`
+```bash
+bun run start
+```
 
-### 4) Common failures
+Then open with Expo Go (QR), or use:
 
-- `HTTP 404` on `/rest/v1/exercises`:
-  - The `public.exercises` table likely does not exist in the connected project.
-  - Apply [supabase/seed.sql](supabase/seed.sql) in your Supabase SQL editor.
-- `HTTP 401/403`:
-  - Wrong publishable key, wrong project URL, or table permissions/RLS issues.
+```bash
+bun run ios
+bun run android
+bun run web
+```
 
-### 5) Notes
+## 2) Day-to-day commands
+
+```bash
+bun run lint
+bun run typecheck
+bun run test
+```
+
+## 3) Architecture (current branch)
+
+This is how the current `main` architecture works today.
+
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│                           React Native App                         │
+│         Expo Router screens + components in src/app, src/components│
+└───────────────────────────────┬────────────────────────────────────┘
+                      │
+                      │ uses
+                      ▼
+┌────────────────────────────────────────────────────────────────────┐
+│                 Legend State Store (client state)                 │
+│                      src/stores/ExerciseStore.ts                  │
+│                                                                    │
+│ initialize()                                                       │
+│  1) SELECT * FROM public.exercises ORDER BY day                    │
+│  2) if query fails -> fallback to in-file mock workouts            │
+│  3) normalize for UI (selectedSets, localId, color, date)          │
+│                                                                    │
+│ sync()                                                             │
+│  - writes completion back to public.exercises                      │
+└───────────────────────────────┬────────────────────────────────────┘
+                      │
+                      │ Supabase JS client
+                      ▼
+┌────────────────────────────────────────────────────────────────────┐
+│                             Supabase                               │
+│  Table: public.exercises (legacy monolithic table)                 │
+│  Columns include: day, week, title, videoURL, cardio, exercises[]  │
+└────────────────────────────────────────────────────────────────────┘
+
+
+Realtime path (currently separate):
+
+src/hooks/useRealtimeSync.ts
+  └── subscribes to postgres_changes on public.exercises
+     └── updates RootStore entries
+```
+
+## 4) Database model overview (legacy)
+
+```text
+public.exercises
+├─ id (uuid)
+├─ day (text/int)
+├─ week (text/int)
+├─ title (text)
+├─ videoURL (text)
+├─ cardio (jsonb: { morning, evening })
+└─ exercises (jsonb array)
+  ├─ id
+  ├─ title
+  ├─ sets (number | "To Failure")
+  ├─ reps
+  └─ variation
+```
+
+## 5) Normalized architecture (feature branch / migration path)
+
+The normalization work is in branch `feat/normalize-db-schema` and PR #13.
+
+```text
+workout_days (1) ───────< (many) exercise_definitions
+                     │
+                     └──────< (many users) user_progress
+
+App read path:
+workout_days + exercise_definitions join
+    -> zod validation
+    -> client transform
+    -> Zustand store
+```
+
+## 6) Native workflow (CNG)
+
+This project uses Expo Continuous Native Generation (CNG).
+
+- `ios/` and `android/` are generated artifacts and git-ignored.
+- Keep native configuration in `app.json` and config plugins.
+
+Regenerate native projects:
+
+```bash
+bun run prebuild:clean
+```
+
+Full native reset:
+
+```bash
+bun run native:reset
+```
+
+## 7) Troubleshooting
+
+### Workouts not loading
+
+1. Check env values are present and correct in `.env.local`.
+2. Run:
+
+```bash
+bun run db:debug
+```
+
+3. If you get `404` on `/rest/v1/exercises`, your current project is missing `public.exercises`.
+4. Apply [supabase/seed.sql](supabase/seed.sql) in Supabase SQL editor.
+
+### Expo start exits or hangs
+
+- Kill stale Metro processes and restart:
+
+```bash
+lsof -ti:8081 | xargs kill -9 2>/dev/null
+bun run start
+```
+
+### Auth key safety
 
 - `EXPO_PUBLIC_*` values are client-visible by design.
-- Never expose service-role keys in client or public env files.
+- Never use service-role keys in client/mobile env files.
