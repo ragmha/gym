@@ -1,17 +1,16 @@
-appId: com.gym.app
+appId: io.raghib.gym
 name: App Navigation Test Flow
-onFlowStart:
-  - launchApp
 
 ---
 - runFlow:
     file: common/startup.yaml
     
-# Test Home Screen
-- assertVisible: "Calendar"
+# Test Home Screen — verify Workout Progress card is visible
+- assertVisible: "Workout Progress"
 - tapOn: "Workouts"
 
 # Test Workouts Screen
+- waitForAnimationToEnd
 - assertVisible: "Workouts"
 - assertVisible: "Active"
 - assertVisible: "Completed"
@@ -20,4 +19,5 @@ onFlowStart:
 
 # Test tab navigation to switch back to Home
 - tapOn: "Home"
-- assertVisible: "Calendar" 
+- waitForAnimationToEnd
+- assertVisible: "Workout Progress" 

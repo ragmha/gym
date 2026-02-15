@@ -11,7 +11,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        api-level: [30]
+        api-level: [34]
         target: [google_apis]
     
     steps:
@@ -36,23 +36,28 @@ jobs:
     - name: Install dependencies
       run: bun install
 
+    - name: Prebuild Android project
+      run: bunx expo prebuild --platform android --clean
+
     - name: Build Android app
-      run: bunx expo run:android --variant release --no-packager
+      run: |
+        cd android
+        ./gradlew assembleRelease
 
     - name: Install Maestro
       run: |
         curl -Ls "https://get.maestro.mobile.dev" | bash
         echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
-    - name: Set up Android Emulator
+    - name: Set up Android Emulator and run tests
       uses: ReactiveCircus/android-emulator-runner@v2
       with:
         api-level: ${{ matrix.api-level }}
         target: ${{ matrix.target }}
         arch: x86_64
-        profile: pixel
+        profile: pixel_6
         script: |
-          adb devices
+          adb install android/app/build/outputs/apk/release/app-release.apk
           maestro test .maestro/flows
           
     - name: Upload test results
@@ -60,4 +65,4 @@ jobs:
       if: always()
       with:
         name: maestro-test-results
-        path: ~/.maestro/tests 
+        path: ~/.maestro/tests
