@@ -25,7 +25,7 @@ function VideoSkeleton() {
       ),
       -1,
     )
-  }, [])
+  }, [translateX])
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
