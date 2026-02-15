@@ -14,7 +14,7 @@ const DetailsScreen = observer(() => {
     navigation.setOptions({
       title,
     })
-  }, [title])
+  }, [navigation, title])
 
   return (
     <View style={styles.container}>

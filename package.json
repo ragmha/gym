@@ -24,8 +24,11 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "setupFiles": [
+      "./jest.setup.ts"
+    ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-circular-progress-indicator|react-native-tab-view|react-native-pager-view|@legendapp|uuid)"
     ]
   },
   "dependencies": {
@@ -88,7 +91,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "jest-expo": "~54.0.17",
     "prettier": "^3.5.1",
-    "react-test-renderer": "18.3.1",
+    "react-test-renderer": "19.1.0",
     "supabase": "^2.12.1",
     "typescript": "~5.9.2"
   },
