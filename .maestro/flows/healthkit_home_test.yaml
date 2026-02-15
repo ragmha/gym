@@ -1,0 +1,22 @@
+appId: io.raghib.gym
+name: HealthKit Home Screen Test
+
+---
+- runFlow:
+    file: common/startup.yaml
+
+# Verify core Home screen elements are present
+- assertVisible: "Workout Progress"
+
+# HealthKit connect prompt should be visible when not authorized
+- scrollUntilVisible:
+    element: "Apple Health"
+    direction: DOWN
+- assertVisible: "Connect Apple Health"
+- assertVisible: "View your steps, calories, and workouts"
+
+# Tap connect prompt — this triggers HealthKit auth dialog
+# Note: native HealthKit permission sheet cannot be automated by Maestro;
+# on devices with HealthKit already authorized, the metrics will appear instead.
+- tapOn: "Connect Apple Health"
+- waitForAnimationToEnd
