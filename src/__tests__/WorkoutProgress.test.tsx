@@ -104,7 +104,7 @@ describe('WorkoutProgress Component', () => {
     // Check that the display shows 1 workout left (5 total - 4 completed)
     await waitFor(
       () => {
-        expect(screen.getByText('1 Workouts left')).toBeTruthy()
+        expect(screen.getByText('1 Workout left')).toBeTruthy()
       },
       { timeout: CI_TIMEOUT },
     )
@@ -193,7 +193,7 @@ describe('WorkoutProgress Component', () => {
     render(<WorkoutProgress />)
     await waitFor(
       () => {
-        expect(screen.getByText('1 Workouts left')).toBeTruthy()
+        expect(screen.getByText('1 Workout left')).toBeTruthy()
       },
       { timeout: CI_TIMEOUT },
     )
