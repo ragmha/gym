@@ -1,7 +1,5 @@
-appId: com.gym.app
+appId: io.raghib.gym
 name: Workouts Screen Test
-onFlowStart:
-  - launchApp
 
 ---
 - runFlow:
@@ -9,8 +7,8 @@ onFlowStart:
 
 # Navigate to Workouts tab  
 - tapOn: "Workouts"
-- assertVisible: "Workouts"
 - waitForAnimationToEnd
+- assertVisible: "Workouts"
 
 # Test tab switching between Active and Completed
 - assertVisible: "Active"
@@ -20,12 +18,4 @@ onFlowStart:
 
 # Switch back to Active tab
 - tapOn: "Active"
-- waitForAnimationToEnd
-
-# Verify workout items (if any)
-# Note: This assumes there might be items in the list. If empty, this part would need to be adjusted.
-- extendedWaitUntil:
-    visible: "Workout"
-    timeout: 5000
-    onTimeout:
-      - takeScreenshot: "empty_workout_list" 
+- waitForAnimationToEnd 

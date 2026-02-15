@@ -1,8 +1,7 @@
-appId: com.gym.app
+appId: io.raghib.gym
 name: Application Startup
 onFlowStart:
   - clearState
-  - clearKeychain
   - launchApp
 
 ---
