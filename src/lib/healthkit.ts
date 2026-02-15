@@ -6,6 +6,7 @@ let HealthPermission: any = null
 
 if (Platform.OS === 'ios') {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const healthModule = require('react-native-health')
     AppleHealthKit = healthModule.default
     HealthPermission = healthModule.HealthPermission

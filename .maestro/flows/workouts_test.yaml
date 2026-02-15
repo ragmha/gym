@@ -5,20 +5,20 @@ name: Workouts Screen Test
 - runFlow:
     file: common/startup.yaml
 
-# Navigate to Workouts tab  
-- tapOn: "Workouts"
+# Navigate to Workouts tab
+- tapOn: 'Workouts'
 - waitForAnimationToEnd
-- assertVisible: "Workouts"
+- assertVisible: 'Workouts'
 - takeScreenshot: workouts_active_tab
 
 # Test tab switching between Active and Completed
-- assertVisible: "Active"
-- assertVisible: "Completed"
-- tapOn: "Completed"
+- assertVisible: 'Active'
+- assertVisible: 'Completed'
+- tapOn: 'Completed'
 - waitForAnimationToEnd
 - takeScreenshot: workouts_completed_tab
 
 # Switch back to Active tab
-- tapOn: "Active"
+- tapOn: 'Active'
 - waitForAnimationToEnd
 - takeScreenshot: workouts_back_to_active
