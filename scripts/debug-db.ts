@@ -49,7 +49,7 @@ async function main() {
   console.log('🔎 Supabase database debug')
 
   const { url, key, urlSource, keySource } = resolveSupabaseEnv(process.env, {
-    allowNonExpoFallback: true,
+    allowCliVariables: true,
   })
   console.log(`- URL source: ${urlSource}`)
   console.log(`- KEY source: ${keySource}`)

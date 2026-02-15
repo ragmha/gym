@@ -12,7 +12,7 @@
     "android": "bunx expo run:android",
     "ios": "bunx expo run:ios",
     "web": "bunx expo start --web",
-    "test": "bunx jest --watchAll",
+    "test": "bunx jest",
     "test:watch": "bunx jest --watch",
     "lint": "bunx eslint .",
     "typecheck": "tsc --noEmit",
