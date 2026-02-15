@@ -44,7 +44,7 @@ export default function WorkoutsScreen() {
     <View style={styles.container}>
       <StatusBar />
       <Header>
-        Workouts {completedCount} / {exercises.length}
+        Workouts {completedCount} / {Object.keys(exercises).length}
       </Header>
       <TabView
         navigationState={{ index, routes }}

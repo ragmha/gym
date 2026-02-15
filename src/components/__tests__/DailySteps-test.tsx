@@ -1,7 +1,6 @@
-import React from 'react'
-import { act } from 'react'
-import renderer from 'react-test-renderer'
+import React, { act } from 'react'
 import { Platform } from 'react-native'
+import renderer from 'react-test-renderer'
 
 import { DailySteps } from '../DailySteps'
 
@@ -13,6 +12,7 @@ jest.mock('@/hooks/useThemeColor', () => ({
 function renderToJSON(element: React.ReactElement) {
   let component: renderer.ReactTestRenderer
   act(() => {
+    // @ts-expect-error -- @types/react-test-renderer depends on @types/react@18 while project uses @types/react@19; versions are compatible at runtime
     component = renderer.create(element)
   })
   return component!.toJSON()

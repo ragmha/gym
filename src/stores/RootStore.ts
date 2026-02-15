@@ -3,7 +3,7 @@ import { Exercise, RootState } from '@/types/models'
 import { computed, observable } from '@legendapp/state'
 import { enableReactTracking } from '@legendapp/state/config/enableReactTracking'
 import { persistObservable } from '@legendapp/state/persist'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { ObservablePersistAsyncStorage } from '@legendapp/state/persist-plugins/async-storage'
 import { PostgrestError } from '@supabase/supabase-js'
 
 // Enable React tracking
@@ -28,8 +28,10 @@ export const RootStore = observable<RootState>({
 // Setup persistence with type-safe configuration (skip during SSR)
 if (typeof window !== 'undefined') {
   persistObservable(RootStore, {
-    name: 'gym-app-state',
-    storage: AsyncStorage,
+    local: {
+      name: 'gym-app-state',
+    },
+    pluginLocal: ObservablePersistAsyncStorage,
   })
 }
 
