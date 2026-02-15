@@ -10,7 +10,13 @@ const wsShim = path.resolve(__dirname, 'src/shims/ws.js')
 // re-exports the built-in React Native WebSocket global.
 const originalResolveRequest = config.resolver.resolveRequest
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === 'ws' || moduleName.startsWith('ws/')) {
+  // Match 'ws', 'ws/', or any path ending with '/ws' or containing '/ws/'
+  if (
+    moduleName === 'ws' ||
+    moduleName.startsWith('ws/') ||
+    moduleName.endsWith('/ws') ||
+    moduleName.includes('/ws/')
+  ) {
     return { type: 'sourceFile', filePath: wsShim }
   }
   if (originalResolveRequest) {
