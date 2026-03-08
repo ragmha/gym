@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+# Block direct pushes to main. All changes must go through a pull request.
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$branch" = "main" ]; then
+  printf "\n🚫 Direct pushes to main are not allowed.\n"
+  printf "   Create a feature branch and open a pull request instead.\n\n"
+  printf "   git checkout -b feat/my-change\n"
+  printf "   git push -u origin feat/my-change\n\n"
+  exit 1
+fi

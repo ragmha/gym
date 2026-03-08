@@ -155,6 +155,17 @@ Avoid filing feature requests on Expo GitHub issues; use Expo Canny for feature 
 - Keep ESLint as the source of truth for Expo/React Native lint rules unless a migration is explicitly approved.
 - Biome can be considered for formatting only, but do not remove Expo-aligned ESLint coverage without a migration plan and rule parity validation.
 
+## Branching and Merge Policy
+
+- This project uses **trunk-based development**. `main` is the trunk.
+- **Never push directly to `main`.** All changes must go through a pull request.
+- Before making any code changes, **create a feature branch** off `main` (e.g., `feat/`, `fix/`, `chore/`).
+- After committing, push the branch and open a PR — do not commit to `main` locally.
+- A Husky `pre-push` hook enforces this locally — it blocks any push while on `main`.
+- Squash-merge PRs into `main` to keep a linear history.
+- Delete feature branches after merge.
+- **Copilot / AI agents must also follow this policy.** When making changes, always branch first, push, and create a PR. Never commit or push directly to `main`.
+
 ## Cross-Agent Rules
 
 - `.github/copilot-instructions.md` is the **canonical** project policy file.
