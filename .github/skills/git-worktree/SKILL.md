@@ -17,12 +17,12 @@ description: 'Use git worktree to isolate feature work in a separate directory, 
 
 ## Quick Reference
 
-| Action | Command |
-|---|---|
-| List worktrees | `git worktree list` |
-| Add a worktree | `git worktree add ../gym-<branch> -b <type>/<name>` |
-| Remove a worktree | `git worktree remove ../gym-<branch>` |
-| Prune stale entries | `git worktree prune` |
+| Action              | Command                                             |
+| ------------------- | --------------------------------------------------- |
+| List worktrees      | `git worktree list`                                 |
+| Add a worktree      | `git worktree add ../gym-<branch> -b <type>/<name>` |
+| Remove a worktree   | `git worktree remove ../gym-<branch>`               |
+| Prune stale entries | `git worktree prune`                                |
 
 ## Workflow
 
@@ -52,6 +52,7 @@ git worktree add ../gym-feat-add-workout-timer -b feat/add-workout-timer origin/
 ```
 
 This creates:
+
 - A new directory `../gym-feat-add-workout-timer` checked out to `feat/add-workout-timer`.
 - The branch is based on `origin/main`.
 - The main checkout stays on `main`, untouched.
@@ -110,6 +111,7 @@ gym-<type>-<short-description>
 ```
 
 Examples:
+
 - `gym-feat-add-workout-timer`
 - `gym-fix-routing-bug`
 - `gym-chore-update-deps`
