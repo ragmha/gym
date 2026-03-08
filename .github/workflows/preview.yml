@@ -1,28 +1,31 @@
 name: preview
 
-on: pull_request
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   test:
     name: Lint, Typecheck & Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
-          restore-keys: ${{ runner.os }}-bun-
+          bun-version: '1.2'
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Run linter
         run: bun run lint
@@ -33,7 +36,7 @@ jobs:
       - name: Run tests
         run: bunx jest --no-watchman
 
-  update:
+  preview:
     name: EAS Update (Preview)
     needs: test
     runs-on: ubuntu-latest
@@ -42,9 +45,11 @@ jobs:
       pull-requests: write
     steps:
       - name: Check for EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
-            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets. Learn more: https://docs.expo.dev/eas-update/github-actions"
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::You must provide an EXPO_TOKEN secret. Learn more: https://docs.expo.dev/eas-update/github-actions"
             exit 1
           fi
 
@@ -52,16 +57,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.2'
 
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
-          restore-keys: ${{ runner.os }}-bun-
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Setup EAS
         uses: expo/expo-github-action@v8
@@ -69,8 +70,13 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Install dependencies
-        run: bun install
+      - name: Check for native changes
+        id: fingerprint
+        uses: expo/expo-github-action/fingerprint@main
 
-      - name: Create preview
-        run: bun run eas update --auto
+      - name: Warn on native changes
+        if: steps.fingerprint.outputs.fingerprint-diff != '[]'
+        run: echo "::warning::Native changes detected. An OTA update alone may not be sufficient — consider a new build."
+
+      - name: Create preview update
+        run: eas update --auto
