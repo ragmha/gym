@@ -112,11 +112,12 @@ for i in "${!TO_REMOVE_PATHS[@]}"; do
 
   echo "Removing worktree: $wt_path ($wt_branch)"
 
-  # Remove the worktree directory
+  # Remove the worktree directory via git; if this fails, do not fall back to rm -rf.
   git worktree remove "$wt_path" --force 2>/dev/null || {
-    echo "  ⚠ Could not remove worktree at $wt_path — removing directory manually"
-    rm -rf "$wt_path"
-    git worktree prune
+    echo "  ⚠ Could not remove worktree at $wt_path."
+    echo "    Please inspect and remove this worktree directory manually if appropriate,"
+    echo "    and run 'git worktree prune' once you have cleaned it up."
+    continue
   }
 
   # Delete the local branch
