@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
-import { Exercise, ExerciseDetail } from '@/types/models'
 import { exerciseUpdateSchema } from '@/lib/validators'
+import { Exercise, ExerciseDetail } from '@/types/models'
 import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
 import { useEffect } from 'react'
 import 'react-native-get-random-values'
