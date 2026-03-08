@@ -84,21 +84,6 @@ jest.mock('react-native-tab-view', () => ({
   },
 }))
 
-// Mock @legendapp/state/react
-jest.mock('@legendapp/state/react', () => ({
-  observer: (component: any) => component,
-}))
-
-// Mock @legendapp/state/config/enableReactTracking
-jest.mock('@legendapp/state/config/enableReactTracking', () => ({
-  enableReactTracking: jest.fn(),
-}))
-
-// Mock @legendapp/state/persist
-jest.mock('@legendapp/state/persist', () => ({
-  persistObservable: jest.fn(),
-}))
-
 // Mock Supabase client
 jest.mock('@/lib/supabase', () => ({
   supabase: {
@@ -197,46 +182,29 @@ jest.mock('@/stores/ExerciseStore', () => {
     },
   }
 
-  const { observable } = jest.requireActual('@legendapp/state')
-  const state$ = observable({
-    exercises: mockExercises,
-    error: null,
-    loading: false,
-    initialized: true,
-  })
-
   return {
-    state$,
-    useExerciseStore: jest.fn(() => ({
-      exercises: mockExercises,
-      error: null,
-      loading: false,
-      initialized: true,
-      completedCount: 1,
-      activeExercises: [mockExercises['exercise-1']],
-      completedExercises: [mockExercises['exercise-2']],
-      initialize: jest.fn(),
-      completeExercise: jest.fn(),
-      completeExerciseDetail: jest.fn(),
-      getSelectedSets: jest.fn(() => []),
-      getExercise: jest.fn((id: string) => mockExercises[id]),
-      getDetail: jest.fn(() => []),
-      sync: jest.fn(),
-    })),
-    computed$: {
-      completedCount: () => 1,
-      activeExercises: () => [mockExercises['exercise-1']],
-      completedExercises: () => [mockExercises['exercise-2']],
-    },
-    actions: {
-      initialize: jest.fn(),
-      completeExercise: jest.fn(),
-      completeExerciseDetail: jest.fn(),
-      getSelectedSets: jest.fn(() => []),
-      getExercise: jest.fn(),
-      getDetail: jest.fn(() => []),
-      sync: jest.fn(),
-    },
+    useExerciseStore: jest.fn((selector?: any) => {
+      const state = {
+        exercises: mockExercises,
+        error: null,
+        loading: false,
+        initialized: true,
+        completedCount: 1,
+        activeExercises: [mockExercises['exercise-1']],
+        completedExercises: [mockExercises['exercise-2']],
+        initialize: jest.fn(),
+        completeExercise: jest.fn(),
+        completeExerciseDetail: jest.fn(),
+        getSelectedSets: jest.fn(() => []),
+        getExercise: jest.fn((id: string) => mockExercises[id]),
+        getDetail: jest.fn(() => []),
+        sync: jest.fn(),
+      }
+      if (typeof selector === 'function') {
+        return selector(state)
+      }
+      return state
+    }),
   }
 })
 

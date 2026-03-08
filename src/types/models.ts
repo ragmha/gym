@@ -24,20 +24,3 @@ export interface Exercise {
   synced: boolean
   deleted?: boolean
 }
-
-export interface UIState {
-  loading: boolean
-  error: string | null
-}
-
-export interface AuthState {
-  user: any | null
-  session: any | null
-}
-
-export interface RootState {
-  exercises: Record<string, Exercise>
-  ui: UIState
-  auth: AuthState
-  initialized: boolean
-}
