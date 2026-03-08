@@ -1,6 +1,8 @@
+```skill
 ---
-description: 'Guidelines for TypeScript Development targeting TypeScript 5.x and ES2022 output'
-applyTo: '**/*.ts'
+name: typescript-5-es2022
+description: 'Guidelines for TypeScript 5.x development targeting ES2022 output. Covers core intent, guardrails, project organization, naming, type system expectations, async patterns, error handling, architecture, security practices, configuration, UI components, testing, and performance.'
+license: MIT
 ---
 
 # TypeScript Development
@@ -112,3 +114,4 @@ applyTo: '**/*.ts'
 - Add JSDoc to public APIs; include `@remarks` or `@example` when helpful.
 - Write comments that capture intent, and remove stale notes during refactors.
 - Update architecture or design docs when introducing significant patterns.
+```

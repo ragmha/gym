@@ -1,6 +1,8 @@
+```skill
 ---
-description: 'ReactJS development standards and best practices'
-applyTo: '**/*.jsx, **/*.tsx, **/*.js, **/*.ts, **/*.css, **/*.scss'
+name: reactjs
+description: 'ReactJS development standards and best practices. Covers component design, hooks, state management, performance optimization, data fetching, error handling, forms, routing, testing, security, and accessibility for modern React 19+ applications with TypeScript.'
+license: MIT
 ---
 
 # ReactJS Development Instructions
@@ -160,3 +162,4 @@ Instructions for building high-quality ReactJS applications with modern patterns
 - Provider pattern for context-based state sharing
 - Container/Presentational component separation
 - Custom hooks for reusable logic extraction
+```
