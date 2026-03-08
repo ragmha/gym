@@ -6,9 +6,9 @@ import { StyleSheet, View } from 'react-native'
 
 function DetailsScreen() {
   const navigation = useNavigation()
-  const { localId, title } = useLocalSearchParams()
+  const { id, title } = useLocalSearchParams()
   const { exercises } = useExerciseStore()
-  const exercise = exercises[localId as string]
+  const exercise = exercises[id as string]
 
   useEffect(() => {
     navigation.setOptions({

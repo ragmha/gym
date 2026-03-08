@@ -39,17 +39,19 @@ describe('HealthMetrics', () => {
     jest.clearAllMocks()
   })
 
-  it('returns null on Android', () => {
+  it('shows fallback on Android', () => {
     Object.defineProperty(Platform, 'OS', {
       configurable: true,
       value: 'android',
     })
     const tree = renderToJSON(<HealthMetrics {...defaultProps} />)
 
-    expect(tree).toBeNull()
+    expect(tree).not.toBeNull()
+    const json = JSON.stringify(tree)
+    expect(json).toContain('Health tracking unavailable')
   })
 
-  it('returns null when not available', () => {
+  it('shows fallback when not available', () => {
     Object.defineProperty(Platform, 'OS', {
       configurable: true,
       value: 'ios',
@@ -58,7 +60,9 @@ describe('HealthMetrics', () => {
       <HealthMetrics {...defaultProps} isAvailable={false} />,
     )
 
-    expect(tree).toBeNull()
+    expect(tree).not.toBeNull()
+    const json = JSON.stringify(tree)
+    expect(json).toContain('Health tracking unavailable')
   })
 
   it('shows connect prompt when not authorized', () => {

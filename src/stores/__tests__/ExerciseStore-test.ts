@@ -147,6 +147,10 @@ describe('ExerciseStore', () => {
     })
 
     it('sets error message on unexpected failure', async () => {
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
       const mockedSupabase = jest.mocked(supabase)
       mockedSupabase.from.mockImplementation(() => {
         throw new Error('Unexpected crash')
@@ -157,6 +161,8 @@ describe('ExerciseStore', () => {
       const state = useExerciseStoreBase.getState()
       expect(state.error).toBe('Failed to initialize exercises')
       expect(state.loading).toBe(false)
+
+      consoleSpy.mockRestore()
     })
   })
 

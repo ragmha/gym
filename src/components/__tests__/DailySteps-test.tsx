@@ -44,14 +44,16 @@ describe('DailySteps', () => {
     expect(json).toContain('10,000')
   })
 
-  it('returns null on Android', () => {
+  it('shows fallback message on Android', () => {
     Object.defineProperty(Platform, 'OS', {
       configurable: true,
       value: 'android',
     })
     const tree = renderToJSON(<DailySteps steps={5000} />)
 
-    expect(tree).toBeNull()
+    expect(tree).not.toBeNull()
+    const json = JSON.stringify(tree)
+    expect(json).toContain('Step tracking requires Apple Health on iOS')
   })
 
   it('shows goal reached when steps >= goal', () => {

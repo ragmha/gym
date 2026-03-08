@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import { useEffect } from 'react'
 import 'react-native-reanimated'
 
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 
@@ -34,23 +35,25 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        navigationBarColor:
-          colorScheme === 'dark'
-            ? DarkTheme.colors.background
-            : DefaultTheme.colors.background,
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="details/[id]"
-        options={{
-          headerBackVisible: true,
-          headerBackTitle: '',
+    <ErrorBoundary>
+      <Stack
+        screenOptions={{
+          navigationBarColor:
+            colorScheme === 'dark'
+              ? DarkTheme.colors.background
+              : DefaultTheme.colors.background,
         }}
-      />
-      <Stack.Screen name="+not-found" />
-    </Stack>
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="details/[id]"
+          options={{
+            headerBackVisible: true,
+            headerBackTitle: '',
+          }}
+        />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </ErrorBoundary>
   )
 }

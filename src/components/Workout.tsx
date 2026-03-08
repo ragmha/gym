@@ -1,12 +1,13 @@
+import { Link } from 'expo-router'
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Animated from 'react-native-reanimated'
-import { Link } from 'expo-router'
 
 import { useThemeColor } from '@/hooks/useThemeColor'
 
 type WorkoutItem = {
   id: string
+  localId: string
   title: string
   date: string
   color: string
@@ -22,7 +23,7 @@ const Workout = ({ item }: { item: WorkoutItem }) => {
       <Link
         href={{
           pathname: '/details/[id]',
-          params: { id: item.id, title: item.title },
+          params: { id: item.localId, title: item.title },
         }}
       >
         <View style={styles.container}>

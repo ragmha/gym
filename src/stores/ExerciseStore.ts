@@ -3,10 +3,11 @@ import type { ExerciseRow } from '@/lib/validators'
 import { exerciseUpdateSchema, parseExerciseRows } from '@/lib/validators'
 import { Exercise, ExerciseDetail } from '@/types/models'
 import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { create } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
 
 // Mock data for initial development
 const MOCK_EXERCISES = [
@@ -285,28 +286,50 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
 
 // Convenience hook – keeps the same return shape as the old Legend State hook
 export const useExerciseStore = () => {
-  const store = useExerciseStoreBase()
+  const store = useExerciseStoreBase(
+    useShallow((state) => ({
+      exercises: state.exercises,
+      error: state.error,
+      loading: state.loading,
+      initialized: state.initialized,
+      initialize: state.initialize,
+      completeExercise: state.completeExercise,
+      completeExerciseDetail: state.completeExerciseDetail,
+      getSelectedSets: state.getSelectedSets,
+      getExercise: state.getExercise,
+      getDetail: state.getDetail,
+      sync: state.sync,
+    })),
+  )
 
   useEffect(() => {
     store.initialize()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const exerciseList = Object.values(store.exercises)
+  const exerciseList = useMemo(
+    () => Object.values(store.exercises),
+    [store.exercises],
+  )
+
+  const completedCount = useMemo(
+    () => exerciseList.filter((e) => e.completed).length,
+    [exerciseList],
+  )
+
+  const activeExercises = useMemo(
+    () => exerciseList.filter((e) => !e.completed),
+    [exerciseList],
+  )
+
+  const completedExercises = useMemo(
+    () => exerciseList.filter((e) => e.completed),
+    [exerciseList],
+  )
 
   return {
-    exercises: store.exercises,
-    error: store.error,
-    loading: store.loading,
-    initialized: store.initialized,
-    completedCount: exerciseList.filter((e) => e.completed).length,
-    activeExercises: exerciseList.filter((e) => !e.completed),
-    completedExercises: exerciseList.filter((e) => e.completed),
-    initialize: store.initialize,
-    completeExercise: store.completeExercise,
-    completeExerciseDetail: store.completeExerciseDetail,
-    getSelectedSets: store.getSelectedSets,
-    getExercise: store.getExercise,
-    getDetail: store.getDetail,
-    sync: store.sync,
+    ...store,
+    completedCount,
+    activeExercises,
+    completedExercises,
   }
 }

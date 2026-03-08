@@ -1,17 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react'
+import { useThemeColor } from '@/hooks/useThemeColor'
+import React, { useEffect, useRef, useState } from 'react'
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from 'react-native'
-import { useThemeColor } from '@/hooks/useThemeColor'
-
-const { width } = Dimensions.get('window') // Get screen width to calculate dynamic styles
 
 interface CalendarStripProps {
   startDate?: Date
@@ -22,6 +20,7 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({
   startDate = new Date(),
   onDateSelected,
 }) => {
+  const { width } = useWindowDimensions()
   const [currentDay, setCurrentDay] = useState<Date>(startDate)
   const [selectedDate, setSelectedDate] = useState<Date>(startDate)
   const scrollViewRef = useRef<ScrollView>(null)
@@ -35,7 +34,7 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollTo({ x: width, animated: false }) // Start at the middle week (current week)
     }
-  }, [])
+  }, [width])
 
   function getWeekFromToday(startDate: Date, offset: number): Date[] {
     const dates: Date[] = []
@@ -117,6 +116,7 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({
                 key={day.toDateString()}
                 style={[
                   styles.dayContainer,
+                  { width: width / 7 - 10 },
                   selectedDate.toDateString() === day.toDateString() && {
                     backgroundColor: selectedCircleColor,
                     shadowColor: shadowColor,
@@ -159,6 +159,7 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({
                 key={day.toDateString()}
                 style={[
                   styles.dayContainer,
+                  { width: width / 7 - 10 },
                   selectedDate.toDateString() === day.toDateString() && {
                     backgroundColor: selectedCircleColor,
                     shadowColor: shadowColor,
@@ -201,6 +202,7 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({
                 key={day.toDateString()}
                 style={[
                   styles.dayContainer,
+                  { width: width / 7 - 10 },
                   selectedDate.toDateString() === day.toDateString() && {
                     backgroundColor: selectedCircleColor,
                     shadowColor: shadowColor,
@@ -265,7 +267,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginHorizontal: 5,
     borderRadius: 20,
-    width: width / 7 - 10,
   },
   dayText: {
     fontSize: 14,
