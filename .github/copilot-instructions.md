@@ -155,6 +155,15 @@ Avoid filing feature requests on Expo GitHub issues; use Expo Canny for feature 
 - Use the `no-deprecated-code` skill (`.github/skills/no-deprecated-code/SKILL.md`) for the full deprecation lookup tables and verification workflow.
 - Run `bun run typecheck` and check for TS6385/TS6387 deprecation warnings before committing.
 
+## Post-Task Code Review (Mandatory)
+
+- **Every coding task must end with a multi-model code review before committing.** This is a hard rule.
+- After completing any task, review all changed files through 5 passes: security, correctness, performance, deprecated APIs, and style.
+- Fix all **CRITICAL** and **HIGH** severity issues before committing.
+- When sub-agents are available, launch parallel reviewers for independent passes to maximize coverage.
+- Use the `post-task-code-review` skill (`.github/skills/post-task-code-review/SKILL.md`) for the full checklist and multi-model workflow.
+- Re-run `bun run lint`, `bun run typecheck`, and `bunx jest` after applying fixes to confirm a clean state.
+
 ## Linting and Tooling Direction
 
 - ESLint 9 flat config (`eslint.config.mjs`) extends `expo` + Prettier.
