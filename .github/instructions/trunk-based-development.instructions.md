@@ -129,11 +129,11 @@ When Copilot (or any automated agent) is asked to make changes:
 2. **Fetch latest** to ensure you're up to date: `git fetch origin`.
 3. **Create a worktree** using `git worktree add ../gym-<type>-<name> -b <type>/<name> origin/main`. See the `git-worktree` skill for details.
 4. **`cd` into the worktree** and run `bun install` before making changes.
-4. Make the changes.
-5. **Use the conventional-commit skill** to construct and execute the commit:
+5. Make the changes.
+6. **Use the conventional-commit skill** to construct and execute the commit:
    - Run `git status` and `git diff --cached` to review changes.
    - Stage files with `git add`.
    - Commit with `git commit -m "type(scope): description"` following Conventional Commits.
-6. Never create commits with generic messages like "update files" or "fix stuff".
+7. Never create commits with generic messages like "update files" or "fix stuff".
 
 **Never skip the branch check.** This is a hard rule, not a suggestion.
