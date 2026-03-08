@@ -9,6 +9,24 @@
         "--rm",
         "ghcr.io/microsoft/mcp-dotnet-samples/awesome-copilot:latest"
       ]
+    },
+    "supabase": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "${input:supabase-access-token}"
+      ]
     }
-  }
+  },
+  "inputs": [
+    {
+      "id": "supabase-access-token",
+      "type": "promptString",
+      "description": "Supabase Personal Access Token (generate at https://supabase.com/dashboard/account/tokens)",
+      "password": true
+    }
+  ]
 }
