@@ -1,0 +1,2 @@
+[    2890ms] [WARNING] "shadow*" style props are deprecated. Use "boxShadow". @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.routerRoot=src%2Fapp:25033
+[    2910ms] [WARNING] props.pointerEvents is deprecated. Use style.pointerEvents @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.routerRoot=src%2Fapp:25033
