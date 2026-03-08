@@ -8,7 +8,9 @@ const { useExerciseStoreBase, useExerciseStore } = jest.requireActual<
 
 const MOCK_SUPABASE_DATA = [
   {
+    id: 'a0000000-0000-4000-8000-000000000001',
     day: '1',
+    week: '1',
     title: 'Push Day',
     videoURL: 'https://www.youtube.com/watch?v=IODxDxX7oi4',
     cardio: { morning: 30, evening: 20 },
@@ -29,9 +31,13 @@ const MOCK_SUPABASE_DATA = [
         variation: 'Rope',
       },
     ],
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
   },
   {
+    id: 'a0000000-0000-4000-8000-000000000002',
     day: '2',
+    week: '1',
     title: 'Pull Day',
     videoURL: 'https://www.youtube.com/watch?v=IODxDxX7oi4',
     cardio: { morning: 25, evening: 15 },
@@ -52,6 +58,8 @@ const MOCK_SUPABASE_DATA = [
         variation: 'Dumbbell',
       },
     ],
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
   },
 ]
 
