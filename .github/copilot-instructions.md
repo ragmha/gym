@@ -147,6 +147,14 @@ When creating upstream Expo issues or internal bug reports, include:
 
 Avoid filing feature requests on Expo GitHub issues; use Expo Canny for feature requests and Discord for general questions.
 
+## Deprecated Code Policy
+
+- **Never generate or commit code that uses deprecated APIs.** This is a hard rule.
+- Before calling any library method, verify it is not deprecated in the installed version.
+- When editing a file, fix any deprecated calls in lines you touch.
+- Use the `no-deprecated-code` skill (`.github/skills/no-deprecated-code/SKILL.md`) for the full deprecation lookup tables and verification workflow.
+- Run `bun run typecheck` and check for TS6385/TS6387 deprecation warnings before committing.
+
 ## Linting and Tooling Direction
 
 - ESLint 9 flat config (`eslint.config.mjs`) extends `expo` + Prettier.
