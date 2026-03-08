@@ -1,7 +1,7 @@
 import React from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
-import CircularProgress from 'react-native-circular-progress-indicator'
 
+import { CircularProgress } from '@/components/CircularProgress'
 import { useThemeColor } from '@/hooks/useThemeColor'
 
 export interface DailyStepsProps {
@@ -49,17 +49,18 @@ export function DailySteps({
           value={progress}
           radius={40}
           duration={1200}
-          valueSuffix="%"
           activeStrokeWidth={10}
           inActiveStrokeWidth={10}
           activeStrokeColor={goalReached ? '#34C759' : '#007AFF'}
           inActiveStrokeColor={
             goalReached ? 'rgba(52,199,89,0.2)' : 'rgba(0,122,255,0.15)'
           }
-          progressValueColor={textColor}
-          progressValueStyle={styles.progressValue}
           maxValue={100}
-        />
+        >
+          <Text style={[styles.progressValue, { color: textColor }]}>
+            {Math.round(progress)}%
+          </Text>
+        </CircularProgress>
       </View>
 
       <View style={styles.details}>
