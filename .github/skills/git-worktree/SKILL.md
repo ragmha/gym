@@ -89,9 +89,18 @@ git pull origin main
 ```
 
 The `post-merge` husky hook runs `scripts/cleanup-merged-worktrees.sh --force`,
-which detects worktrees whose branches are merged into main or whose remote
-tracking branch was deleted (e.g., after a squash-merge on GitHub) and removes
-them along with the local branch.
+which detects worktrees whose branches should be removed using three checks:
+
+1. **Branch merged into main** — `git branch --merged` (normal merge / fast-forward).
+2. **Remote branch deleted** — upstream ref is gone after `git fetch --prune` (GitHub auto-delete or the `cleanup-branches` workflow).
+3. **PR squash-merged** — `gh pr list --state merged` finds a merged PR for the branch head (handles squash-merges where the original commits aren't ancestors of main).
+
+The script removes the worktree directory, deletes the local branch, and also
+deletes the remote branch if it still exists.
+
+A **GitHub Actions workflow** (`.github/workflows/cleanup-branches.yml`) also
+runs on every merged PR to delete the head branch server-side, ensuring Check 2
+works immediately on the next `git pull`.
 
 You can also run cleanup manually at any time:
 
