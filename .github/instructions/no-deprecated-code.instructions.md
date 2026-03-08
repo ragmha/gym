@@ -46,6 +46,20 @@ z.iso.datetime()
 - Fix deprecated calls in lines you modify, even if not asked.
 - Run `bun run typecheck` and check for deprecation warnings before committing.
 
+## Agent Tool Names (`.agent.md` files)
+
+Tool names in agent YAML frontmatter must use the **namespaced format**:
+
+```yaml
+# DEPRECATED — do not use
+tools: ['codebase', 'problems', 'githubRepo', 'terminalCommand']
+
+# CORRECT — namespaced
+tools: ['search/codebase', 'read/problems', 'web/githubRepo', 'execute/runInTerminal']
+```
+
+Use `debug.agent.md` as the reference for correct tool naming.
+
 ## Full Reference
 
 See `.github/skills/no-deprecated-code/SKILL.md` for complete lookup tables and verification workflow.
