@@ -2,6 +2,27 @@
 
 These instructions capture Expo team best practices from Expo docs, GitHub issue templates, and maintainer guidance.
 
+## Platform Priority
+
+This project targets **iOS and Web as primary platforms**, with **minimal Android support**.
+
+### Platform hierarchy
+
+1. **iOS** — First-class. HealthKit integration, native feel, App Store distribution.
+2. **Web** — First-class. Static output via Metro bundler, responsive layouts.
+3. **Android** — Best-effort. Do not break it, but do not block iOS/web work for Android parity.
+
+### Development guidelines
+
+- Test all changes on **iOS simulator + web browser** before merging.
+- Android testing is optional unless the change touches shared native modules.
+- When a library or API is iOS-only (e.g., HealthKit), gate it with `Platform.OS === 'ios'` and provide a graceful fallback or hidden UI on other platforms.
+- For web, ensure components degrade gracefully — avoid `react-native` APIs that have no `react-native-web` support without a web fallback.
+- Prefer `Platform.select()` over runtime `if/else` chains for platform-specific values.
+- Use `.ios.tsx` / `.web.tsx` / `.native.tsx` file extensions for significant platform divergence instead of inline conditionals.
+- Do not add Android-only dependencies or native modules unless they also serve iOS or web.
+- EAS builds: prioritize `ios` and `web` build profiles; `android` builds are secondary.
+
 ## Dependency and Versioning Policy
 
 - Treat Expo as a versioned stack. Do not manually bump `react` / `react-native` independently from Expo recommendations.
