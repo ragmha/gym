@@ -12,7 +12,7 @@ import Animated, {
 type Exercise = {
   id: string
   title: string
-  sets: number
+  sets: number | 'To Failure'
   reps: number
   variation: string | null
 }
@@ -28,7 +28,8 @@ export default function WorkoutDetail({
   exerciseId,
   onComplete,
 }: WorkoutDetailProps) {
-  const defaultSets = isNaN(item.sets) ? 1 : item.sets
+  const defaultSets =
+    typeof item.sets === 'string' || isNaN(item.sets) ? 1 : item.sets
   const { getSelectedSets } = useExerciseStore()
   const initialSelectedCircles = getSelectedSets(exerciseId, item.id)
 
@@ -80,9 +81,13 @@ export default function WorkoutDetail({
           <Text style={[styles.workoutTitle, { color: textColor }]}>
             {item.title}
           </Text>
-          <Text style={[styles.setDetails, { color: textColor }]}>
-            {Number.isNaN(item.sets) ? 1 : item.sets} × {item.reps} reps
-          </Text>
+          <View style={styles.setDetailsRow}>
+            <Text style={[styles.setDetails, { color: textColor }]}>
+              {defaultSets}×{item.reps}
+              {item.variation ? ` ${item.variation}` : ''}
+            </Text>
+            <Text style={[styles.chevron, { color: textColor }]}>{'>'}</Text>
+          </View>
         </View>
         <View style={styles.circlesContainer}>
           {Array.from({ length: defaultSets }).map((_, index) => (
@@ -139,8 +144,17 @@ const styles = StyleSheet.create({
   workoutTitle: {
     fontSize: 16,
   },
+  setDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   setDetails: {
     fontSize: 14,
+  },
+  chevron: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   circlesContainer: {
     flexDirection: 'row',
