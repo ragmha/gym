@@ -28,6 +28,42 @@ fi
 
 CURRENT_BRANCH="$(git branch --show-current)"
 
+# Hard guard: this script must be run from the main worktree on branch 'main'
+if [[ "$CURRENT_BRANCH" != "main" ]]; then
+  echo "ERROR: cleanup-merged-worktrees.sh must be run from the main worktree on branch 'main'."
+  exit 1
+fi
+
+MAIN_WORKTREE_PATH=""
+wt_path=""
+wt_branch=""
+while IFS= read -r line; do
+  if [[ "$line" == worktree\ * ]]; then
+    wt_path="${line#worktree }"
+  elif [[ "$line" == branch\ * ]]; then
+    wt_branch="${line#branch refs/heads/}"
+  elif [[ -z "$line" ]]; then
+    if [[ "${wt_branch:-}" == "main" ]]; then
+      MAIN_WORKTREE_PATH="$wt_path"
+      break
+    fi
+    wt_path=""
+    wt_branch=""
+  fi
+done < <(git worktree list --porcelain; echo "")
+
+if [[ -z "$MAIN_WORKTREE_PATH" ]]; then
+  echo "ERROR: Could not determine the main worktree path for branch 'main'."
+  exit 1
+fi
+
+if [[ "$MAIN_REPO" != "$MAIN_WORKTREE_PATH" ]]; then
+  echo "ERROR: cleanup-merged-worktrees.sh must be run from the main worktree at:"
+  echo "  $MAIN_WORKTREE_PATH"
+  echo "Current working tree is:"
+  echo "  $MAIN_REPO"
+  exit 1
+fi
 # Prune remote tracking refs so deleted remote branches are detected
 git fetch --prune --quiet 2>/dev/null || true
 
@@ -57,14 +93,19 @@ while IFS= read -r line; do
     should_remove=false
 
     # Check 1: Is the branch merged into main?
-    if git branch --merged main 2>/dev/null | grep -qw "$wt_branch"; then
+    if git branch --merged main --format='%(refname:short)' 2>/dev/null | grep -Fxq "$wt_branch"; then
       should_remove=true
     fi
 
     # Check 2: Does the remote tracking branch still exist?
     # (GitHub deletes branches after squash-merge by default)
-    if [[ "$should_remove" == false ]] && ! git rev-parse --verify "refs/remotes/origin/$wt_branch" &>/dev/null; then
-      should_remove=true
+    if [[ "$should_remove" == false ]]; then
+      # Only consider this check if the branch actually has an upstream configured.
+      # Resolve "$wt_branch@{upstream}" to its full ref name; ignore errors if no upstream.
+      upstream_ref="$(git rev-parse --abbrev-ref "${wt_branch}@{upstream}" 2>/dev/null || true)"
+      if [[ -n "$upstream_ref" ]] && ! git rev-parse --verify "$upstream_ref" &>/dev/null; then
+        should_remove=true
+      fi
     fi
 
     if [[ "$should_remove" == true && -n "${wt_path:-}" && -n "${wt_branch:-}" ]]; then
@@ -107,11 +148,12 @@ for i in "${!TO_REMOVE_PATHS[@]}"; do
 
   echo "Removing worktree: $wt_path ($wt_branch)"
 
-  # Remove the worktree directory
+  # Remove the worktree directory via git; if this fails, do not fall back to rm -rf.
   git worktree remove "$wt_path" --force 2>/dev/null || {
-    echo "  ⚠ Could not remove worktree at $wt_path — removing directory manually"
-    rm -rf "$wt_path"
-    git worktree prune
+    echo "  ⚠ Could not remove worktree at $wt_path."
+    echo "    Please inspect and remove this worktree directory manually if appropriate,"
+    echo "    and run 'git worktree prune' once you have cleaned it up."
+    continue
   }
 
   # Delete the local branch

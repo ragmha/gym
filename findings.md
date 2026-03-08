@@ -19,19 +19,13 @@
 
 `eas.json` no longer contains AWS secrets. Previously injected `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `AWS_BUCKET_NAME` via env vars — these have been removed.
 
-### HIGH — No authentication / Row Level Security (RLS)
+### ~~HIGH — No authentication / Row Level Security (RLS)~~ ✅ PARTIALLY RESOLVED
 
-`src/lib/supabase.ts` creates a Supabase client with `detectSessionInUrl: false` and no auth flow. The app reads/writes the `exercises` table using the publishable anon key with no user context.
+RLS is now enabled on `public.exercises` via migration `20260308000000_create_exercises_table.sql`. Policies allow anonymous `SELECT` and restrict `INSERT`/`UPDATE`/`DELETE` to authenticated users. However, no Supabase Auth flow exists in the app yet — the client still uses the anon key with no user context. Full auth integration remains outstanding.
 
-**Risk**: Without RLS policies, any user with the anon key can read/modify all data.
+### ~~MEDIUM — No input sanitization on Supabase writes~~ ✅ RESOLVED
 
-**Fix**: Add Supabase Auth (even anonymous auth) and enforce RLS on the `exercises` table.
-
-### MEDIUM — No input sanitization on Supabase writes
-
-`ExerciseStore.ts` `sync()` pushes `exercise.exercises` (array of detail objects) directly to Supabase with no validation.
-
-**Fix**: Validate data shape with Zod before writing.
+All database I/O is now validated with Zod schemas in `src/lib/validators.ts`. The store uses `exerciseUpdateSchema` before writes and `parseExerciseRows` for reads.
 
 ### LOW — Env var fallback chain allows CLI variables in production
 
@@ -49,9 +43,9 @@ Fixed: `Workout.tsx` now passes `item.localId` (UUID) and `details/[id].tsx` use
 
 Fixed: Added `useShallow` from `zustand/react/shallow` for the state selector and wrapped derived arrays (`exerciseList`, `activeExercises`, `completedExercises`, `completedCount`) in `useMemo`.
 
-### ~~MEDIUM — `ProgessCard.tsx` filename typo~~ ✅ FIXED
+### MEDIUM — `ProgessCard.tsx` filename typo
 
-Renamed to `ProgressCard.tsx`. Updated imports in `HealthMetrics.tsx` and `WorkoutProgress.tsx`.
+The file is still named `ProgessCard.tsx` (missing 'r'). Should be renamed to `ProgressCard.tsx` and imports updated in `HealthMetrics.tsx` and `WorkoutProgress.tsx`.
 
 ### ~~MEDIUM — `fetchExercies` typo in data layer~~ ✅ ALREADY RESOLVED
 
@@ -172,9 +166,9 @@ No React error boundary exists. An unhandled crash results in a blank white scre
 
 ## 6. Build & DX
 
-### MEDIUM — No CI/CD pipeline
+### ~~MEDIUM — No CI/CD pipeline~~ ✅ RESOLVED
 
-No GitHub Actions workflow exists for running tests, lint, or type-checking on PRs.
+GitHub Actions workflows now exist in `.github/workflows/`: `preview.yml` (lint + typecheck + test on PRs + EAS Update preview), `build.yml` (manual EAS Build dispatch), `update.yml` (production EAS Update on push to main).
 
 ### ~~LOW — ESLint Prettier error~~ ✅ FIXED
 
@@ -206,28 +200,30 @@ Listed as a plugin in `app.json` but never imported in application code. Verify 
 
 ## Priority Summary
 
-| Priority   | Count | Remaining | Key Remaining Items                                                                          |
-| ---------- | ----- | --------- | -------------------------------------------------------------------------------------------- |
-| **HIGH**   | 11    | 4         | No RLS, no privacy manifest, missing tests (6 components + screens), hidden web UI           |
-| **MEDIUM** | 16    | 7         | No onboarding, HealthKit prompt timing, no error boundary, no CI, scroll race, Android plugin |
-| **LOW**    | 7     | 3         | Cardio state not persisted, unused model field, `expo-web-browser` unused                    |
+| Priority   | Count | Remaining | Key Remaining Items                                                                              |
+| ---------- | ----- | --------- | ------------------------------------------------------------------------------------------------ |
+| **HIGH**   | 11    | 3         | No auth flow, no privacy manifest, missing tests (6 components + screens), hidden web UI         |
+| **MEDIUM** | 16    | 6         | ProgessCard typo, no onboarding, HealthKit prompt timing, no error boundary, scroll race, Android plugin |
+| **LOW**    | 7     | 3         | Cardio state not persisted, unused model field, `expo-web-browser` unused                        |
 
-## ✅ Resolved Items (8)
+## ✅ Resolved Items (10)
 
 1. ~~Routing bug (`id` vs `localId`)~~ — fixed in `Workout.tsx` + `details/[id].tsx`
 2. ~~`useExerciseStore` re-renders~~ — added `useShallow` + `useMemo`
-3. ~~`ProgessCard.tsx` typo~~ — renamed to `ProgressCard.tsx`
-4. ~~`Dimensions.get('window')` at module scope~~ — replaced with `useWindowDimensions()`
-5. ~~`console.error` test noise~~ — suppressed with spy
-6. ~~ESLint Prettier error~~ — auto-fixed
-7. ~~Unused runtime deps~~ — removed `victory-native` + `@shopify/react-native-skia`
-8. ~~Unused dev deps~~ — removed 6 packages
+3. ~~`Dimensions.get('window')` at module scope~~ — replaced with `useWindowDimensions()`
+4. ~~`console.error` test noise~~ — suppressed with spy
+5. ~~ESLint Prettier error~~ — auto-fixed
+6. ~~Unused runtime deps~~ — removed `victory-native` + `@shopify/react-native-skia`
+7. ~~Unused dev deps~~ — removed 6 packages
+8. ~~No input sanitization~~ — Zod validation added in `src/lib/validators.ts`
+9. ~~No CI/CD pipeline~~ — GitHub Actions workflows added (`preview`, `build`, `update`)
+10. ~~RLS partially resolved~~ — RLS policies added via migration; auth flow still needed
 
 ## Recommended Fix Order (Remaining)
 
 1. Add `PrivacyInfo.xcprivacy` to avoid App Store rejection
-2. Add Supabase RLS or auth to secure data
+2. Add Supabase Auth flow (RLS policies are in place, but app has no auth)
 3. Add tests for untested components and the navigation flow
-4. Defer HealthKit prompt to user-initiated action
-5. Add error boundary for crash resilience
-6. Set up CI/CD pipeline
+4. Rename `ProgessCard.tsx` → `ProgressCard.tsx` and update imports
+5. Defer HealthKit prompt to user-initiated action
+6. Add error boundary for crash resilience
