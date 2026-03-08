@@ -78,21 +78,43 @@ Push the branch from inside the worktree directory, then open a PR against `main
 
 ### 5. Clean Up After Merge
 
-Once the PR is merged:
+Cleanup happens **automatically** when you pull merged changes into main:
 
 ```bash
 # Return to the main checkout
 cd /Users/raghibhasan/Documents/open-source/gym
 
-# Remove the worktree
-git worktree remove ../gym-feat-add-workout-timer
-
-# Delete the local branch
-git branch -d feat/add-workout-timer
-
-# Pull the merged changes
+# Pull — the post-merge hook auto-removes merged worktrees
 git pull origin main
 ```
+
+The `post-merge` husky hook runs `scripts/cleanup-merged-worktrees.sh --force`,
+which detects worktrees whose branches are merged into main or whose remote
+tracking branch was deleted (e.g., after a squash-merge on GitHub) and removes
+them along with the local branch.
+
+You can also run cleanup manually at any time:
+
+```bash
+# Interactive (confirms before removing)
+bun run worktree:cleanup
+
+# Non-interactive
+bash scripts/cleanup-merged-worktrees.sh --force
+```
+
+<details>
+<summary>Manual cleanup (if you prefer doing it by hand)</summary>
+
+```bash
+cd /Users/raghibhasan/Documents/open-source/gym
+
+git worktree remove ../gym-feat-add-workout-timer
+git branch -d feat/add-workout-timer
+git pull origin main
+```
+
+</details>
 
 ### 6. Prune Stale Worktrees
 

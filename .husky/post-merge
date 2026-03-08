@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+# After pulling merged changes into main, automatically clean up
+# worktrees whose branches have been merged or deleted on the remote.
+# Uses --force so the hook doesn't block on interactive prompts.
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$branch" = "main" ]; then
+  script="$(git rev-parse --show-toplevel)/scripts/cleanup-merged-worktrees.sh"
+  if [ -x "$script" ]; then
+    "$script" --force
+  fi
+fi
