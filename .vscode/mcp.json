@@ -24,6 +24,11 @@
         "--access-token",
         "${input:supabase-access-token}"
       ]
+    },
+    "github-agentic-workflows": {
+      "command": "gh",
+      "args": ["aw", "mcp-server"],
+      "cwd": "${workspaceFolder}"
     }
   },
   "inputs": [
