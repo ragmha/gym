@@ -1,0 +1,50 @@
+name: cleanup-branches
+
+# Delete the head branch after a PR is merged.
+# This is a safety net for when the GitHub repo setting
+# "Automatically delete head branches" is not enabled.
+# Once the remote branch is gone, the local post-merge hook
+# (via scripts/cleanup-merged-worktrees.sh) will detect the
+# missing upstream and clean up the worktree + local branch
+# on the next `git pull`.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  delete-branch:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete head branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Don't delete main or protected branches
+            if (branch === 'main' || branch === 'master') {
+              console.log(`Skipping deletion of protected branch: ${branch}`);
+              return;
+            }
+
+            try {
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: `heads/${branch}`,
+              });
+              console.log(`Deleted branch: ${branch}`);
+            } catch (error) {
+              if (error.status === 422) {
+                console.log(`Branch already deleted: ${branch}`);
+              } else {
+                throw error;
+              }
+            }
