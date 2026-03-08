@@ -1,60 +1,10 @@
 import { supabase } from '@/lib/supabase'
+import { Exercise, ExerciseDetail } from '@/types/models'
 import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
-import { observable } from '@legendapp/state'
-import { enableReactTracking } from '@legendapp/state/config/enableReactTracking'
 import { useEffect } from 'react'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
-
-// Enable React tracking
-enableReactTracking({
-  auto: true,
-})
-
-interface ExerciseDetail {
-  id: string
-  title: string
-  sets: number | 'To Failure'
-  reps: number
-  variation: string | null
-  completed: boolean
-  selectedSets: boolean[]
-}
-
-interface Exercise {
-  id: string
-  title: string
-  videoURL: string
-  date: string
-  color: string
-  completed: boolean
-  cardio: {
-    morning: number
-    evening: number
-  }
-  exercises: ExerciseDetail[]
-  localId: string
-  synced: boolean
-  deleted?: boolean
-}
-
-// Create the store
-export const state$ = observable({
-  exercises: {} as Record<string, Exercise>,
-  error: null as string | null,
-  loading: false,
-  initialized: false,
-})
-
-// Create computed values
-export const computed$ = {
-  completedCount: () =>
-    Object.values(state$.exercises.get()).filter((e) => e.completed).length,
-  activeExercises: () =>
-    Object.values(state$.exercises.get()).filter((e) => !e.completed),
-  completedExercises: () =>
-    Object.values(state$.exercises.get()).filter((e) => e.completed),
-}
+import { create } from 'zustand'
 
 // Mock data for initial development
 const MOCK_EXERCISES = [
@@ -124,12 +74,40 @@ const MOCK_EXERCISES = [
   },
 ]
 
-// Store actions
-export const actions = {
-  initialize: async () => {
-    if (state$.initialized.get()) return
+// Helper
+const today = new Date()
 
-    state$.loading.set(true)
+interface ExerciseState {
+  exercises: Record<string, Exercise>
+  error: string | null
+  loading: boolean
+  initialized: boolean
+
+  initialize: () => Promise<void>
+  completeExercise: (localId: string) => void
+  completeExerciseDetail: (
+    exerciseLocalId: string,
+    detailId: string,
+    completed: boolean,
+    selectedSets: boolean[],
+  ) => void
+  getSelectedSets: (exerciseLocalId: string, detailId: string) => boolean[]
+  getExercise: (localId: string) => Exercise | undefined
+  getDetail: (localId: string) => ExerciseDetail[]
+  sync: () => Promise<void>
+}
+
+// Raw Zustand store – use with selectors in screens that need fine-grained subscriptions
+export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
+  exercises: {},
+  error: null,
+  loading: false,
+  initialized: false,
+
+  initialize: async () => {
+    if (get().initialized) return
+
+    set({ loading: true })
     try {
       // Try to fetch from Supabase first
       const { data, error } = await supabase
@@ -183,20 +161,28 @@ export const actions = {
           {} as Record<string, Exercise>,
         )
 
-        state$.exercises.set(exercises)
+        set({ exercises })
       }
-      state$.initialized.set(true)
+      set({ initialized: true })
     } catch (error) {
       console.error('Error initializing store:', error)
-      state$.error.set('Failed to initialize exercises')
+      set({ error: 'Failed to initialize exercises' })
     } finally {
-      state$.loading.set(false)
+      set({ loading: false })
     }
   },
 
   completeExercise: (localId: string) => {
-    state$.exercises[localId].completed.set(true)
-    state$.exercises[localId].synced.set(false)
+    set((state) => ({
+      exercises: {
+        ...state.exercises,
+        [localId]: {
+          ...state.exercises[localId],
+          completed: true,
+          synced: false,
+        },
+      },
+    }))
   },
 
   completeExerciseDetail: (
@@ -205,32 +191,44 @@ export const actions = {
     completed: boolean,
     selectedSets: boolean[],
   ) => {
-    const exercise = state$.exercises[exerciseLocalId].exercises.get()
-    const updatedExercises = exercise.map((detail) =>
-      detail.id === detailId ? { ...detail, completed, selectedSets } : detail,
-    )
-    state$.exercises[exerciseLocalId].exercises.set(updatedExercises)
-    state$.exercises[exerciseLocalId].synced.set(false)
+    set((state) => {
+      const exercise = state.exercises[exerciseLocalId]
+      if (!exercise) return state
+      const updatedExercises = exercise.exercises.map((detail) =>
+        detail.id === detailId
+          ? { ...detail, completed, selectedSets }
+          : detail,
+      )
+      return {
+        exercises: {
+          ...state.exercises,
+          [exerciseLocalId]: {
+            ...exercise,
+            exercises: updatedExercises,
+            synced: false,
+          },
+        },
+      }
+    })
   },
 
   getSelectedSets: (exerciseLocalId: string, detailId: string) => {
-    const exercise = state$.exercises[exerciseLocalId].get()
-    const detail = exercise.exercises.find((d) => d.id === detailId)
+    const exercise = get().exercises[exerciseLocalId]
+    const detail = exercise?.exercises.find((d) => d.id === detailId)
     return detail?.selectedSets || []
   },
 
   getExercise: (localId: string) => {
-    return state$.exercises[localId].get()
+    return get().exercises[localId]
   },
 
   getDetail: (localId: string) => {
-    const exercise = state$.exercises[localId].get()
+    const exercise = get().exercises[localId]
     return exercise?.exercises || []
   },
 
-  // Sync changes with Supabase
   sync: async () => {
-    const exercises = state$.exercises.get()
+    const { exercises } = get()
     const unsyncedExercises = Object.values(exercises).filter((e) => !e.synced)
 
     for (const exercise of unsyncedExercises) {
@@ -245,31 +243,46 @@ export const actions = {
 
         if (error) throw error
 
-        state$.exercises[exercise.localId].synced.set(true)
+        set((state) => ({
+          exercises: {
+            ...state.exercises,
+            [exercise.localId]: {
+              ...state.exercises[exercise.localId],
+              synced: true,
+            },
+          },
+        }))
       } catch (error) {
         console.error('Error syncing exercise:', error)
       }
     }
   },
-}
+}))
 
-// Helper functions
-const today = new Date()
-
-// Create the hook
+// Convenience hook – keeps the same return shape as the old Legend State hook
 export const useExerciseStore = () => {
+  const store = useExerciseStoreBase()
+
   useEffect(() => {
-    actions.initialize()
-  }, [])
+    store.initialize()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const exerciseList = Object.values(store.exercises)
 
   return {
-    exercises: state$.exercises.get(),
-    error: state$.error.get(),
-    loading: state$.loading.get(),
-    initialized: state$.initialized.get(),
-    completedCount: computed$.completedCount(),
-    activeExercises: computed$.activeExercises(),
-    completedExercises: computed$.completedExercises(),
-    ...actions,
+    exercises: store.exercises,
+    error: store.error,
+    loading: store.loading,
+    initialized: store.initialized,
+    completedCount: exerciseList.filter((e) => e.completed).length,
+    activeExercises: exerciseList.filter((e) => !e.completed),
+    completedExercises: exerciseList.filter((e) => e.completed),
+    initialize: store.initialize,
+    completeExercise: store.completeExercise,
+    completeExerciseDetail: store.completeExerciseDetail,
+    getSelectedSets: store.getSelectedSets,
+    getExercise: store.getExercise,
+    getDetail: store.getDetail,
+    sync: store.sync,
   }
 }
