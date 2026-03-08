@@ -29,6 +29,11 @@
       "command": "gh",
       "args": ["aw", "mcp-server"],
       "cwd": "${workspaceFolder}"
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
     }
   },
   "inputs": [
