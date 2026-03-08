@@ -167,12 +167,12 @@ Avoid filing feature requests on Expo GitHub issues; use Expo Canny for feature 
 
 - This project uses **trunk-based development**. `main` is the trunk.
 - **Never push directly to `main`.** All changes must go through a pull request.
-- Before making any code changes, **create a feature branch** off `main` (e.g., `feat/`, `fix/`, `chore/`).
-- After committing, push the branch and open a PR — do not commit to `main` locally.
+- **Prefer `git worktree`** over branch switching to keep the main checkout on `main` at all times. Use the `git-worktree` skill (`.github/skills/git-worktree/SKILL.md`) for the full workflow.
+- After committing inside the worktree, push the branch and open a PR — do not commit to `main` locally.
 - A Husky `pre-push` hook enforces this locally — it blocks any push while on `main`.
 - Squash-merge PRs into `main` to keep a linear history.
-- Delete feature branches after merge.
-- **Copilot / AI agents must also follow this policy.** When making changes, always branch first, push, and create a PR. Never commit or push directly to `main`.
+- Delete feature branches and remove worktrees after merge.
+- **Copilot / AI agents must also follow this policy.** Use `git worktree add` to start work, commit/push from the worktree, and create a PR. Never commit or push directly to `main`.
 
 ## Cross-Agent Rules
 
