@@ -1,6 +1,7 @@
 import React from 'react'
 import { StyleSheet, Text, TextStyle, View } from 'react-native'
-import CircularProgress from 'react-native-circular-progress-indicator'
+
+import { CircularProgress } from '@/components/CircularProgress'
 
 interface ProgressCardProps {
   title?: string
@@ -57,15 +58,14 @@ export function ProgressCard({
             value={percentage}
             radius={progressCircleSize / 2}
             duration={1000}
-            valueSuffix="%"
             activeStrokeWidth={strokeWidth}
             inActiveStrokeWidth={strokeWidth}
-            progressValueColor={textColor}
             maxValue={100}
             activeStrokeColor={progressColor}
             inActiveStrokeColor={circleBackgroundColor}
-            progressValueStyle={progressTextStyle}
-          />
+          >
+            <Text style={progressTextStyle}>{percentage}%</Text>
+          </CircularProgress>
         </View>
       </View>
     </View>
