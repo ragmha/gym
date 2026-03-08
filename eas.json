@@ -8,35 +8,17 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
-      },
-      "env": {
-        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
-        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
-        "AWS_REGION": "${AWS_REGION}",
-        "AWS_BUCKET_NAME": "${AWS_BUCKET_NAME}"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "simulator": false
-      },
-      "env": {
-        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
-        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
-        "AWS_REGION": "${AWS_REGION}",
-        "AWS_BUCKET_NAME": "${AWS_BUCKET_NAME}"
       }
     },
     "production": {
       "ios": {
         "autoIncrement": true
-      },
-      "env": {
-        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
-        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
-        "AWS_REGION": "${AWS_REGION}",
-        "AWS_BUCKET_NAME": "${AWS_BUCKET_NAME}"
       }
     }
   },
