@@ -57,7 +57,7 @@ while IFS= read -r line; do
     should_remove=false
 
     # Check 1: Is the branch merged into main?
-    if git branch --merged main 2>/dev/null | grep -qw "$wt_branch"; then
+    if git branch --merged main --format='%(refname:short)' 2>/dev/null | grep -Fxq "$wt_branch"; then
       should_remove=true
     fi
 
