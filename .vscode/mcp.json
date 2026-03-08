@@ -10,6 +10,11 @@
         "ghcr.io/microsoft/mcp-dotnet-samples/awesome-copilot:latest"
       ]
     },
+    "github": {
+      "type": "stdio",
+      "command": "gh",
+      "args": ["copilot", "mcp", "serve"]
+    },
     "supabase": {
       "type": "stdio",
       "command": "npx",
@@ -22,6 +27,12 @@
     }
   },
   "inputs": [
+    {
+      "id": "expo-access-token",
+      "type": "promptString",
+      "description": "Expo Personal Access Token (generate at https://expo.dev/settings/access-tokens)",
+      "password": true
+    },
     {
       "id": "supabase-access-token",
       "type": "promptString",
