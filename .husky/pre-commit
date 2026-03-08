@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# Run lint-staged (ESLint --fix on staged files)
+bunx lint-staged
+
+# Run full typecheck (tsc needs all files, not just staged)
+bun run typecheck
