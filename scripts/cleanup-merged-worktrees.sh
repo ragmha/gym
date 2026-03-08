@@ -63,8 +63,13 @@ while IFS= read -r line; do
 
     # Check 2: Does the remote tracking branch still exist?
     # (GitHub deletes branches after squash-merge by default)
-    if [[ "$should_remove" == false ]] && ! git rev-parse --verify "refs/remotes/origin/$wt_branch" &>/dev/null; then
-      should_remove=true
+    if [[ "$should_remove" == false ]]; then
+      # Only consider this check if the branch actually has an upstream configured.
+      # Resolve "$wt_branch@{upstream}" to its full ref name; ignore errors if no upstream.
+      upstream_ref="$(git rev-parse --abbrev-ref "${wt_branch}@{upstream}" 2>/dev/null || true)"
+      if [[ -n "$upstream_ref" ]] && ! git rev-parse --verify "$upstream_ref" &>/dev/null; then
+        should_remove=true
+      fi
     fi
 
     if [[ "$should_remove" == true && -n "${wt_path:-}" && -n "${wt_branch:-}" ]]; then
