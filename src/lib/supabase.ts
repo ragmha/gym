@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import 'react-native-url-polyfill/auto'
+
+import type { Database } from './database.types'
 import { env } from './env'
 
 const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL
@@ -18,11 +20,15 @@ const safeStorage = {
     isSSR ? Promise.resolve() : AsyncStorage.removeItem(key),
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
-  auth: {
-    storage: safeStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
+export const supabase = createClient<Database>(
+  supabaseUrl,
+  supabasePublishableKey,
+  {
+    auth: {
+      storage: safeStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
   },
-})
+)

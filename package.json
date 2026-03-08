@@ -18,9 +18,8 @@
     "typecheck": "tsc --noEmit",
     "db:debug": "bun run scripts/debug-db.ts",
     "generate-types": "supabase gen types typescript --project-id \"$EXPO_PUBLIC_SUPABASE_PROJECT_ID\" --schema public > src/lib/database.types.ts",
-    "db:migrate": "bun run src/scripts/migrate.ts",
-    "db:migrate:create": "bun run src/scripts/create-migration.ts",
-    "db:reset": "bun run src/scripts/reset-db.ts",
+    "db:migrate": "supabase db push",
+    "db:reset": "supabase db reset",
     "prepare": "husky"
   },
   "jest": {

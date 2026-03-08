@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { Exercise, ExerciseDetail } from '@/types/models'
+import { exerciseUpdateSchema } from '@/lib/validators'
 import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
 import { useEffect } from 'react'
 import 'react-native-get-random-values'
@@ -121,10 +122,21 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
       if (exercisesData) {
         const exercises = exercisesData.reduce(
           (acc, e) => {
+            const cardio =
+              e.cardio &&
+              typeof e.cardio === 'object' &&
+              !Array.isArray(e.cardio)
+                ? (e.cardio as { morning: number; evening: number })
+                : { morning: 0, evening: 0 }
+
+            const details = Array.isArray(e.exercises)
+              ? (e.exercises as ExerciseDetail[])
+              : []
+
             const exercise: Exercise = {
               id: e.day,
               title: e.title,
-              videoURL: e.videoURL,
+              videoURL: e.videoURL ?? '',
               date: new Date(
                 today.getFullYear(),
                 today.getMonth(),
@@ -132,8 +144,8 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
               ).toLocaleString(),
               color: getRandomPastelColor(),
               completed: false,
-              cardio: e.cardio,
-              exercises: e.exercises.map((detail: ExerciseDetail) => ({
+              cardio,
+              exercises: details.map((detail: ExerciseDetail) => ({
                 ...detail,
                 sets:
                   detail.sets === 'To Failure' || detail.sets == null
@@ -233,12 +245,24 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
 
     for (const exercise of unsyncedExercises) {
       try {
+        // Validate payload before writing to Supabase
+        const payload = {
+          completed: exercise.completed,
+          exercises: exercise.exercises,
+        }
+
+        const parsed = exerciseUpdateSchema.safeParse(payload)
+        if (!parsed.success) {
+          console.error(
+            'Validation failed for exercise sync:',
+            parsed.error.issues,
+          )
+          continue
+        }
+
         const { error } = await supabase
           .from('exercises')
-          .update({
-            completed: exercise.completed,
-            exercises: exercise.exercises,
-          })
+          .update(parsed.data)
           .eq('day', exercise.id)
 
         if (error) throw error
