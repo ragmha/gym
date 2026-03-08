@@ -193,6 +193,48 @@ grep -rn --include='*.ts' --include='*.tsx' \
 
 ---
 
+## Copilot Agent Tool Names (`.agent.md` files)
+
+Agent files in `.github/agents/` declare tools in YAML frontmatter. Tool names **must use the namespaced format**. Un-namespaced names are deprecated and will fail or produce warnings.
+
+### Tool Name Migration Table
+
+| Deprecated (old)      | Current (namespaced)       |
+| --------------------- | -------------------------- |
+| `codebase`            | `search/codebase`          |
+| `changes`             | `read/changes`             |
+| `extensions`          | `read/extensions`          |
+| `fetch`               | `web/fetch`                |
+| `findTestFiles`       | `search/findTestFiles`     |
+| `githubRepo`          | `web/githubRepo`           |
+| `new`                 | `create/new`               |
+| `openSimpleBrowser`   | `web/openSimpleBrowser`    |
+| `problems`            | `read/problems`            |
+| `runCommands`         | `execute/runCommands`      |
+| `runTasks`            | `execute/runTasks`         |
+| `runTests`            | `execute/runTests`         |
+| `searchResults`       | `search/searchResults`     |
+| `terminalCommand`     | `execute/runInTerminal`    |
+| `terminalLastCommand` | `read/terminalLastCommand` |
+| `terminalSelection`   | `read/terminalSelection`   |
+| `testFailure`         | `execute/testFailure`      |
+| `usages`              | `search/usages`            |
+| `vscodeAPI`           | `read/vscodeAPI`           |
+
+### Already correct (no change needed)
+
+- `edit/editFiles`
+- `search` (top-level, not namespaced further)
+- `execute/runInTerminal`
+- `execute/getTerminalOutput`
+- MCP server refs like `microsoft.docs.mcp`
+
+### Reference
+
+Use `debug.agent.md` as the canonical example of correct tool naming.
+
+---
+
 ## Summary
 
 | Principle          | Rule                                                    |
