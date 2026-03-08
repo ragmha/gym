@@ -1,6 +1,23 @@
 #!/usr/bin/env sh
 
 # Block direct pushes to main. All changes must go through a pull request.
+# Allow branch deletion (e.g., `git push origin --delete <branch>`) from any branch.
+
+# Detect if this is a delete-only push by reading the push info from stdin.
+# git sends lines of: <local ref> <local sha> <remote ref> <remote sha>
+# A delete has local ref = "(delete)" and local sha = all zeros.
+is_delete_only=true
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_ref" != "(delete)" ]; then
+    is_delete_only=false
+    break
+  fi
+done
+
+if [ "$is_delete_only" = true ]; then
+  exit 0
+fi
+
 branch="$(git rev-parse --abbrev-ref HEAD)"
 
 if [ "$branch" = "main" ]; then

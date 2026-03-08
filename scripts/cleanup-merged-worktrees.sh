@@ -2,8 +2,11 @@
 #
 # cleanup-merged-worktrees.sh
 #
-# Removes git worktrees whose branches have been merged into main
-# (or whose remote tracking branch no longer exists after a squash-merge).
+# Removes git worktrees whose branches have been merged into main.
+# Detects three cases:
+#   1. Branch is an ancestor of main (normal merge / fast-forward).
+#   2. Remote tracking branch was deleted (GitHub auto-delete after merge).
+#   3. Branch's PR was squash-merged on GitHub (detected via `gh` CLI).
 #
 # Usage:
 #   ./scripts/cleanup-merged-worktrees.sh          # interactive (confirms each removal)
@@ -67,6 +70,16 @@ fi
 # Prune remote tracking refs so deleted remote branches are detected
 git fetch --prune --quiet 2>/dev/null || true
 
+# Detect gh CLI and resolve repo slug for squash-merge detection (Check 3)
+HAS_GH=false
+GH_REPO=""
+if command -v gh &>/dev/null; then
+  GH_REPO="$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || true)"
+  if [[ -n "$GH_REPO" ]]; then
+    HAS_GH=true
+  fi
+fi
+
 # Collect worktrees to clean up
 declare -a TO_REMOVE_PATHS=()
 declare -a TO_REMOVE_BRANCHES=()
@@ -104,6 +117,17 @@ while IFS= read -r line; do
       # Resolve "$wt_branch@{upstream}" to its full ref name; ignore errors if no upstream.
       upstream_ref="$(git rev-parse --abbrev-ref "${wt_branch}@{upstream}" 2>/dev/null || true)"
       if [[ -n "$upstream_ref" ]] && ! git rev-parse --verify "$upstream_ref" &>/dev/null; then
+        should_remove=true
+      fi
+    fi
+
+    # Check 3: Was the branch's PR squash-merged on GitHub?
+    # Squash-merges rewrite history so `git branch --merged` won't detect them,
+    # and the remote branch may still exist if auto-delete is disabled.
+    # Uses `gh` CLI if available to query closed+merged PRs for the branch.
+    if [[ "$should_remove" == false && "$HAS_GH" == true ]]; then
+      pr_state="$(gh pr list --repo "$GH_REPO" --head "$wt_branch" --state merged --json number --jq 'length' 2>/dev/null || echo "0")"
+      if [[ "$pr_state" -gt 0 ]]; then
         should_remove=true
       fi
     fi
@@ -158,6 +182,11 @@ for i in "${!TO_REMOVE_PATHS[@]}"; do
 
   # Delete the local branch
   git branch -D "$wt_branch" 2>/dev/null && echo "  Deleted branch $wt_branch" || echo "  ⚠ Branch $wt_branch already gone"
+
+  # Delete the remote branch if it still exists
+  if git rev-parse --verify "refs/remotes/origin/$wt_branch" &>/dev/null; then
+    git push origin --delete "$wt_branch" 2>/dev/null && echo "  Deleted remote branch origin/$wt_branch" || echo "  ⚠ Could not delete remote branch origin/$wt_branch"
+  fi
 done
 
 echo ""

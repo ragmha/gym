@@ -86,7 +86,13 @@ export default function WorkoutDetail({
               {defaultSets}×{item.reps}
               {item.variation ? ` ${item.variation}` : ''}
             </Text>
-            <Text style={[styles.chevron, { color: textColor }]}>{'>'}</Text>
+            <Text
+              style={[styles.chevron, { color: textColor }]}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              {'>'}
+            </Text>
           </View>
         </View>
         <View style={styles.circlesContainer}>
