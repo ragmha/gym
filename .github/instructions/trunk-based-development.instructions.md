@@ -58,6 +58,19 @@ git pull origin main
 git checkout -b feat/add-workout-timer
 ```
 
+### 4. Prefer Git Worktrees (Recommended)
+
+To avoid accidentally mutating the main checkout, **prefer `git worktree`** over branch switching. This keeps `main` pristine and prevents stale changes from bleeding into open PRs.
+
+```bash
+# From the main checkout (which stays on main)
+git worktree add ../gym-feat-add-workout-timer -b feat/add-workout-timer origin/main
+cd ../gym-feat-add-workout-timer
+bun install
+```
+
+See the `git-worktree` skill (`.github/skills/git-worktree/SKILL.md`) for the full workflow, naming conventions, and cleanup steps.
+
 ## During Development
 
 - **Keep branches short-lived.** Target < 1 day of work per branch. Merge early and often.
@@ -112,9 +125,10 @@ type(scope): description
 
 When Copilot (or any automated agent) is asked to make changes:
 
-1. **Check current branch.** If on `main`, stop and create a branch first.
-2. **Fetch and rebase** to ensure the working tree is current.
-3. **Create a branch** using the naming convention above if one doesn't already exist for this task.
+1. **Check current branch.** If on `main`, stop — do not switch branches in the main checkout.
+2. **Fetch latest** to ensure you're up to date: `git fetch origin`.
+3. **Create a worktree** using `git worktree add ../gym-<type>-<name> -b <type>/<name> origin/main`. See the `git-worktree` skill for details.
+4. **`cd` into the worktree** and run `bun install` before making changes.
 4. Make the changes.
 5. **Use the conventional-commit skill** to construct and execute the commit:
    - Run `git status` and `git diff --cached` to review changes.
