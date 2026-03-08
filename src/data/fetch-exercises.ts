@@ -1,25 +1,29 @@
 import { supabase } from '@/lib/supabase'
-import { Exercise } from '@/types/models'
 
-export const fetchExercies = async (): Promise<Exercise[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('exercises')
-      .select('*')
-      .order('day')
+import type { Database } from '@/lib/database.types'
 
-    if (error) {
-      console.error('Supabase error:', error.message)
-      throw new Error('Failed to fetch exercises')
-    }
+export type ExerciseRow = Database['public']['Tables']['exercises']['Row']
 
-    if (!data || data.length === 0) {
-      throw new Error('No exercises found')
-    }
+/**
+ * Fetch all exercises from Supabase, ordered by day.
+ */
+export const fetchExercises = async (): Promise<ExerciseRow[]> => {
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('*')
+    .order('day')
 
-    return data
-  } catch (err) {
-    console.error('Error fetching exercises:', err)
-    throw err // Re-throw to handle in the store
+  if (error) {
+    console.error('Supabase error:', error.message)
+    throw new Error(`Failed to fetch exercises: ${error.message}`)
   }
+
+  if (!data || data.length === 0) {
+    throw new Error('No exercises found')
+  }
+
+  return data
 }
+
+/** @deprecated Use `fetchExercises` instead. */
+export const fetchExercies = fetchExercises
