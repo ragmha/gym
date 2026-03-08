@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
-import { exerciseUpdateSchema } from '@/lib/validators'
+import type { ExerciseRow } from '@/lib/validators'
+import { exerciseUpdateSchema, parseExerciseRows } from '@/lib/validators'
 import { Exercise, ExerciseDetail } from '@/types/models'
 import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
 import { useEffect } from 'react'
@@ -10,7 +11,9 @@ import { create } from 'zustand'
 // Mock data for initial development
 const MOCK_EXERCISES = [
   {
+    id: 'a0000000-0000-4000-8000-000000000001',
     day: '1',
+    week: '1',
     title: 'Push Day',
     videoURL: 'https://www.youtube.com/watch?v=IODxDxX7oi4',
     cardio: {
@@ -35,14 +38,18 @@ const MOCK_EXERCISES = [
       {
         id: '3',
         title: 'Tricep Extensions',
-        sets: 'To Failure',
+        sets: 'To Failure' as const,
         reps: 20,
         variation: 'Rope',
       },
     ],
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
   },
   {
+    id: 'a0000000-0000-4000-8000-000000000002',
     day: '2',
+    week: '1',
     title: 'Pull Day',
     videoURL: 'https://www.youtube.com/watch?v=IODxDxX7oi4',
     cardio: {
@@ -72,6 +79,8 @@ const MOCK_EXERCISES = [
         variation: 'Dumbbell',
       },
     ],
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
   },
 ]
 
@@ -117,22 +126,13 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
         .order('day')
 
       // If Supabase table doesn't exist, use mock data
-      const exercisesData = error ? MOCK_EXERCISES : data
+      const exercisesData: ExerciseRow[] = error
+        ? parseExerciseRows(MOCK_EXERCISES)
+        : parseExerciseRows(data ?? [])
 
-      if (exercisesData) {
+      if (exercisesData.length > 0) {
         const exercises = exercisesData.reduce(
           (acc, e) => {
-            const cardio =
-              e.cardio &&
-              typeof e.cardio === 'object' &&
-              !Array.isArray(e.cardio)
-                ? (e.cardio as { morning: number; evening: number })
-                : { morning: 0, evening: 0 }
-
-            const details = Array.isArray(e.exercises)
-              ? (e.exercises as ExerciseDetail[])
-              : []
-
             const exercise: Exercise = {
               id: e.day,
               title: e.title,
@@ -144,8 +144,8 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
               ).toLocaleString(),
               color: getRandomPastelColor(),
               completed: false,
-              cardio,
-              exercises: details.map((detail: ExerciseDetail) => ({
+              cardio: e.cardio,
+              exercises: e.exercises.map((detail) => ({
                 ...detail,
                 sets:
                   detail.sets === 'To Failure' || detail.sets == null
