@@ -1,8 +1,7 @@
 // Global mocks for React Native modules that aren't available in the test environment
-
-// Mock expo-router
 import React from 'react'
 
+// Mock expo-router
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ push: jest.fn(), back: jest.fn() })),
   useLocalSearchParams: jest.fn(() => ({})),

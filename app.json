@@ -38,7 +38,8 @@
           "healthSharePermission": "This app needs access to your health data to display your steps, calories, and workout activity.",
           "healthUpdatePermission": "This app currently only reads your health data and does not update or modify it."
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "runtimeVersion": {
       "policy": "appVersion"

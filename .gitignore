@@ -25,5 +25,10 @@ expo-env.d.ts
 
 .cursor/*
 
+# Playwright
+.playwright-mcp/
+playwright-report/
+test-results/
+
 # Env files
 .env
