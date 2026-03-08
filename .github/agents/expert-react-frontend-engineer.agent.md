@@ -1,7 +1,30 @@
 ---
-description: "Expert React 19.2 frontend engineer specializing in modern hooks, Server Components, Actions, TypeScript, and performance optimization"
-name: "Expert React Frontend Engineer"
-tools: ["changes", "codebase", "edit/editFiles", "extensions", "fetch", "findTestFiles", "githubRepo", "new", "openSimpleBrowser", "problems", "runCommands", "runTasks", "runTests", "search", "searchResults", "terminalLastCommand", "terminalSelection", "testFailure", "usages", "vscodeAPI", "microsoft.docs.mcp"]
+description: 'Expert React 19.2 frontend engineer specializing in modern hooks, Server Components, Actions, TypeScript, and performance optimization'
+name: 'Expert React Frontend Engineer'
+tools:
+  [
+    'read/changes',
+    'search/codebase',
+    'edit/editFiles',
+    'read/extensions',
+    'web/fetch',
+    'search/findTestFiles',
+    'web/githubRepo',
+    'create/new',
+    'web/openSimpleBrowser',
+    'read/problems',
+    'execute/runCommands',
+    'execute/runTasks',
+    'execute/runTests',
+    'search',
+    'search/searchResults',
+    'read/terminalLastCommand',
+    'read/terminalSelection',
+    'execute/testFailure',
+    'search/usages',
+    'read/vscodeAPI',
+    'microsoft.docs.mcp',
+  ]
 ---
 
 # Expert React Frontend Engineer
