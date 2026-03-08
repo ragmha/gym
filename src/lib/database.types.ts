@@ -1,57 +1,29 @@
 /**
- * Auto-generated Supabase database types.
+ * Supabase database types — derived from Zod schemas in `@/lib/validators`.
  *
- * Regenerate with:
- *   bun run generate-types
+ * The Zod schemas are the single source of truth. This file re-exports
+ * the inferred types in the shape Supabase's `createClient<Database>` expects.
  *
- * Manual edits will be overwritten on next generation.
+ * If you regenerate with `bun run generate-types`, merge the output
+ * with the Zod-derived types below.
  */
+import type {
+  Cardio,
+  ExerciseDetailRow,
+  ExerciseInsert,
+  ExerciseRow,
+  ExerciseUpdate,
+} from './validators'
 
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type { ExerciseInsert, ExerciseRow, ExerciseUpdate }
 
 export interface Database {
   public: {
     Tables: {
       exercises: {
-        Row: {
-          id: string
-          day: string
-          week: string
-          title: string
-          videoURL: string | null
-          cardio: Json
-          exercises: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          day: string
-          week: string
-          title: string
-          videoURL?: string | null
-          cardio: Json
-          exercises: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          day?: string
-          week?: string
-          title?: string
-          videoURL?: string | null
-          cardio?: Json
-          exercises?: Json
-          created_at?: string
-          updated_at?: string
-        }
+        Row: ExerciseRow
+        Insert: ExerciseInsert
+        Update: ExerciseUpdate
         Relationships: []
       }
     }
@@ -69,3 +41,6 @@ export interface Database {
     }
   }
 }
+
+// Re-export JSONB column types for convenience
+export type { Cardio, ExerciseDetailRow }

@@ -1,26 +1,11 @@
-export interface ExerciseDetail {
-  id: string
-  title: string
-  sets: number | 'To Failure'
-  reps: number
-  variation: string | null
-  completed: boolean
-  selectedSets: boolean[]
-}
-
-export interface Exercise {
-  id: string
-  title: string
-  videoURL: string
-  date: string
-  color: string
-  completed: boolean
-  cardio: {
-    morning: number
-    evening: number
-  }
-  exercises: ExerciseDetail[]
-  localId: string
-  synced: boolean
-  deleted?: boolean
-}
+/**
+ * Client-side model types — derived from Zod schemas in `@/lib/validators`.
+ *
+ * These re-exports keep existing imports working while the Zod schemas
+ * in validators.ts remain the single source of truth.
+ */
+export type {
+  Cardio,
+  ExerciseClient as Exercise,
+  ExerciseDetailClient as ExerciseDetail,
+} from '@/lib/validators'
