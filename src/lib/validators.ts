@@ -30,7 +30,7 @@ export const cardioSchema = z.object({
 
 /** Schema for a full exercises table row (Supabase response) */
 export const exerciseRowSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   day: z.string(),
   week: z.string(),
   title: z.string(),
@@ -45,13 +45,20 @@ export const exerciseRowSchema = z.object({
 export const exerciseInsertSchema = exerciseRowSchema
   .omit({ id: true, created_at: true, updated_at: true })
   .extend({
-    id: z.string().uuid().optional(),
+    id: z.uuid().optional(),
     created_at: z.string().optional(),
     updated_at: z.string().optional(),
   })
 
-/** Schema for updating an existing row */
-export const exerciseUpdateSchema = exerciseRowSchema.partial()
+/** Schema for updating an existing row (only mutable fields) */
+export const exerciseUpdateSchema = z.object({
+  day: z.string().optional(),
+  week: z.string().optional(),
+  title: z.string().optional(),
+  videoURL: z.string().nullable().optional(),
+  cardio: cardioSchema.optional(),
+  exercises: z.array(exerciseDetailSchema).optional(),
+})
 
 // ─── Client-side schemas (extend DB schemas with UI state) ──────────
 

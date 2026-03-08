@@ -7,9 +7,9 @@ export type SupabaseEnvSource =
   | 'SUPABASE_PUBLISHABLE_KEY'
 
 const envSchema = z.object({
-  EXPO_PUBLIC_SUPABASE_URL: z.string().trim().url().optional(),
+  EXPO_PUBLIC_SUPABASE_URL: z.url().optional(),
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().trim().min(1).optional(),
-  SUPABASE_URL: z.string().trim().url().optional(),
+  SUPABASE_URL: z.url().optional(),
   SUPABASE_PUBLISHABLE_KEY: z.string().trim().min(1).optional(),
 })
 
