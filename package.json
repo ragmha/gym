@@ -20,6 +20,7 @@
     "generate-types": "supabase gen types typescript --project-id \"$EXPO_PUBLIC_SUPABASE_PROJECT_ID\" --schema public > src/lib/database.types.ts",
     "db:migrate": "supabase db push",
     "db:reset": "supabase db reset",
+    "worktree:cleanup": "bash scripts/cleanup-merged-worktrees.sh",
     "prepare": "husky"
   },
   "jest": {
