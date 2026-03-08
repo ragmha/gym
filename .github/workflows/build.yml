@@ -20,15 +20,24 @@ on:
           - production
         default: preview
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   build:
     name: EAS Build (${{ inputs.platform }} / ${{ inputs.profile }})
     runs-on: ubuntu-latest
     steps:
       - name: Check for EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
-            echo "You must provide an EXPO_TOKEN secret linked to this project's Expo account in this repo's secrets."
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::You must provide an EXPO_TOKEN secret linked to this project's Expo account."
             exit 1
           fi
 
@@ -36,16 +45,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.2'
 
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
-          restore-keys: ${{ runner.os }}-bun-
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Setup EAS
         uses: expo/expo-github-action@v8
@@ -53,11 +58,8 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Install dependencies
-        run: bun install
-
       - name: Run Expo Doctor
         run: bunx expo-doctor@latest
 
       - name: Build app
-        run: bun run eas build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive
+        run: eas build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive
