@@ -62,8 +62,9 @@ export const exerciseUpdateSchema = z.object({
 
 // ─── Client-side schemas (extend DB schemas with UI state) ──────────
 
-/** Exercise detail with client-side UI state */
+/** Exercise detail with client-side UI state (sets is always numeric after store initialization) */
 export const exerciseDetailClientSchema = exerciseDetailSchema.extend({
+  sets: z.number(),
   completed: z.boolean(),
   selectedSets: z.array(z.boolean()),
 })
@@ -80,7 +81,6 @@ export const exerciseClientSchema = z.object({
   exercises: z.array(exerciseDetailClientSchema),
   localId: z.string(),
   synced: z.boolean(),
-  deleted: z.boolean().optional(),
 })
 
 // ─── Inferred types ─────────────────────────────────────────────────

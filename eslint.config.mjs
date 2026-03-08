@@ -42,13 +42,8 @@ export default [
           argsIgnorePattern: '^_',
         },
       ],
-      // Enforce exhaustive deps for React hooks with autofix enabled
-      'react-hooks/exhaustive-deps': [
-        'warn',
-        {
-          enableDangerousAutofixThisMayCauseInfiniteLoops: true,
-        },
-      ],
+      // Enforce exhaustive deps for React hooks (autofix disabled to avoid infinite loops)
+      'react-hooks/exhaustive-deps': 'warn',
       // Allow @ alias imports (configured in tsconfig.json)
       'import/no-unresolved': 'off',
       // Disable deprecated eslint-plugin-node rules (incompatible with ESLint 9+)

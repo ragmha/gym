@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native'
 
-import { ProgressCard } from '@/components/ProgessCard'
+import { ProgressCard } from '@/components/ProgressCard'
 import { useThemeColor } from '@/hooks/useThemeColor'
 import type { HealthKitWorkout } from '@/lib/healthkit'
 
@@ -37,9 +37,28 @@ export function HealthMetrics({
   const textColor = useThemeColor({}, 'text')
   const subtextColor = useThemeColor({}, 'icon')
 
-  // Only show on iOS
+  // Show fallback on non-iOS platforms
   if (Platform.OS !== 'ios' || !isAvailable) {
-    return null
+    return (
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>
+          Health Data
+        </Text>
+        <View
+          style={[styles.connectCard, { backgroundColor: cardBackgroundColor }]}
+        >
+          <Text style={styles.connectIcon}>💪</Text>
+          <View style={styles.connectTextContainer}>
+            <Text style={[styles.connectTitle, { color: textColor }]}>
+              Health tracking unavailable
+            </Text>
+            <Text style={[styles.connectSubtitle, { color: subtextColor }]}>
+              Calories and workout data require Apple Health on iOS
+            </Text>
+          </View>
+        </View>
+      </View>
+    )
   }
 
   // Not authorized — show connect prompt

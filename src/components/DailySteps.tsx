@@ -19,7 +19,21 @@ export function DailySteps({
   const textColor = useThemeColor({}, 'text')
   const subtextColor = useThemeColor({}, 'icon')
 
-  if (Platform.OS !== 'ios') return null
+  if (Platform.OS !== 'ios') {
+    return (
+      <View
+        style={[styles.container, { backgroundColor: cardBg }]}
+        testID="daily-steps-card"
+      >
+        <View style={styles.details}>
+          <Text style={[styles.title, { color: textColor }]}>Daily Steps</Text>
+          <Text style={[styles.subtitle, { color: subtextColor }]}>
+            Step tracking requires Apple Health on iOS
+          </Text>
+        </View>
+      </View>
+    )
+  }
 
   const progress = Math.min((steps / goal) * 100, 100)
   const remaining = Math.max(goal - steps, 0)
