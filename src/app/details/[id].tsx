@@ -34,7 +34,8 @@ function DetailsScreen() {
       const allCompleted = exercise.exercises.every((e) =>
         e.id === detailId ? isComplete : e.completed,
       )
-      if (allCompleted) {
+
+      if (allCompleted !== exercise.completed) {
         completeExercise(exercise.localId)
       }
     },
