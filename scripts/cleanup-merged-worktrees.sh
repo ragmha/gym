@@ -28,6 +28,42 @@ fi
 
 CURRENT_BRANCH="$(git branch --show-current)"
 
+# Hard guard: this script must be run from the main worktree on branch 'main'
+if [[ "$CURRENT_BRANCH" != "main" ]]; then
+  echo "ERROR: cleanup-merged-worktrees.sh must be run from the main worktree on branch 'main'."
+  exit 1
+fi
+
+MAIN_WORKTREE_PATH=""
+wt_path=""
+wt_branch=""
+while IFS= read -r line; do
+  if [[ "$line" == worktree\ * ]]; then
+    wt_path="${line#worktree }"
+  elif [[ "$line" == branch\ * ]]; then
+    wt_branch="${line#branch refs/heads/}"
+  elif [[ -z "$line" ]]; then
+    if [[ "${wt_branch:-}" == "main" ]]; then
+      MAIN_WORKTREE_PATH="$wt_path"
+      break
+    fi
+    wt_path=""
+    wt_branch=""
+  fi
+done < <(git worktree list --porcelain; echo "")
+
+if [[ -z "$MAIN_WORKTREE_PATH" ]]; then
+  echo "ERROR: Could not determine the main worktree path for branch 'main'."
+  exit 1
+fi
+
+if [[ "$MAIN_REPO" != "$MAIN_WORKTREE_PATH" ]]; then
+  echo "ERROR: cleanup-merged-worktrees.sh must be run from the main worktree at:"
+  echo "  $MAIN_WORKTREE_PATH"
+  echo "Current working tree is:"
+  echo "  $MAIN_REPO"
+  exit 1
+fi
 # Prune remote tracking refs so deleted remote branches are detected
 git fetch --prune --quiet 2>/dev/null || true
 
