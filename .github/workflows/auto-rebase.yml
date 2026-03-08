@@ -1,0 +1,233 @@
+name: auto-rebase
+
+# Automatically rebase open PRs onto main after a push to main,
+# resolving simple merge conflicts and keeping branches up to date.
+#
+# Can also be triggered manually or by commenting "/rebase" on a PR.
+
+on:
+  push:
+    branches: [main]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to rebase (blank = all open PRs)'
+        required: false
+        type: string
+
+concurrency:
+  group: auto-rebase-${{ github.event.inputs.pr_number || 'all' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  rebase:
+    name: Rebase PRs onto main
+    runs-on: ubuntu-latest
+    # Only run on push/dispatch, or when someone comments "/rebase" on a PR
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/rebase'))
+    steps:
+      - name: Generate GitHub App token
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        continue-on-error: true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine PRs to rebase
+        id: prs
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            echo "numbers=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${{ github.event.inputs.pr_number }}" ]]; then
+            echo "numbers=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          else
+            # All open PRs targeting main
+            prs=$(gh pr list --base main --state open --json number --jq '.[].number' | tr '\n' ' ')
+            echo "numbers=$prs" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebase each PR branch
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
+        run: |
+          set +e  # Don't exit on first failure — try all PRs
+
+          succeeded=""
+          failed=""
+          skipped=""
+
+          # Associative-style storage for conflict details (using temp files)
+          conflict_dir=$(mktemp -d)
+
+          for pr in ${{ steps.prs.outputs.numbers }}; do
+            echo "::group::PR #$pr"
+
+            # Get branch name and repo info
+            pr_info=$(gh pr view "$pr" --json headRefName,headRepository,headRepositoryOwner,isCrossRepository)
+            branch=$(echo "$pr_info" | jq -r '.headRefName')
+            is_fork=$(echo "$pr_info" | jq -r '.isCrossRepository')
+
+            if [[ "$is_fork" == "true" ]]; then
+              echo "⏭️  PR #$pr is from a fork — skipping (cannot push to fork)"
+              skipped="$skipped #$pr"
+              echo "::endgroup::"
+              continue
+            fi
+
+            echo "Rebasing branch '$branch' onto main..."
+
+            # Fetch latest
+            git fetch origin main "$branch"
+            git checkout "origin/$branch"
+            git checkout -B "$branch"
+
+            # Attempt rebase
+            if git rebase origin/main; then
+              echo "✅ Rebase succeeded for PR #$pr ($branch)"
+
+              # Force-push the rebased branch
+              if git push origin "$branch" --force-with-lease; then
+                echo "✅ Pushed rebased branch for PR #$pr"
+                succeeded="$succeeded #$pr"
+              else
+                echo "❌ Push failed for PR #$pr"
+                failed="$failed #$pr"
+                echo "Push rejected (likely protected branch or concurrent update)" > "$conflict_dir/$pr"
+              fi
+            else
+              echo "❌ Rebase conflict for PR #$pr ($branch)"
+
+              # Capture which files conflict and why
+              {
+                echo "BRANCH=$branch"
+                echo "---"
+                # Identify the commit that caused the conflict
+                rebase_head=$(cat .git/rebase-merge/stopped-sha 2>/dev/null || echo "unknown")
+                rebase_msg=$(git log --format='%s' -1 "$rebase_head" 2>/dev/null || echo "unknown commit")
+                echo "STOPPED_AT=$rebase_msg"
+                echo "---"
+                # List conflicting files with their conflict type
+                git diff --name-only --diff-filter=U 2>/dev/null | while read -r f; do
+                  # Count conflict markers to show severity
+                  markers=$(grep -c '^<<<<<<<' "$f" 2>/dev/null || echo 0)
+                  echo "CONFLICT|$f|$markers conflict region(s)"
+                done
+                # Also capture files deleted on one side
+                git diff --name-only --diff-filter=D 2>/dev/null | while read -r f; do
+                  echo "DELETED|$f|file deleted in main but modified in branch"
+                done
+              } > "$conflict_dir/$pr"
+
+              git rebase --abort
+              failed="$failed #$pr"
+            fi
+
+            # Clean up for next iteration
+            git checkout --detach HEAD 2>/dev/null || true
+
+            echo "::endgroup::"
+          done
+
+          # Summary
+          echo ""
+          echo "===== Rebase Summary ====="
+          [[ -n "$succeeded" ]] && echo "✅ Succeeded:$succeeded"
+          [[ -n "$failed" ]]    && echo "❌ Failed:$failed"
+          [[ -n "$skipped" ]]   && echo "⏭️  Skipped:$skipped"
+
+          # Post detailed comment on failed PRs
+          for pr_num in $failed; do
+            pr_num="${pr_num#\#}"
+            detail_file="$conflict_dir/$pr_num"
+
+            if [[ -f "$detail_file" ]]; then
+              branch=$(grep '^BRANCH=' "$detail_file" | head -1 | cut -d= -f2-)
+              stopped_at=$(grep '^STOPPED_AT=' "$detail_file" | head -1 | cut -d= -f2-)
+              conflict_files=$(grep '^CONFLICT|' "$detail_file" | while IFS='|' read -r _ file reason; do
+                echo "- \`$file\` — $reason"
+              done)
+              deleted_files=$(grep '^DELETED|' "$detail_file" | while IFS='|' read -r _ file reason; do
+                echo "- \`$file\` — $reason"
+              done)
+
+              # Build the comment body
+              body="⚠️ **Auto-rebase failed** — this PR has merge conflicts with \`main\` that need manual resolution."
+              body+=$'\n\n'
+
+              if [[ -n "$stopped_at" && "$stopped_at" != "unknown commit" ]]; then
+                body+="**Conflict started at commit:** \`$stopped_at\`"
+                body+=$'\n\n'
+              fi
+
+              if [[ -n "$conflict_files" ]]; then
+                body+="### Conflicting files"
+                body+=$'\n'
+                body+="$conflict_files"
+                body+=$'\n\n'
+              fi
+
+              if [[ -n "$deleted_files" ]]; then
+                body+="### Deleted on main (may need removal)"
+                body+=$'\n'
+                body+="$deleted_files"
+                body+=$'\n\n'
+              fi
+
+              body+="### How to fix"
+              body+=$'\n'
+              body+="\`\`\`bash"
+              body+=$'\n'
+              body+="git fetch origin"
+              body+=$'\n'
+              body+="git checkout $branch"
+              body+=$'\n'
+              body+="git rebase origin/main"
+              body+=$'\n'
+              body+="# Fix the files listed above, then:"
+              body+=$'\n'
+              body+="git add <resolved-files>"
+              body+=$'\n'
+              body+="git rebase --continue"
+              body+=$'\n'
+              body+="git push --force-with-lease"
+              body+=$'\n'
+              body+="\`\`\`"
+            else
+              body="⚠️ **Auto-rebase failed** — this PR has conflicts with \`main\`. Run \`git rebase origin/main\` locally to resolve."
+            fi
+
+            gh pr comment "$pr_num" --body "$body"
+          done
+
+          # Clean up
+          rm -rf "$conflict_dir"
+
+          # Warn (but don't fail the workflow) if some PRs couldn't be rebased
+          if [[ -n "$failed" ]]; then
+            echo "::warning::Some PRs could not be rebased:$failed"
+          fi
