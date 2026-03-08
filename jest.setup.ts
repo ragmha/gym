@@ -56,6 +56,9 @@ jest.mock('react-native-reanimated', () => {
     },
     useSharedValue: jest.fn((init: any) => ({ value: init })),
     useAnimatedStyle: jest.fn(() => ({})),
+    useAnimatedProps: jest.fn(() => ({})),
+    useAnimatedReaction: jest.fn(),
+    runOnJS: jest.fn((fn: any) => fn),
     withTiming: jest.fn((val: any) => val),
     withRepeat: jest.fn((val: any) => val),
     withSequence: jest.fn((...args: any[]) => args[0]),
@@ -64,8 +67,10 @@ jest.mock('react-native-reanimated', () => {
   }
 })
 
-// Mock react-native-circular-progress-indicator
-jest.mock('react-native-circular-progress-indicator', () => 'CircularProgress')
+// Mock react-native-worklets
+jest.mock('react-native-worklets', () => ({
+  scheduleOnRN: jest.fn((fn: any, ...args: any[]) => fn(...args)),
+}))
 
 // Mock react-native-tab-view
 jest.mock('react-native-tab-view', () => ({
