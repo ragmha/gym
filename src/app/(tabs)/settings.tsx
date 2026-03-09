@@ -1,6 +1,8 @@
+import Ionicons from '@expo/vector-icons/Ionicons'
 import {
   Linking,
   Platform,
+  Pressable,
   StyleSheet,
   Switch,
   Text,
@@ -12,13 +14,27 @@ import Header from '@/components/Header'
 import { useHealthKit } from '@/hooks/useHealthKit'
 import { useThemeColor } from '@/hooks/useThemeColor'
 import { isHealthKitAvailable } from '@/lib/healthkit'
+import { type ThemePreference, useThemeStore } from '@/stores/ThemeStore'
 import { StatusBar } from 'expo-status-bar'
+
+const THEME_OPTIONS: {
+  value: ThemePreference
+  label: string
+  icon: React.ComponentProps<typeof Ionicons>['name']
+}[] = [
+  { value: 'system', label: 'System', icon: 'phone-portrait-outline' },
+  { value: 'light', label: 'Light', icon: 'sunny-outline' },
+  { value: 'dark', label: 'Dark', icon: 'moon-outline' },
+]
 
 export default function SettingsScreen() {
   const textColor = useThemeColor({}, 'text')
   const cardBg = useThemeColor({}, 'cardBackground')
   const subtextColor = useThemeColor({}, 'icon')
+  const accentColor = useThemeColor({}, 'accent')
   const { isAuthorized, requestAuthorization } = useHealthKit()
+  const preference = useThemeStore((s) => s.preference)
+  const setPreference = useThemeStore((s) => s.setPreference)
 
   const showHealthKit = Platform.OS === 'ios' && isHealthKitAvailable()
 
@@ -74,6 +90,47 @@ export default function SettingsScreen() {
           </View>
         </View>
       )}
+
+      {/* Appearance */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>
+          Appearance
+        </Text>
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
+          <View style={styles.themeRow}>
+            {THEME_OPTIONS.map((opt) => {
+              const isSelected = preference === opt.value
+              return (
+                <Pressable
+                  key={opt.value}
+                  style={[
+                    styles.themeOption,
+                    isSelected && { backgroundColor: accentColor },
+                  ]}
+                  onPress={() => setPreference(opt.value)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`${opt.label} theme`}
+                >
+                  <Ionicons
+                    name={opt.icon}
+                    size={20}
+                    color={isSelected ? '#fff' : subtextColor}
+                  />
+                  <Text
+                    style={[
+                      styles.themeLabel,
+                      { color: isSelected ? '#fff' : textColor },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        </View>
+      </View>
     </View>
   )
 }
@@ -130,5 +187,22 @@ const styles = StyleSheet.create({
   manageLinkText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  themeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  themeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 })
