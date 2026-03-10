@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Keyboard,
@@ -52,8 +52,9 @@ export default function WeightScreen() {
     useWeightStore()
 
   const [showGoalSheet, setShowGoalSheet] = useState(false)
-  const [showInput, setShowInput] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const inputRef = useRef<TextInput>(null)
 
   const todayStr = useMemo(
     () =>
@@ -80,7 +81,10 @@ export default function WeightScreen() {
 
   const handleAddEntry = useCallback(async () => {
     const trimmed = inputValue.trim()
-    if (!trimmed) return
+    if (!trimmed) {
+      setIsEditing(false)
+      return
+    }
 
     const parsed = parseFloat(trimmed)
     if (Number.isNaN(parsed) || parsed <= 0 || parsed > 500) {
@@ -95,9 +99,15 @@ export default function WeightScreen() {
     const kg = unit === 'lbs' ? parsed / KG_TO_LBS : parsed
     await addEntry(kg)
     setInputValue('')
-    setShowInput(false)
+    setIsEditing(false)
     Keyboard.dismiss()
   }, [inputValue, unit, addEntry])
+
+  const startEditing = useCallback(() => {
+    setInputValue(heroWeight === '--' ? '' : heroWeight)
+    setIsEditing(true)
+    setTimeout(() => inputRef.current?.focus(), 100)
+  }, [heroWeight])
 
   return (
     <View style={styles.container}>
@@ -124,8 +134,25 @@ export default function WeightScreen() {
         {/* Date */}
         <Text style={styles.dateText}>{todayStr.toUpperCase()}</Text>
 
-        {/* Hero weight */}
-        <Text style={styles.heroWeight}>{heroWeight}</Text>
+        {/* Hero weight — tap to edit */}
+        {isEditing ? (
+          <TextInput
+            ref={inputRef}
+            style={styles.heroWeightInput}
+            value={inputValue}
+            onChangeText={setInputValue}
+            onSubmitEditing={handleAddEntry}
+            onBlur={handleAddEntry}
+            keyboardType="decimal-pad"
+            returnKeyType="done"
+            selectTextOnFocus
+            autoFocus
+          />
+        ) : (
+          <Pressable onPress={startEditing}>
+            <Text style={styles.heroWeight}>{heroWeight}</Text>
+          </Pressable>
+        )}
 
         {/* Goal distance OR set a goal */}
         {goalDistanceText ? (
@@ -147,51 +174,6 @@ export default function WeightScreen() {
             unit={unit}
             height={200}
           />
-        </View>
-
-        {/* Input overlay */}
-        {showInput && (
-          <View style={styles.inputOverlay}>
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.input}
-                placeholder={`Weight (${unit})`}
-                placeholderTextColor="#666"
-                keyboardType="decimal-pad"
-                returnKeyType="done"
-                value={inputValue}
-                onChangeText={setInputValue}
-                onSubmitEditing={handleAddEntry}
-                autoFocus
-              />
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleAddEntry}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowInput(false)
-                  setInputValue('')
-                }}
-                hitSlop={8}
-              >
-                <Ionicons name="close-circle" size={28} color="#666" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* FAB */}
-        <View style={styles.fabContainer}>
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={() => setShowInput(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={32} color="#000000" />
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
 
@@ -241,6 +223,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 88,
   },
+  heroWeightInput: {
+    color: '#FFFFFF',
+    fontSize: 80,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 88,
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFB800',
+    paddingBottom: 4,
+  },
   goalDistance: {
     color: '#FFB800',
     fontSize: 18,
@@ -267,56 +260,5 @@ const styles = StyleSheet.create({
   chartContainer: {
     flex: 1,
     marginHorizontal: -8,
-  },
-  inputOverlay: {
-    position: 'absolute',
-    bottom: 100,
-    left: 24,
-    right: 24,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-    padding: 16,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 18,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 12,
-    padding: 12,
-  },
-  saveButton: {
-    backgroundColor: '#FFB800',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  saveButtonText: {
-    color: '#000000',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  fabContainer: {
-    alignItems: 'center',
-    paddingBottom: 16,
-  },
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
   },
 })
