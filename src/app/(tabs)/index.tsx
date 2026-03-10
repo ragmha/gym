@@ -171,7 +171,7 @@ export default function HomeScreen() {
         <Ionicons name="chevron-forward" size={20} color={subtitleColor} />
       </TouchableOpacity>
 
-      {/* Quick stats — 3 key metrics */}
+      {/* Quick stats — 2 key metrics */}
       <View style={styles.quickStats}>
         {[
           {
@@ -179,12 +179,6 @@ export default function HomeScreen() {
             value: steps > 0 ? steps.toLocaleString() : '--',
             unit: 'steps',
             color: '#E8C558',
-          },
-          {
-            label: 'Sleep',
-            value: sleepHours > 0 ? `${sleepHours}` : '--',
-            unit: 'hrs',
-            color: '#5B9BD5',
           },
           {
             label: 'Calories',
