@@ -52,14 +52,14 @@ export default function RootLayout() {
             name="weight"
             options={{
               headerShown: false,
-              presentation: 'fullScreenModal',
+              presentation: 'modal',
             }}
           />
           <Stack.Screen
             name="steps"
             options={{
               headerShown: false,
-              presentation: 'fullScreenModal',
+              presentation: 'modal',
             }}
           />
           <Stack.Screen

@@ -112,19 +112,21 @@ export default function StepsScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
-            <Ionicons name="close" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>Steps</Text>
-          <TouchableOpacity
-            onPress={() => {
-              setGoalInput(String(stepsGoal))
-              setShowGoalModal(true)
-            }}
-            hitSlop={12}
-          >
-            <Ionicons name="settings-outline" size={22} color="#999" />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => {
+                setGoalInput(String(stepsGoal))
+                setShowGoalModal(true)
+              }}
+              hitSlop={12}
+            >
+              <Ionicons name="settings-outline" size={22} color="#999" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -343,6 +345,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   scrollContent: {
     paddingHorizontal: 24,

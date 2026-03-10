@@ -130,20 +130,18 @@ export default function WeightScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Header row */}
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={12}
-            style={styles.backButton}
-          >
-            <Ionicons name="close" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowGoalSheet(true)}
-            hitSlop={12}
-            style={styles.settingsButton}
-          >
-            <Ionicons name="settings-outline" size={22} color="#999" />
-          </TouchableOpacity>
+          <View style={{ width: 46 }} />
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => setShowGoalSheet(true)}
+              hitSlop={12}
+            >
+              <Ionicons name="settings-outline" size={22} color="#999" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -310,6 +308,18 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 8,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 40,
@@ -340,18 +350,6 @@ const styles = StyleSheet.create({
   },
   toggleTextActive: {
     color: '#000000',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  backButton: {
-    padding: 4,
-  },
-  settingsButton: {
-    padding: 4,
   },
   dateText: {
     color: '#AAAAAA',
