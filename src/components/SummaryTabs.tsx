@@ -14,7 +14,6 @@ export function SummaryTabs({ onTabChange }: SummaryTabsProps) {
   const [active, setActive] = useState<Tab>('Overview')
   const textColor = useThemeColor({}, 'text')
   const subtitleColor = useThemeColor({}, 'subtitleText')
-  const accentColor = useThemeColor({}, 'accent')
   const surfaceColor = useThemeColor({}, 'cardSurface')
 
   function handlePress(tab: Tab) {
