@@ -216,7 +216,7 @@ export function useWeightStore() {
     [store.entries],
   )
 
-  const recentEntries = useMemo(() => store.entries.slice(-14), [store.entries])
+  const recentEntries = useMemo(() => store.entries.slice(-30), [store.entries])
 
   const trendDelta = useMemo(() => {
     if (store.entries.length < 2) return null

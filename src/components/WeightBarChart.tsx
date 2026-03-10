@@ -60,8 +60,8 @@ export function WeightBarChart({
 
   const { chartData, goalValue, yDomain } = useMemo(() => {
     const today = getTodayStr()
-    const totalDays = 21 // ~3 weeks: past + future
-    const pastDays = 14
+    const totalDays = 37 // ~5 weeks: 30 past + 7 future
+    const pastDays = 30
 
     // Build date slots
     const todayDate = new Date()
