@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -33,11 +34,26 @@ export default function HomeScreen() {
 
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
 
-  const { steps, calories, sleepHours, heartRate, hrv, restingHeartRate } =
-    useHealthKit()
+  const {
+    steps,
+    calories,
+    sleepHours,
+    heartRate,
+    hrv,
+    restingHeartRate,
+    refresh,
+  } = useHealthKit()
 
   const { latestEntry, distanceToGoal, goalKg, unit, trendDelta } =
     useWeightStore()
+
+  const [refreshing, setRefreshing] = useState(false)
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await refresh()
+    setRefreshing(false)
+  }, [refresh])
 
   const recovery = useMemo(
     () =>
@@ -288,6 +304,9 @@ export default function HomeScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor }]}
       contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
     >
       <StatusBar barStyle="light-content" />
       <Header />
