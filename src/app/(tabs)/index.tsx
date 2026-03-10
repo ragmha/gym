@@ -1,68 +1,76 @@
-import React, { useMemo } from 'react'
-import { ScrollView, StatusBar, StyleSheet, Text } from 'react-native'
+import React from 'react'
+import { ScrollView, StatusBar, StyleSheet } from 'react-native'
 
+import { ActivityCardGrid } from '@/components/ActivityCardGrid'
 import { CalendarStrip } from '@/components/CalendarStrip'
-import { DailyProgressRings } from '@/components/DailyProgressRings'
-import { OverviewStats } from '@/components/OverviewStats'
-import { WeightTracker } from '@/components/WeightTracker'
+import Header from '@/components/Header'
+import { KeyStatistics } from '@/components/KeyStatistics'
 import { useHealthKit } from '@/hooks/useHealthKit'
 import { useThemeColor } from '@/hooks/useThemeColor'
-import { useExerciseStore } from '@/stores/ExerciseStore'
 
 // Demo defaults used when HealthKit is unavailable
-const DEMO_SLEEP_MINUTES = 365 // 6h 5min
-const SLEEP_GOAL_MINUTES = 480 // 8h
-const CALORIES_GOAL = 2_000
-const STEPS_GOAL = 6_000
+const DEMO_SLEEP_HOURS = 6
+const STEPS_GOAL = 10_000
 
 export default function HomeScreen() {
-  const textColor = useThemeColor({}, 'text')
+  const backgroundColor = useThemeColor({}, 'background')
 
-  const { isDemoMode, steps, calories, workouts } = useHealthKit()
+  const { isDemoMode, steps, calories } = useHealthKit()
 
-  const { exercises } = useExerciseStore()
-
-  // Compute overview stats from exercise store + health data
-  const totalExerciseCount = useMemo(
-    () =>
-      Object.values(exercises).reduce(
-        (sum, ex) => sum + ex.exercises.length,
-        0,
-      ),
-    [exercises],
-  )
-
-  const totalWorkoutMinutes = useMemo(
-    () => Math.round(workouts.reduce((sum, w) => sum + (w.duration ?? 0), 0)),
-    [workouts],
-  )
-
-  const totalCaloriesBurnt = useMemo(
-    () =>
-      Math.round(workouts.reduce((sum, w) => sum + (w.calories ?? 0), 0)) ||
-      calories,
-    [workouts, calories],
-  )
+  const displaySteps = isDemoMode ? 8104 : steps
+  const displayHeartRate = isDemoMode ? 95 : 72
+  const displaySleepHours = isDemoMode ? DEMO_SLEEP_HOURS : 0
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <StatusBar />
-      <Text style={[styles.screenTitle, { color: textColor }]}>Statistics</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor }]}
+      contentContainerStyle={styles.content}
+    >
+      <StatusBar barStyle="light-content" />
+
+      {/* Date header */}
+      <Header />
+
+      {/* Calendar strip */}
       <CalendarStrip />
-      <OverviewStats
-        caloriesBurnt={totalCaloriesBurnt}
-        totalMinutes={totalWorkoutMinutes}
-        exerciseCount={totalExerciseCount}
-      />
-      <DailyProgressRings
-        sleepMinutes={isDemoMode ? DEMO_SLEEP_MINUTES : 0}
-        sleepGoalMinutes={SLEEP_GOAL_MINUTES}
-        calories={calories}
-        caloriesGoal={CALORIES_GOAL}
-        steps={steps}
+
+      {/* Activity cards 2×2 grid */}
+      <ActivityCardGrid
+        steps={displaySteps}
         stepsGoal={STEPS_GOAL}
+        sleepHours={displaySleepHours}
+        waterBottles={isDemoMode ? 3 : 0}
+        heartRate={displayHeartRate}
       />
-      <WeightTracker />
+
+      {/* Key Statistics */}
+      <KeyStatistics
+        stats={[
+          {
+            icon: 'pulse-outline',
+            iconColor: '#30D158',
+            label: 'HRV',
+            value: isDemoMode ? '88' : '--',
+            subValue: isDemoMode ? '65' : undefined,
+            trend: 'up',
+          },
+          {
+            icon: 'moon-outline',
+            iconColor: '#5B9BD5',
+            label: 'Sleep Performance',
+            value: isDemoMode ? '38%' : '--',
+            subValue: isDemoMode ? '67%' : undefined,
+            trend: 'down',
+          },
+          {
+            icon: 'flame-outline',
+            iconColor: '#E8707A',
+            label: 'Calories',
+            value: isDemoMode ? '1,250' : calories.toLocaleString(),
+            trend: 'up',
+          },
+        ]}
+      />
     </ScrollView>
   )
 }
@@ -70,15 +78,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
   },
   content: {
-    paddingBottom: 32,
-  },
-  screenTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    paddingHorizontal: 20,
-    marginBottom: 4,
+    paddingBottom: 100,
   },
 })

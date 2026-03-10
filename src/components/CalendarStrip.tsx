@@ -1,9 +1,7 @@
 import { useThemeColor } from '@/hooks/useThemeColor'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -16,263 +14,149 @@ interface CalendarStripProps {
   onDateSelected?: (date: Date) => void
 }
 
-export const CalendarStrip: React.FC<CalendarStripProps> = ({
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
+
+function getDaysAround(center: Date, count: number): Date[] {
+  const half = Math.floor(count / 2)
+  const days: Date[] = []
+  for (let i = -half; i <= half; i++) {
+    const d = new Date(center)
+    d.setDate(center.getDate() + i)
+    days.push(d)
+  }
+  return days
+}
+
+const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+export function CalendarStrip({
   startDate = new Date(),
   onDateSelected,
-}) => {
+}: CalendarStripProps) {
   const { width } = useWindowDimensions()
-  const [currentDay, setCurrentDay] = useState<Date>(startDate)
   const [selectedDate, setSelectedDate] = useState<Date>(startDate)
-  const scrollViewRef = useRef<ScrollView>(null)
+  const flatListRef = useRef<FlatList>(null)
 
-  const backgroundColor = useThemeColor({}, 'background')
   const textColor = useThemeColor({}, 'text')
-  const selectedCircleColor = useThemeColor({}, 'selectedCircle')
-  const shadowColor = useThemeColor({}, 'shadow')
+  const subtitleColor = useThemeColor({}, 'subtitleText')
+  const accentColor = useThemeColor({}, 'accent')
 
-  useEffect(() => {
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ x: width, animated: false }) // Start at the middle week (current week)
-    }
-  }, [width])
+  const days = getDaysAround(startDate, 15)
+  const ITEM_WIDTH = Math.floor((width - 40) / 5) // show ~5 items
 
-  function getWeekFromToday(startDate: Date, offset: number): Date[] {
-    const dates: Date[] = []
-    const start = new Date(startDate)
-    start.setDate(start.getDate() + offset * 7) // Offset for the week navigation
+  const handlePress = useCallback(
+    (date: Date) => {
+      setSelectedDate(date)
+      onDateSelected?.(date)
+    },
+    [onDateSelected],
+  )
 
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(start)
-      date.setDate(start.getDate() + i)
-      dates.push(date)
-    }
-    return dates
-  }
+  const renderItem = useCallback(
+    ({ item }: { item: Date }) => {
+      const isSelected = isSameDay(item, selectedDate)
+      const isToday = isSameDay(item, new Date())
 
-  function onNextWeek() {
-    const nextDay = new Date(currentDay)
-    nextDay.setDate(currentDay.getDate() + 7)
-    setCurrentDay(nextDay)
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ x: width * 2, animated: true })
-    }
-  }
+      return (
+        <TouchableOpacity
+          style={[
+            styles.dayPill,
+            { width: ITEM_WIDTH - 8 },
+            isSelected && { backgroundColor: accentColor },
+          ]}
+          onPress={() => handlePress(item)}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.dateNumber,
+              { color: isSelected ? '#FFFFFF' : textColor },
+            ]}
+          >
+            {item.getDate()}
+          </Text>
+          <Text
+            style={[
+              styles.dayAbbrev,
+              {
+                color: isSelected ? 'rgba(255,255,255,0.8)' : subtitleColor,
+              },
+            ]}
+          >
+            {DAY_ABBREVS[item.getDay()]}
+          </Text>
+          {isToday && !isSelected && (
+            <View style={[styles.todayDot, { backgroundColor: accentColor }]} />
+          )}
+        </TouchableOpacity>
+      )
+    },
+    [
+      selectedDate,
+      accentColor,
+      textColor,
+      subtitleColor,
+      handlePress,
+      ITEM_WIDTH,
+    ],
+  )
 
-  function onPrevWeek() {
-    const prevDay = new Date(currentDay)
-    prevDay.setDate(currentDay.getDate() - 7)
-    setCurrentDay(prevDay)
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ x: 0, animated: true })
-    }
-  }
-
-  function handleDateSelected(date: Date) {
-    setSelectedDate(date)
-    if (onDateSelected) {
-      onDateSelected(date)
-    }
-  }
-
-  function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    const { contentOffset } = event.nativeEvent
-    const currentPage = Math.round(contentOffset.x / width)
-
-    if (currentPage === 0) {
-      onPrevWeek()
-    } else if (currentPage === 2) {
-      onNextWeek()
-    } else if (currentPage === 1) {
-      setCurrentDay(currentDay)
-    }
-
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ x: width, animated: false })
-    }
-  }
+  const keyExtractor = useCallback((item: Date) => item.toISOString(), [])
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <Text style={[styles.monthText, { color: textColor }]}>
-        {currentDay.toLocaleDateString('en-US', {
-          month: 'long',
-          year: 'numeric',
+    <View style={styles.container}>
+      <FlatList
+        ref={flatListRef}
+        data={days}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        initialScrollIndex={Math.floor(days.length / 2) - 2}
+        getItemLayout={(_, index) => ({
+          length: ITEM_WIDTH,
+          offset: ITEM_WIDTH * index,
+          index,
         })}
-      </Text>
-      <View style={styles.inner}>
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={handleScroll}
-          contentOffset={{ x: width, y: 0 }} // Start at the middle page
-          scrollEventThrottle={16}
-        >
-          {/* Previous Week */}
-          <View style={[styles.weekContainer, { width }]}>
-            {getWeekFromToday(currentDay, -1).map((day) => (
-              <TouchableOpacity
-                key={day.toDateString()}
-                style={[
-                  styles.dayContainer,
-                  { width: width / 7 - 10 },
-                  selectedDate.toDateString() === day.toDateString() && {
-                    backgroundColor: selectedCircleColor,
-                    shadowColor: shadowColor,
-                  },
-                ]}
-                onPress={() => handleDateSelected(day)}
-              >
-                <Text
-                  style={[
-                    styles.dayText,
-                    { color: textColor },
-                    selectedDate.toDateString() === day.toDateString() && {
-                      color: '#FFFFFF',
-                    },
-                  ]}
-                >
-                  {day
-                    .toLocaleDateString('en-US', { weekday: 'short' })
-                    .charAt(0)}
-                </Text>
-                <Text
-                  style={[
-                    styles.dateText,
-                    { color: textColor },
-                    selectedDate.toDateString() === day.toDateString() && {
-                      color: '#FFFFFF',
-                    },
-                  ]}
-                >
-                  {day.getDate()}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Current Week */}
-          <View style={[styles.weekContainer, { width }]}>
-            {getWeekFromToday(currentDay, 0).map((day) => (
-              <TouchableOpacity
-                key={day.toDateString()}
-                style={[
-                  styles.dayContainer,
-                  { width: width / 7 - 10 },
-                  selectedDate.toDateString() === day.toDateString() && {
-                    backgroundColor: selectedCircleColor,
-                    shadowColor: shadowColor,
-                  },
-                ]}
-                onPress={() => handleDateSelected(day)}
-              >
-                <Text
-                  style={[
-                    styles.dayText,
-                    { color: textColor },
-                    selectedDate.toDateString() === day.toDateString() && {
-                      color: '#FFFFFF',
-                    },
-                  ]}
-                >
-                  {day
-                    .toLocaleDateString('en-US', { weekday: 'short' })
-                    .charAt(0)}
-                </Text>
-                <Text
-                  style={[
-                    styles.dateText,
-                    { color: textColor },
-                    selectedDate.toDateString() === day.toDateString() && {
-                      color: '#FFFFFF',
-                    },
-                  ]}
-                >
-                  {day.getDate()}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Next Week */}
-          <View style={[styles.weekContainer, { width }]}>
-            {getWeekFromToday(currentDay, 1).map((day) => (
-              <TouchableOpacity
-                key={day.toDateString()}
-                style={[
-                  styles.dayContainer,
-                  { width: width / 7 - 10 },
-                  selectedDate.toDateString() === day.toDateString() && {
-                    backgroundColor: selectedCircleColor,
-                    shadowColor: shadowColor,
-                  },
-                ]}
-                onPress={() => handleDateSelected(day)}
-              >
-                <Text
-                  style={[
-                    styles.dayText,
-                    { color: textColor },
-                    selectedDate.toDateString() === day.toDateString() && {
-                      color: '#FFFFFF',
-                    },
-                  ]}
-                >
-                  {day
-                    .toLocaleDateString('en-US', { weekday: 'short' })
-                    .charAt(0)}
-                </Text>
-                <Text
-                  style={[
-                    styles.dateText,
-                    { color: textColor },
-                    selectedDate.toDateString() === day.toDateString() && {
-                      color: '#FFFFFF',
-                    },
-                  ]}
-                >
-                  {day.getDate()}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
+      />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 10,
+    paddingVertical: 8,
   },
-  inner: {
-    paddingVertical: 20,
-    borderRadius: 10,
+  listContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  dayPill: {
     alignItems: 'center',
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'left',
-  },
-  weekContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  dayContainer: {
-    alignItems: 'center',
-    padding: 10,
-    marginHorizontal: 5,
+    justifyContent: 'center',
+    paddingVertical: 14,
     borderRadius: 20,
   },
-  dayText: {
-    fontSize: 14,
+  dateNumber: {
+    fontSize: 22,
+    fontWeight: '700',
   },
-  dateText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  dayAbbrev: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  todayDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginTop: 4,
   },
 })
