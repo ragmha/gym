@@ -12,6 +12,7 @@ jest.mock('@/hooks/useThemeColor', () => ({
 const defaultProps = {
   isAvailable: true,
   isAuthorized: true,
+  isDemoMode: false,
   isLoading: false,
   calories: 345,
   workouts: [],
@@ -39,16 +40,29 @@ describe('HealthMetrics', () => {
     jest.clearAllMocks()
   })
 
-  it('shows fallback on Android', () => {
-    Object.defineProperty(Platform, 'OS', {
-      configurable: true,
-      value: 'android',
-    })
-    const tree = renderToJSON(<HealthMetrics {...defaultProps} />)
+  it('shows fallback when not available and not demo mode', () => {
+    const tree = renderToJSON(
+      <HealthMetrics
+        {...defaultProps}
+        isAvailable={false}
+        isDemoMode={false}
+      />,
+    )
 
     expect(tree).not.toBeNull()
     const json = JSON.stringify(tree)
     expect(json).toContain('Health tracking unavailable')
+  })
+
+  it('shows demo data when not available but in demo mode', () => {
+    const tree = renderToJSON(
+      <HealthMetrics {...defaultProps} isAvailable={false} isDemoMode={true} />,
+    )
+
+    expect(tree).not.toBeNull()
+    const json = JSON.stringify(tree)
+    expect(json).toContain("Today's Health")
+    expect(json).toContain('Demo')
   })
 
   it('shows fallback when not available', () => {
