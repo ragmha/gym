@@ -26,6 +26,33 @@ export interface Database {
         Update: ExerciseUpdate
         Relationships: []
       }
+      weight_entries: {
+        Row: {
+          id: string
+          date: string
+          weight_kg: number
+          note: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          date?: string
+          weight_kg: number
+          note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          date?: string
+          weight_kg?: number
+          note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
