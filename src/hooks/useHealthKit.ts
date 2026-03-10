@@ -9,9 +9,37 @@ import {
   isHealthKitAvailable,
 } from '@/lib/healthkit'
 
+function generateMockData(): {
+  steps: number
+  calories: number
+  workouts: HealthKitWorkout[]
+} {
+  const today = new Date()
+  const morningStart = new Date(today)
+  morningStart.setHours(7, 30, 0, 0)
+  const morningEnd = new Date(today)
+  morningEnd.setHours(8, 15, 0, 0)
+
+  return {
+    steps: 6_543,
+    calories: 320,
+    workouts: [
+      {
+        activityName: 'Running',
+        calories: 280,
+        distance: 4.2,
+        duration: 45,
+        start: morningStart.toISOString(),
+        end: morningEnd.toISOString(),
+      },
+    ],
+  }
+}
+
 interface HealthKitState {
   isAvailable: boolean
   isAuthorized: boolean
+  isDemoMode: boolean
   isLoading: boolean
   error: string | null
   steps: number
@@ -21,14 +49,34 @@ interface HealthKitState {
 
 export function useHealthKit() {
   const hasInitialized = useRef(false)
-  const [state, setState] = useState<HealthKitState>({
-    isAvailable: isHealthKitAvailable(),
-    isAuthorized: false,
-    isLoading: false,
-    error: null,
-    steps: 0,
-    calories: 0,
-    workouts: [],
+  const healthKitAvailable = isHealthKitAvailable()
+
+  const [state, setState] = useState<HealthKitState>(() => {
+    if (healthKitAvailable) {
+      return {
+        isAvailable: true,
+        isAuthorized: false,
+        isDemoMode: false,
+        isLoading: false,
+        error: null,
+        steps: 0,
+        calories: 0,
+        workouts: [],
+      }
+    }
+
+    // Provide mock data when HealthKit is unavailable (web, Android, Expo Go)
+    const mock = generateMockData()
+    return {
+      isAvailable: false,
+      isAuthorized: true,
+      isDemoMode: true,
+      isLoading: false,
+      error: null,
+      steps: mock.steps,
+      calories: mock.calories,
+      workouts: mock.workouts,
+    }
   })
 
   const fetchData = useCallback(async () => {
@@ -79,10 +127,21 @@ export function useHealthKit() {
   }, [fetchData])
 
   const refresh = useCallback(async () => {
+    if (state.isDemoMode) {
+      // Refresh mock data
+      const mock = generateMockData()
+      setState((prev) => ({
+        ...prev,
+        steps: mock.steps,
+        calories: mock.calories,
+        workouts: mock.workouts,
+      }))
+      return
+    }
     if (state.isAuthorized) {
       await fetchData()
     }
-  }, [state.isAuthorized, fetchData])
+  }, [state.isAuthorized, state.isDemoMode, fetchData])
 
   // Auto-initialize on mount if available
   useEffect(() => {

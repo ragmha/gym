@@ -1,7 +1,6 @@
 import React from 'react'
 import {
   ActivityIndicator,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,6 +14,7 @@ import type { HealthKitWorkout } from '@/lib/healthkit'
 interface HealthMetricsProps {
   isAvailable: boolean
   isAuthorized: boolean
+  isDemoMode: boolean
   isLoading: boolean
   calories: number
   workouts: HealthKitWorkout[]
@@ -27,6 +27,7 @@ const CALORIE_GOAL = 500
 export function HealthMetrics({
   isAvailable,
   isAuthorized,
+  isDemoMode,
   isLoading,
   calories,
   workouts,
@@ -37,8 +38,8 @@ export function HealthMetrics({
   const textColor = useThemeColor({}, 'text')
   const subtextColor = useThemeColor({}, 'icon')
 
-  // Show fallback on non-iOS platforms
-  if (Platform.OS !== 'ios' || !isAvailable) {
+  // Show fallback only when not in demo mode and HealthKit is unavailable
+  if (!isAvailable && !isDemoMode) {
     return (
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: textColor }]}>
@@ -111,9 +112,16 @@ export function HealthMetrics({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: textColor }]}>
-          {"Today's Health"}
-        </Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>
+            {"Today's Health"}
+          </Text>
+          {isDemoMode && (
+            <View style={styles.demoBadge}>
+              <Text style={styles.demoBadgeText}>Demo</Text>
+            </View>
+          )}
+        </View>
         <TouchableOpacity onPress={onRefresh} hitSlop={8}>
           <Text style={[styles.refreshText, { color: subtextColor }]}>
             Refresh
@@ -168,10 +176,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 12,
+  },
+  demoBadge: {
+    backgroundColor: 'rgba(255,149,0,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  demoBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FF9500',
   },
   refreshText: {
     fontSize: 14,

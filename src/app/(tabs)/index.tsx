@@ -11,6 +11,7 @@ export default function HomeScreen() {
   const {
     isAvailable,
     isAuthorized,
+    isDemoMode,
     isLoading,
     steps,
     calories,
@@ -24,10 +25,11 @@ export default function HomeScreen() {
       <StatusBar />
       <CalendarStrip />
       <WorkoutProgress />
-      {isAuthorized && <DailySteps steps={steps} />}
+      {isAuthorized && <DailySteps steps={steps} isDemoMode={isDemoMode} />}
       <HealthMetrics
         isAvailable={isAvailable}
         isAuthorized={isAuthorized}
+        isDemoMode={isDemoMode}
         isLoading={isLoading}
         calories={calories}
         workouts={workouts}

@@ -7,6 +7,7 @@ import { useThemeColor } from '@/hooks/useThemeColor'
 export interface DailyStepsProps {
   steps: number
   goal?: number
+  isDemoMode?: boolean
 }
 
 const DEFAULT_STEP_GOAL = 10_000
@@ -14,12 +15,13 @@ const DEFAULT_STEP_GOAL = 10_000
 export function DailySteps({
   steps,
   goal = DEFAULT_STEP_GOAL,
+  isDemoMode = false,
 }: DailyStepsProps) {
   const cardBg = useThemeColor({}, 'cardBackground')
   const textColor = useThemeColor({}, 'text')
   const subtextColor = useThemeColor({}, 'icon')
 
-  if (Platform.OS !== 'ios') {
+  if (Platform.OS !== 'ios' && !isDemoMode) {
     return (
       <View
         style={[styles.container, { backgroundColor: cardBg }]}
