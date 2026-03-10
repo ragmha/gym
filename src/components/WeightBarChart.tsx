@@ -6,8 +6,8 @@ import {
   useFont,
   vec,
 } from '@shopify/react-native-skia'
-import React, { useMemo } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import React, { useCallback, useMemo, useRef } from 'react'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Bar, CartesianChart } from 'victory-native'
 
 import type { WeightEntry } from '@/stores/WeightStore'
@@ -17,6 +17,8 @@ import type { WeightEntry } from '@/stores/WeightStore'
 const KG_TO_LBS = 2.20462
 const BAR_COLORS_PAST = ['#FFB800', '#FF8C00', '#FF5500'] as const
 const BAR_COLOR_FUTURE = '#2A2A2A'
+const BAR_WIDTH = 18 // pixels per bar slot
+
 const GOAL_LINE_COLOR = '#FFB800'
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -115,6 +117,19 @@ export function WeightBarChart({
     return { chartData: data, goalValue: gv, yDomain: domain }
   }, [entries, goalKg, unit])
 
+  // Chart width based on number of days — wider than screen so it scrolls
+  const chartWidth = chartData.length * BAR_WIDTH
+
+  // Auto-scroll to today on layout
+  const scrollRef = useRef<ScrollView>(null)
+  const todayIndex = chartData.findIndex((d) => d.isToday)
+  const handleLayout = useCallback(() => {
+    if (todayIndex >= 0 && scrollRef.current) {
+      const offset = Math.max(0, todayIndex * BAR_WIDTH - 160)
+      scrollRef.current.scrollTo({ x: offset, animated: false })
+    }
+  }, [todayIndex])
+
   if (entries.length < 2) {
     return (
       <View style={[styles.placeholder, { height }]}>
@@ -133,89 +148,99 @@ export function WeightBarChart({
 
   return (
     <View style={{ height }}>
-      <CartesianChart
-        data={chartData}
-        xKey="index"
-        yKeys={['weight']}
-        domain={{ y: yDomain }}
-        domainPadding={{ left: 20, right: 20, top: 16 }}
-        padding={{ left: 0, right: 0, bottom: 0, top: 0 }}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        onLayout={handleLayout}
+        contentContainerStyle={{ width: chartWidth }}
       >
-        {({ points, chartBounds }) => (
-          <>
-            {/* Individual bars with per-bar coloring */}
-            {points.weight.map(
-              (point: (typeof points.weight)[number], index: number) => {
-                const datum = chartData[index]
-                if (!datum || datum.weight === 0) return null
-
-                return (
-                  <Bar
-                    key={index}
-                    barCount={points.weight.length}
-                    points={[point]}
-                    chartBounds={chartBounds}
-                    innerPadding={0.15}
-                    roundedCorners={{ topLeft: 3, topRight: 3 }}
-                    animate={{ type: 'timing', duration: 600 }}
-                  >
-                    {datum.isFuture ? (
-                      <LinearGradient
-                        start={vec(0, chartBounds.top)}
-                        end={vec(0, chartBounds.bottom)}
-                        colors={[BAR_COLOR_FUTURE, BAR_COLOR_FUTURE]}
-                      />
-                    ) : (
-                      <LinearGradient
-                        start={vec(0, chartBounds.top)}
-                        end={vec(0, chartBounds.bottom)}
-                        colors={[BAR_COLORS_PAST[0], BAR_COLORS_PAST[2]]}
-                      />
-                    )}
-                  </Bar>
-                )
-              },
-            )}
-
-            {/* Goal line */}
-            {goalValue !== null && font && (
+        <View style={{ width: chartWidth, height: height - 24 }}>
+          <CartesianChart
+            data={chartData}
+            xKey="index"
+            yKeys={['weight']}
+            domain={{ y: yDomain }}
+            domainPadding={{ left: 10, right: 10, top: 16 }}
+            padding={{ left: 0, right: 0, bottom: 0, top: 0 }}
+          >
+            {({ points, chartBounds }) => (
               <>
-                {(() => {
-                  const yRange = yDomain[1] - yDomain[0]
-                  const chartHeight = chartBounds.bottom - chartBounds.top
-                  const goalY =
-                    chartBounds.bottom -
-                    ((goalValue - yDomain[0]) / yRange) * chartHeight
+                {/* Individual bars with per-bar coloring */}
+                {points.weight.map(
+                  (point: (typeof points.weight)[number], index: number) => {
+                    const datum = chartData[index]
+                    if (!datum || datum.weight === 0) return null
 
-                  return (
-                    <>
-                      <SkiaLine
-                        p1={vec(chartBounds.left, goalY)}
-                        p2={vec(chartBounds.right, goalY)}
-                        color={GOAL_LINE_COLOR}
-                        strokeWidth={1}
+                    return (
+                      <Bar
+                        key={index}
+                        barCount={points.weight.length}
+                        points={[point]}
+                        chartBounds={chartBounds}
+                        innerPadding={0.15}
+                        roundedCorners={{ topLeft: 3, topRight: 3 }}
+                        animate={{ type: 'timing', duration: 600 }}
                       >
-                        <DashPathEffect intervals={[6, 4]} />
-                      </SkiaLine>
-                      <SkiaText
-                        x={
-                          chartBounds.left +
-                          (chartBounds.right - chartBounds.left) / 2 -
-                          30
-                        }
-                        y={goalY - 6}
-                        text={`Goal: ${goalValue.toFixed(0)}`}
-                        font={font}
-                        color={GOAL_LINE_COLOR}
-                      />
-                    </>
-                  )
-                })()}
+                        {datum.isFuture ? (
+                          <LinearGradient
+                            start={vec(0, chartBounds.top)}
+                            end={vec(0, chartBounds.bottom)}
+                            colors={[BAR_COLOR_FUTURE, BAR_COLOR_FUTURE]}
+                          />
+                        ) : (
+                          <LinearGradient
+                            start={vec(0, chartBounds.top)}
+                            end={vec(0, chartBounds.bottom)}
+                            colors={[BAR_COLORS_PAST[0], BAR_COLORS_PAST[2]]}
+                          />
+                        )}
+                      </Bar>
+                    )
+                  },
+                )}
+
+                {/* Goal line */}
+                {goalValue !== null && font && (
+                  <>
+                    {(() => {
+                      const yRange = yDomain[1] - yDomain[0]
+                      const chartHeight = chartBounds.bottom - chartBounds.top
+                      const goalY =
+                        chartBounds.bottom -
+                        ((goalValue - yDomain[0]) / yRange) * chartHeight
+
+                      return (
+                        <>
+                          <SkiaLine
+                            p1={vec(chartBounds.left, goalY)}
+                            p2={vec(chartBounds.right, goalY)}
+                            color={GOAL_LINE_COLOR}
+                            strokeWidth={1}
+                          >
+                            <DashPathEffect intervals={[6, 4]} />
+                          </SkiaLine>
+                          <SkiaText
+                            x={
+                              chartBounds.left +
+                              (chartBounds.right - chartBounds.left) / 2 -
+                              30
+                            }
+                            y={goalY - 6}
+                            text={`Goal: ${goalValue.toFixed(0)}`}
+                            font={font}
+                            color={GOAL_LINE_COLOR}
+                          />
+                        </>
+                      )
+                    })()}
+                  </>
+                )}
               </>
             )}
-          </>
-        )}
-      </CartesianChart>
+          </CartesianChart>
+        </View>
+      </ScrollView>
 
       {/* X-axis labels */}
       <View style={styles.xLabels}>
