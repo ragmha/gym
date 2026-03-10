@@ -69,6 +69,26 @@ export async function getDailySteps(date?: Date): Promise<number> {
   }
 }
 
+/** Fetch steps for each day in a range. Returns { date: string, steps: number }[] */
+export async function getStepsHistory(
+  daysBack: number,
+): Promise<{ date: string; steps: number }[]> {
+  const today = new Date()
+  const results: { date: string; steps: number }[] = []
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const steps = await getDailySteps(d)
+    results.push({
+      date: d.toISOString().slice(0, 10),
+      steps,
+    })
+  }
+
+  return results
+}
+
 export async function getDailyCalories(date?: Date): Promise<number> {
   if (!isHealthKitAvailable()) return 0
 
