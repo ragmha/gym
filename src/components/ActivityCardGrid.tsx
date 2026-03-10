@@ -93,7 +93,6 @@ function SleepCard({ hours }: SleepCardProps) {
   const subtitleColor = useThemeColor({}, 'subtitleText')
   const cardBg = useThemeColor({}, 'cardSurface')
 
-  // Mock bar data representing sleep stages
   const bars = [0.5, 0.7, 0.9, 1.0, 0.8, 0.6, 0.9]
   const barWidth = 8
   const barGap = 6
@@ -196,7 +195,6 @@ function HeartCard({ bpm }: HeartCardProps) {
   const subtitleColor = useThemeColor({}, 'subtitleText')
   const cardBg = useThemeColor({}, 'cardSurface')
 
-  // ECG-like polyline
   const ecgPoints =
     '0,30 15,30 25,30 35,28 40,30 50,30 55,10 60,45 65,5 70,40 75,30 85,30 95,28 100,30 115,30 125,30 130,28 135,30 140,30'
 
@@ -288,7 +286,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Walk card specific
   walkRingContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -307,7 +304,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  // Bar & ECG charts
   barChartContainer: {
     alignItems: 'center',
     flex: 1,
@@ -319,7 +315,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  // Values
   cardValue: {
     fontSize: 22,
     fontWeight: '800',
@@ -330,7 +325,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 2,
   },
-  // Water dots
   waterDots: {
     flexDirection: 'row',
     gap: 6,

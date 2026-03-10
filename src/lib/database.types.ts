@@ -69,5 +69,4 @@ export interface Database {
   }
 }
 
-// Re-export JSONB column types for convenience
 export type { Cardio, ExerciseDetailRow }
