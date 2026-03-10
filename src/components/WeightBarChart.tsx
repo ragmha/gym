@@ -1,6 +1,3 @@
-import React, { useMemo } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
-import { Bar, CartesianChart } from 'victory-native'
 import {
   DashPathEffect,
   LinearGradient,
@@ -9,6 +6,9 @@ import {
   useFont,
   vec,
 } from '@shopify/react-native-skia'
+import React, { useMemo } from 'react'
+import { StyleSheet, Text, View } from 'react-native'
+import { Bar, CartesianChart } from 'victory-native'
 
 import type { WeightEntry } from '@/stores/WeightStore'
 
