@@ -173,35 +173,30 @@ export default function HomeScreen() {
 
       {/* Quick stats — 2 key metrics */}
       <View style={styles.quickStats}>
-        {[
-          {
-            label: 'Steps',
-            value: steps > 0 ? steps.toLocaleString() : '--',
-            unit: 'steps',
-            color: '#E8C558',
-          },
-          {
-            label: 'Calories',
-            value: calories > 0 ? `${calories}` : '--',
-            unit: 'kcal',
-            color: '#E8707A',
-          },
-        ].map((stat) => (
-          <View
-            key={stat.label}
-            style={[styles.quickStatItem, { backgroundColor: cardBg }]}
-          >
-            <Text style={[styles.quickStatValue, { color: textColor }]}>
-              {stat.value}
-            </Text>
-            <Text style={[styles.quickStatUnit, { color: stat.color }]}>
-              {stat.unit}
-            </Text>
-            <Text style={[styles.quickStatLabel, { color: subtitleColor }]}>
-              {stat.label}
-            </Text>
-          </View>
-        ))}
+        <TouchableOpacity
+          style={[styles.quickStatItem, { backgroundColor: cardBg }]}
+          onPress={() => router.push('/steps')}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.quickStatValue, { color: textColor }]}>
+            {steps > 0 ? steps.toLocaleString() : '--'}
+          </Text>
+          <Text style={[styles.quickStatUnit, { color: '#E8C558' }]}>
+            steps
+          </Text>
+          <Text style={[styles.quickStatLabel, { color: subtitleColor }]}>
+            Steps
+          </Text>
+        </TouchableOpacity>
+        <View style={[styles.quickStatItem, { backgroundColor: cardBg }]}>
+          <Text style={[styles.quickStatValue, { color: textColor }]}>
+            {calories > 0 ? `${calories}` : '--'}
+          </Text>
+          <Text style={[styles.quickStatUnit, { color: '#E8707A' }]}>kcal</Text>
+          <Text style={[styles.quickStatLabel, { color: subtitleColor }]}>
+            Calories
+          </Text>
+        </View>
       </View>
     </>
   )

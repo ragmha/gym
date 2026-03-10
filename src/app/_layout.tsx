@@ -56,6 +56,13 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="steps"
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+            }}
+          />
+          <Stack.Screen
             name="details/[id]"
             options={{
               headerBackVisible: true,
