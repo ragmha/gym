@@ -17,7 +17,7 @@ These instructions capture Expo team best practices from Expo docs, GitHub issue
 | Validation       | Zod                                              | 4.x        |
 | Charts           | Victory Native + Skia                            | —          |
 | Animations       | React Native Reanimated                          | 4.x        |
-| Health Data      | react-native-health (HealthKit)                  | —          |
+| Health Data      | @kingstinct/react-native-healthkit               | 13.x       |
 | Testing          | Jest + jest-expo + @testing-library/react-native | —          |
 | Linting          | ESLint 9 (flat config) + Prettier                | —          |
 | Pre-commit       | Husky + lint-staged                              | —          |

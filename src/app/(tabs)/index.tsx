@@ -8,18 +8,17 @@ import { KeyStatistics } from '@/components/KeyStatistics'
 import { useHealthKit } from '@/hooks/useHealthKit'
 import { useThemeColor } from '@/hooks/useThemeColor'
 
-// Demo defaults used when HealthKit is unavailable
-const DEMO_SLEEP_HOURS = 6
 const STEPS_GOAL = 10_000
+const WATER_BOTTLE_LITERS = 0.5 // 500 ml per "bottle"
 
 export default function HomeScreen() {
   const backgroundColor = useThemeColor({}, 'background')
 
-  const { isDemoMode, steps, calories } = useHealthKit()
+  const { steps, calories, sleepHours, heartRate, hrv, waterLiters } =
+    useHealthKit()
 
-  const displaySteps = isDemoMode ? 8104 : steps
-  const displayHeartRate = isDemoMode ? 95 : 72
-  const displaySleepHours = isDemoMode ? DEMO_SLEEP_HOURS : 0
+  // Convert liters to bottle count (rounded)
+  const waterBottles = Math.round(waterLiters / WATER_BOTTLE_LITERS)
 
   return (
     <ScrollView
@@ -36,11 +35,11 @@ export default function HomeScreen() {
 
       {/* Activity cards 2×2 grid */}
       <ActivityCardGrid
-        steps={displaySteps}
+        steps={steps}
         stepsGoal={STEPS_GOAL}
-        sleepHours={displaySleepHours}
-        waterBottles={isDemoMode ? 3 : 0}
-        heartRate={displayHeartRate}
+        sleepHours={sleepHours}
+        waterBottles={waterBottles}
+        heartRate={heartRate}
       />
 
       {/* Key Statistics */}
@@ -50,23 +49,21 @@ export default function HomeScreen() {
             icon: 'pulse-outline',
             iconColor: '#30D158',
             label: 'HRV',
-            value: isDemoMode ? '88' : '--',
-            subValue: isDemoMode ? '65' : undefined,
+            value: hrv > 0 ? String(hrv) : '--',
             trend: 'up',
           },
           {
             icon: 'moon-outline',
             iconColor: '#5B9BD5',
-            label: 'Sleep Performance',
-            value: isDemoMode ? '38%' : '--',
-            subValue: isDemoMode ? '67%' : undefined,
-            trend: 'down',
+            label: 'Sleep',
+            value: sleepHours > 0 ? `${sleepHours}h` : '--',
+            trend: 'neutral',
           },
           {
             icon: 'flame-outline',
             iconColor: '#E8707A',
             label: 'Calories',
-            value: isDemoMode ? '1,250' : calories.toLocaleString(),
+            value: calories > 0 ? calories.toLocaleString() : '--',
             trend: 'up',
           },
         ]}
