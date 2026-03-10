@@ -66,12 +66,12 @@ export function WeightBarChart({
 }: WeightBarChartProps) {
   const font = useFont(require('../assets/fonts/SpaceMono-Regular.ttf'), 10)
 
-  const { chartData, goalValue, yDomain } = useMemo(() => {
+  const { chartData, lineData, goalValue, yDomain } = useMemo(() => {
     const today = getTodayStr()
     const totalDays = 37 // ~5 weeks: 30 past + 7 future
     const pastDays = 30
 
-    // Build date slots
+    // Build date slots (for bar mode)
     const todayDate = new Date()
     const slots: { date: string; isFuture: boolean; isToday: boolean }[] = []
     for (let i = pastDays - 1; i >= 0; i--) {
@@ -90,8 +90,8 @@ export function WeightBarChart({
     // Map entries by date
     const entryMap = new Map(entries.map((e) => [e.date, e]))
 
-    // Build chart data
-    const data: ChartDatum[] = slots.map((slot, i) => {
+    // Build bar chart data (all day slots, zeros for missing)
+    const barData: ChartDatum[] = slots.map((slot, i) => {
       const entry = entryMap.get(slot.date)
       const rawWeight = entry?.weightKg ?? 0
       const weight =
@@ -105,12 +105,25 @@ export function WeightBarChart({
       }
     })
 
+    // Build line chart data (only actual entries, no zeros)
+    const lineEntries: ChartDatum[] = entries
+      .filter((e) => e.weightKg > 0)
+      .map((e, i) => ({
+        index: i,
+        weight: unit === 'lbs' ? e.weightKg * KG_TO_LBS : e.weightKg,
+        isFuture: false,
+        isToday: e.date === today,
+        dateLabel: formatDateShort(e.date),
+      }))
+
     // Goal in display unit
     const gv =
       goalKg !== null ? (unit === 'lbs' ? goalKg * KG_TO_LBS : goalKg) : null
 
-    // Y domain — include goal if set, plus padding
-    const weights = data.filter((d) => d.weight > 0).map((d) => d.weight)
+    // Y domain — from actual weights only
+    const weights = entries
+      .filter((e) => e.weightKg > 0)
+      .map((e) => (unit === 'lbs' ? e.weightKg * KG_TO_LBS : e.weightKg))
     const allValues = gv !== null ? [...weights, gv] : weights
     const minVal = allValues.length > 0 ? Math.min(...allValues) : 0
     const maxVal = allValues.length > 0 ? Math.max(...allValues) : 100
@@ -120,7 +133,12 @@ export function WeightBarChart({
       maxVal + padding,
     ]
 
-    return { chartData: data, goalValue: gv, yDomain: domain }
+    return {
+      chartData: barData,
+      lineData: lineEntries,
+      goalValue: gv,
+      yDomain: domain,
+    }
   }, [entries, goalKg, unit])
 
   // Chart width based on number of days — wider than screen so it scrolls
@@ -153,6 +171,93 @@ export function WeightBarChart({
   const todayLabel = todayItem?.dateLabel ?? ''
   const lastLabel = chartData[chartData.length - 1]?.dateLabel ?? ''
 
+  // Line mode x-axis labels
+  const lineFirstLabel = lineData[0]?.dateLabel ?? ''
+  const lineLastLabel = lineData[lineData.length - 1]?.dateLabel ?? ''
+
+  // ── Line mode: fits to screen, only actual data points ────────
+  if (mode === 'line') {
+    if (lineData.length < 2) {
+      return (
+        <View style={[styles.placeholder, { height }]}>
+          <Text style={styles.placeholderText}>
+            Log at least 2 entries to see the chart
+          </Text>
+        </View>
+      )
+    }
+
+    return (
+      <View style={{ height }}>
+        <View style={{ height: height - 24 }}>
+          <CartesianChart
+            data={lineData}
+            xKey="index"
+            yKeys={['weight']}
+            domain={{ y: yDomain }}
+            domainPadding={{ left: 20, right: 20, top: 16 }}
+            padding={{ left: 0, right: 0, bottom: 0, top: 0 }}
+          >
+            {({ points, chartBounds }) => (
+              <>
+                <Line
+                  points={points.weight}
+                  color={LINE_COLOR}
+                  strokeWidth={2.5}
+                  curveType="natural"
+                  connectMissingData
+                  animate={{ type: 'timing', duration: 600 }}
+                />
+
+                {/* Goal line */}
+                {goalValue !== null && font && (
+                  <>
+                    {(() => {
+                      const yRange = yDomain[1] - yDomain[0]
+                      const chartHeight = chartBounds.bottom - chartBounds.top
+                      const goalY =
+                        chartBounds.bottom -
+                        ((goalValue - yDomain[0]) / yRange) * chartHeight
+
+                      return (
+                        <>
+                          <SkiaLine
+                            p1={vec(chartBounds.left, goalY)}
+                            p2={vec(chartBounds.right, goalY)}
+                            color={GOAL_LINE_COLOR}
+                            strokeWidth={1}
+                          >
+                            <DashPathEffect intervals={[6, 4]} />
+                          </SkiaLine>
+                          <SkiaText
+                            x={chartBounds.right - 70}
+                            y={goalY - 6}
+                            text={`Goal: ${goalValue.toFixed(0)}`}
+                            font={font}
+                            color={GOAL_LINE_COLOR}
+                          />
+                        </>
+                      )
+                    })()}
+                  </>
+                )}
+              </>
+            )}
+          </CartesianChart>
+        </View>
+
+        {/* X-axis labels */}
+        <View style={styles.xLabels}>
+          <Text style={styles.xLabel}>{lineFirstLabel}</Text>
+          <Text style={[styles.xLabel, styles.xLabelToday]}>
+            {lineLastLabel}
+          </Text>
+        </View>
+      </View>
+    )
+  }
+
+  // ── Bar mode: scrollable day-by-day ───────────────────────────
   return (
     <View style={{ height }}>
       <ScrollView
@@ -207,35 +312,6 @@ export function WeightBarChart({
                       )
                     },
                   )}
-
-                {/* Line mode */}
-                {mode === 'line' && (
-                  <>
-                    <Line
-                      points={points.weight}
-                      color={LINE_COLOR}
-                      strokeWidth={2.5}
-                      curveType="natural"
-                      animate={{ type: 'timing', duration: 600 }}
-                    >
-                      <LinearGradient
-                        start={vec(0, chartBounds.top)}
-                        end={vec(0, chartBounds.bottom)}
-                        colors={[
-                          'rgba(255,255,255,0.15)',
-                          'rgba(255,255,255,0)',
-                        ]}
-                      />
-                    </Line>
-                    <Line
-                      points={points.weight}
-                      color={LINE_COLOR}
-                      strokeWidth={2.5}
-                      curveType="natural"
-                      animate={{ type: 'timing', duration: 600 }}
-                    />
-                  </>
-                )}
 
                 {/* Goal line */}
                 {goalValue !== null && font && (
