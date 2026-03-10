@@ -108,5 +108,8 @@
     "*.{ts,tsx}": "bunx eslint --fix",
     "*.{js,jsx,mjs}": "bunx eslint --fix"
   },
-  "private": true
+  "private": true,
+  "trustedDependencies": [
+    "@shopify/react-native-skia"
+  ]
 }

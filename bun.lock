@@ -66,6 +66,9 @@
       },
     },
   },
+  "trustedDependencies": [
+    "@shopify/react-native-skia",
+  ],
   "overrides": {
     "@expo/fingerprint": "0.16.5",
   },
