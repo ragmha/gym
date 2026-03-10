@@ -10,11 +10,8 @@ import {
   View,
 } from 'react-native'
 
-import { ActivityCardGrid } from '@/components/ActivityCardGrid'
 import { CalendarStrip } from '@/components/CalendarStrip'
-import { DailyProgressRings } from '@/components/DailyProgressRings'
 import Header from '@/components/Header'
-import { KeyStatistics } from '@/components/KeyStatistics'
 import { RecoveryGauge } from '@/components/RecoveryGauge'
 import { SummaryTabs } from '@/components/SummaryTabs'
 import { useHealthKit } from '@/hooks/useHealthKit'
@@ -24,10 +21,7 @@ import { computeRecoveryScore } from '@/utils/recoveryScore'
 
 type Tab = 'Overview' | 'Sleep' | 'Recovery' | 'Strain'
 
-const STEPS_GOAL = 10_000
-const CALORIES_GOAL = 500
 const SLEEP_GOAL_HOURS = 8
-const WATER_BOTTLE_LITERS = 0.5
 const KG_TO_LBS = 2.20462
 
 export default function HomeScreen() {
@@ -39,20 +33,11 @@ export default function HomeScreen() {
 
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
 
-  const {
-    steps,
-    calories,
-    sleepHours,
-    heartRate,
-    hrv,
-    restingHeartRate,
-    waterLiters,
-  } = useHealthKit()
+  const { steps, calories, sleepHours, heartRate, hrv, restingHeartRate } =
+    useHealthKit()
 
   const { latestEntry, distanceToGoal, goalKg, unit, trendDelta } =
     useWeightStore()
-
-  const waterBottles = Math.round(waterLiters / WATER_BOTTLE_LITERS)
 
   const recovery = useMemo(
     () =>
@@ -104,13 +89,36 @@ export default function HomeScreen() {
   // ── Tab content renderers ─────────────────────────────────────
   const renderOverview = () => (
     <>
-      {/* Recovery summary */}
+      {/* Recovery gauge — the hero */}
       <RecoveryGauge
         recovery={recovery.score}
         strain={0}
         heartRate={heartRate}
         sleepPercent={sleepPercent}
       />
+
+      {/* Insight card */}
+      <View
+        style={[
+          styles.insightCard,
+          {
+            backgroundColor: cardBg,
+            borderLeftColor:
+              recovery.score >= 67
+                ? '#30D158'
+                : recovery.score >= 34
+                  ? '#E8C558'
+                  : '#E8707A',
+          },
+        ]}
+      >
+        <Text style={[styles.insightTitle, { color: textColor }]}>
+          {recovery.label}
+        </Text>
+        <Text style={[styles.insightBody, { color: subtitleColor }]}>
+          {recovery.description}
+        </Text>
+      </View>
 
       {/* Weight widget */}
       <TouchableOpacity
@@ -147,79 +155,44 @@ export default function HomeScreen() {
         <Ionicons name="chevron-forward" size={20} color={subtitleColor} />
       </TouchableOpacity>
 
-      {/* Progress rings */}
-      <DailyProgressRings
-        sleepMinutes={Math.round(sleepHours * 60)}
-        sleepGoalMinutes={SLEEP_GOAL_HOURS * 60}
-        calories={calories}
-        caloriesGoal={CALORIES_GOAL}
-        steps={steps}
-        stepsGoal={STEPS_GOAL}
-      />
-
-      {/* Insight card */}
-      <View
-        style={[
-          styles.insightCard,
+      {/* Quick stats — 3 key metrics */}
+      <View style={styles.quickStats}>
+        {[
           {
-            backgroundColor: cardBg,
-            borderLeftColor:
-              recovery.score >= 67
-                ? '#30D158'
-                : recovery.score >= 34
-                  ? '#E8C558'
-                  : '#E8707A',
-          },
-        ]}
-      >
-        <Text style={[styles.insightTitle, { color: textColor }]}>
-          {recovery.label}
-        </Text>
-        <Text style={[styles.insightBody, { color: subtitleColor }]}>
-          {recovery.description}
-        </Text>
-      </View>
-
-      {/* Activity cards + key stats */}
-      <ActivityCardGrid
-        steps={steps}
-        stepsGoal={STEPS_GOAL}
-        sleepHours={sleepHours}
-        waterBottles={waterBottles}
-        heartRate={heartRate}
-      />
-      <KeyStatistics
-        stats={[
-          {
-            icon: 'pulse-outline',
-            iconColor: '#30D158',
-            label: 'HRV',
-            value: hrv > 0 ? String(hrv) : '--',
-            trend: 'up',
+            label: 'Steps',
+            value: steps > 0 ? steps.toLocaleString() : '--',
+            unit: 'steps',
+            color: '#E8C558',
           },
           {
-            icon: 'heart-outline',
-            iconColor: '#E8707A',
-            label: 'Resting HR',
-            value: restingHeartRate > 0 ? `${restingHeartRate}` : '--',
-            trend: 'neutral',
-          },
-          {
-            icon: 'moon-outline',
-            iconColor: '#5B9BD5',
             label: 'Sleep',
-            value: sleepHours > 0 ? `${sleepHours}h` : '--',
-            trend: 'neutral',
+            value: sleepHours > 0 ? `${sleepHours}` : '--',
+            unit: 'hrs',
+            color: '#5B9BD5',
           },
           {
-            icon: 'flame-outline',
-            iconColor: '#E8707A',
             label: 'Calories',
-            value: calories > 0 ? calories.toLocaleString() : '--',
-            trend: 'up',
+            value: calories > 0 ? `${calories}` : '--',
+            unit: 'kcal',
+            color: '#E8707A',
           },
-        ]}
-      />
+        ].map((stat) => (
+          <View
+            key={stat.label}
+            style={[styles.quickStatItem, { backgroundColor: cardBg }]}
+          >
+            <Text style={[styles.quickStatValue, { color: textColor }]}>
+              {stat.value}
+            </Text>
+            <Text style={[styles.quickStatUnit, { color: stat.color }]}>
+              {stat.unit}
+            </Text>
+            <Text style={[styles.quickStatLabel, { color: subtitleColor }]}>
+              {stat.label}
+            </Text>
+          </View>
+        ))}
+      </View>
     </>
   )
 
@@ -429,5 +402,32 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  // ── Quick stats ───────────────────────────────────────────────
+  quickStats: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    gap: 10,
+    marginBottom: 16,
+  },
+  quickStatItem: {
+    flex: 1,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+  },
+  quickStatValue: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  quickStatUnit: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  quickStatLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 4,
   },
 })
