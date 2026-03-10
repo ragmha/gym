@@ -20,7 +20,7 @@ import { useThemeColor } from '@/hooks/useThemeColor'
 import { useWeightStore } from '@/stores/WeightStore'
 import { computeRecoveryScore } from '@/utils/recoveryScore'
 
-type Tab = 'Overview' | 'Sleep' | 'Recovery' | 'Strain'
+type Tab = 'Overview' | 'Recovery'
 
 const SLEEP_GOAL_HOURS = 8
 const KG_TO_LBS = 2.20462
@@ -291,15 +291,6 @@ export default function HomeScreen() {
     </>
   )
 
-  const renderPlaceholder = (label: string) => (
-    <View style={styles.placeholder}>
-      <Ionicons name="construct-outline" size={48} color={subtitleColor} />
-      <Text style={[styles.placeholderText, { color: subtitleColor }]}>
-        {label} — Coming soon
-      </Text>
-    </View>
-  )
-
   return (
     <ScrollView
       style={[styles.container, { backgroundColor }]}
@@ -315,8 +306,6 @@ export default function HomeScreen() {
 
       {activeTab === 'Overview' && renderOverview()}
       {activeTab === 'Recovery' && renderRecovery()}
-      {activeTab === 'Sleep' && renderPlaceholder('Sleep')}
-      {activeTab === 'Strain' && renderPlaceholder('Strain')}
     </ScrollView>
   )
 }
@@ -410,17 +399,6 @@ const styles = StyleSheet.create({
   statRowValue: {
     fontSize: 17,
     fontWeight: '700',
-  },
-  // ── Placeholder ───────────────────────────────────────────────
-  placeholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    gap: 12,
-  },
-  placeholderText: {
-    fontSize: 16,
-    fontWeight: '500',
   },
   // ── Quick stats ───────────────────────────────────────────────
   quickStats: {

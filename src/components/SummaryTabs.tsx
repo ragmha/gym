@@ -3,7 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 import { useThemeColor } from '@/hooks/useThemeColor'
 
-const TABS = ['Overview', 'Sleep', 'Recovery', 'Strain'] as const
+const TABS = ['Overview', 'Recovery'] as const
 type Tab = (typeof TABS)[number]
 
 interface SummaryTabsProps {
