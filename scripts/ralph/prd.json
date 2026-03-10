@@ -1,0 +1,241 @@
+{
+  "project": "gym",
+  "branchName": "ralph/health-dashboard-weight-tracker",
+  "description": "Health dashboard with Recovery tab, weight tracker hero screen, sub-tab navigation, and rule-based insights.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add weight goal to WeightStore",
+      "description": "As a user, I want to set a weight goal so I can track my progress toward it.",
+      "acceptanceCriteria": [
+        "Add goalKg: number | null and setGoal(kg: number | null) to WeightStore state",
+        "Persist goalKg in the AsyncStorage partition alongside unit",
+        "Add derived selectors: distanceToGoal, isOnTrack (7-day trend heading toward goal)",
+        "bun run typecheck passes",
+        "bun run lint passes",
+        "Run post-task-code-review skill on all changed files"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Install Victory Native and Skia",
+      "description": "As a developer, I need charting libraries installed for the weight bar chart and recovery sparklines.",
+      "acceptanceCriteria": [
+        "Add @shopify/react-native-skia and victory-native via npx expo install",
+        "Run npx expo install --fix",
+        "bun run typecheck passes",
+        "bun run lint passes",
+        "Run post-task-code-review skill on changed files"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Create WeightGoalSheet component",
+      "description": "As a user, I want a bottom sheet to set my weight goal.",
+      "acceptanceCriteria": [
+        "Create src/components/WeightGoalSheet.tsx with Modal, number input, Save/Cancel",
+        "Uses WeightStore.setGoal()",
+        "bun run typecheck passes",
+        "bun run lint passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create WeightBarChart component",
+      "description": "As a user, I want a gradient bar chart showing weight history with a goal line.",
+      "acceptanceCriteria": [
+        "Create src/components/WeightBarChart.tsx using Victory Native",
+        "Shows last 14 days as vertical bars with gradient fill",
+        "Horizontal dashed goal line when goal is set",
+        "bun run typecheck passes",
+        "bun run lint passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Create full-screen WeightHero screen",
+      "description": "As a user, I want a bold full-screen weight view with hero number, goal distance, and bar chart.",
+      "acceptanceCriteria": [
+        "Create src/app/weight.tsx as Stack screen route",
+        "Register in _layout.tsx",
+        "Dark background, hero weight, goal distance, bar chart, FAB add button",
+        "bun run typecheck passes",
+        "bun run lint passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create daily_health_snapshots migration",
+      "description": "As a developer, I need a Supabase table for daily health metrics.",
+      "acceptanceCriteria": [
+        "Create supabase migration with proper schema",
+        "RLS enabled matching weight_entries pattern",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Add DailyHealthSnapshot Zod schema and types",
+      "description": "As a developer, I need typed validators for health snapshot data.",
+      "acceptanceCriteria": [
+        "Add Zod schema to validators.ts, export type from models.ts",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Add resting heart rate fetch to HealthKit",
+      "description": "As a developer, I need resting HR from HealthKit for recovery calculation.",
+      "acceptanceCriteria": [
+        "Add getLatestRestingHeartRate() to healthkit.ts",
+        "Expose restingHeartRate in useHealthKit hook",
+        "Add mock value for demo mode",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Create recovery score algorithm",
+      "description": "As a developer, I need a pure function to compute recovery score.",
+      "acceptanceCriteria": [
+        "Create src/utils/recoveryScore.ts",
+        "Create tests in src/utils/__tests__/recoveryScore.test.ts",
+        "bunx jest passes",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Create rule-based insights engine",
+      "description": "As a user, I want daily insight messages based on my health metrics.",
+      "acceptanceCriteria": [
+        "Create src/utils/insights.ts",
+        "Create tests in src/utils/__tests__/insights.test.ts",
+        "bunx jest passes",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Create RecoveryStore",
+      "description": "As a developer, I need a Zustand store for health snapshots and recovery scores.",
+      "acceptanceCriteria": [
+        "Create src/stores/RecoveryStore.ts following WeightStore patterns",
+        "Derived selectors for baselines, recovery score, trend",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Create RecoveryTab component",
+      "description": "As a user, I want a Recovery sub-tab showing score, insight, and statistics.",
+      "acceptanceCriteria": [
+        "Create src/components/RecoveryTab.tsx",
+        "Uses RecoveryGauge with real data, summary card, stat rows",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Refactor Home with SummaryTabs navigation",
+      "description": "As a user, I want health-focused sub-tabs on the Home screen.",
+      "acceptanceCriteria": [
+        "Mount SummaryTabs in index.tsx with tab switching",
+        "Overview shows existing content, Recovery shows RecoveryTab",
+        "Sleep and Strain show placeholders",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Add weight widget and rings to Overview",
+      "description": "As a user, I want weight summary, progress rings, and daily insight on Overview.",
+      "acceptanceCriteria": [
+        "Tappable weight widget navigating to /weight",
+        "DailyProgressRings mounted",
+        "Daily insight card",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add recovery sparkline mini-charts",
+      "description": "As a user, I want 7-day trend sparklines next to recovery statistics.",
+      "acceptanceCriteria": [
+        "Create src/components/RecoveryStatRow.tsx with Victory Native sparkline",
+        "Integrate into RecoveryTab",
+        "bun run typecheck passes",
+        "Run post-task-code-review skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Final integration test and cleanup",
+      "description": "As a developer, I want all components working together with no dead code.",
+      "acceptanceCriteria": [
+        "All quality checks pass",
+        "No orphaned imports or dead code",
+        "Full post-task-code-review on entire branch diff"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
