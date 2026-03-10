@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   getDailyCalories,
+  getDailySleepHours,
   getDailySteps,
+  getDailyWaterLiters,
+  getLatestHeartRate,
+  getLatestHRV,
   getRecentWorkouts,
   type HealthKitWorkout,
   initializeHealthKit,
@@ -12,6 +16,10 @@ import {
 function generateMockData(): {
   steps: number
   calories: number
+  sleepHours: number
+  heartRate: number
+  hrv: number
+  waterLiters: number
   workouts: HealthKitWorkout[]
 } {
   const today = new Date()
@@ -20,15 +28,30 @@ function generateMockData(): {
   const morningEnd = new Date(today)
   morningEnd.setHours(8, 15, 0, 0)
 
+  // Randomize so refreshes show different data in demo mode
+  const rand = (min: number, max: number) =>
+    Math.round(min + Math.random() * (max - min))
+
+  const steps = rand(3_000, 12_000)
+  const calories = rand(150, 800)
+  const sleepHours = Math.round((4 + Math.random() * 5) * 10) / 10 // 4.0–9.0
+  const heartRate = rand(58, 95)
+  const hrv = rand(20, 90)
+  const waterLiters = Math.round((0.5 + Math.random() * 2.5) * 10) / 10 // 0.5–3.0
+
   return {
-    steps: 6_543,
-    calories: 320,
+    steps,
+    calories,
+    sleepHours,
+    heartRate,
+    hrv,
+    waterLiters,
     workouts: [
       {
         activityName: 'Running',
-        calories: 280,
-        distance: 4.2,
-        duration: 45,
+        calories: rand(180, 400),
+        distance: Math.round((2 + Math.random() * 6) * 10) / 10,
+        duration: rand(20, 60),
         start: morningStart.toISOString(),
         end: morningEnd.toISOString(),
       },
@@ -44,6 +67,10 @@ interface HealthKitState {
   error: string | null
   steps: number
   calories: number
+  sleepHours: number
+  heartRate: number
+  hrv: number
+  waterLiters: number
   workouts: HealthKitWorkout[]
 }
 
@@ -61,6 +88,10 @@ export function useHealthKit() {
         error: null,
         steps: 0,
         calories: 0,
+        sleepHours: 0,
+        heartRate: 0,
+        hrv: 0,
+        waterLiters: 0,
         workouts: [],
       }
     }
@@ -75,6 +106,10 @@ export function useHealthKit() {
       error: null,
       steps: mock.steps,
       calories: mock.calories,
+      sleepHours: mock.sleepHours,
+      heartRate: mock.heartRate,
+      hrv: mock.hrv,
+      waterLiters: mock.waterLiters,
       workouts: mock.workouts,
     }
   })
@@ -83,9 +118,21 @@ export function useHealthKit() {
     setState((prev) => ({ ...prev, isLoading: true, error: null }))
 
     try {
-      const [steps, calories, workouts] = await Promise.all([
+      const [
+        steps,
+        calories,
+        sleepHours,
+        heartRate,
+        hrv,
+        waterLiters,
+        workouts,
+      ] = await Promise.all([
         getDailySteps(),
         getDailyCalories(),
+        getDailySleepHours(),
+        getLatestHeartRate(),
+        getLatestHRV(),
+        getDailyWaterLiters(),
         getRecentWorkouts(7),
       ])
 
@@ -93,6 +140,10 @@ export function useHealthKit() {
         ...prev,
         steps,
         calories,
+        sleepHours,
+        heartRate,
+        hrv,
+        waterLiters,
         workouts,
         isLoading: false,
       }))
@@ -134,6 +185,10 @@ export function useHealthKit() {
         ...prev,
         steps: mock.steps,
         calories: mock.calories,
+        sleepHours: mock.sleepHours,
+        heartRate: mock.heartRate,
+        hrv: mock.hrv,
+        waterLiters: mock.waterLiters,
         workouts: mock.workouts,
       }))
       return
