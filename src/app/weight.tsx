@@ -7,7 +7,6 @@ import {
   Keyboard,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { WeightBarChart, type ChartMode } from '@/components/WeightBarChart'
 import { WeightGoalSheet } from '@/components/WeightGoalSheet'
