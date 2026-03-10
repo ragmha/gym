@@ -1,8 +1,10 @@
 import { Tabs } from 'expo-router'
 import React from 'react'
+import { Platform } from 'react-native'
 
 import { TabBarIcon } from '@/components/navigation/TabBarIcon'
 import { Colors } from '@/constants/Colors'
+import { Elevation, Radii } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 
 export default function TabLayout() {
@@ -15,11 +17,21 @@ export default function TabLayout() {
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {
-          backgroundColor: theme.tabBarBackground,
-          borderTopColor: theme.tabBarBorder,
-          height: 80,
-          paddingBottom: 20,
-          paddingTop: 8,
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: Platform.OS === 'ios' ? 20 : 14,
+          backgroundColor: theme.tabBarFloating,
+          borderTopColor: 'transparent',
+          borderTopWidth: 0,
+          height: 74,
+          paddingBottom: 10,
+          paddingTop: 10,
+          borderRadius: Radii.xl,
+          ...Elevation.floating,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
         tabBarShowLabel: false,
         headerShown: false,
@@ -33,6 +45,7 @@ export default function TabLayout() {
             <TabBarIcon
               name={focused ? 'home' : 'home-outline'}
               color={color}
+              focused={focused}
             />
           ),
         }}
@@ -45,6 +58,7 @@ export default function TabLayout() {
             <TabBarIcon
               name={focused ? 'barbell' : 'barbell-outline'}
               color={color}
+              focused={focused}
             />
           ),
         }}
@@ -57,6 +71,7 @@ export default function TabLayout() {
             <TabBarIcon
               name={focused ? 'settings' : 'settings-outline'}
               color={color}
+              focused={focused}
             />
           ),
         }}

@@ -6,12 +6,12 @@ import {
 import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import 'react-native-reanimated'
 
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
-import { useExerciseStore } from '@/stores/ExerciseStore'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -21,23 +21,33 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
 
-  const { initialize } = useExerciseStore()
-
-  useEffect(() => {
-    initialize()
-  }, [initialize])
-
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync()
     }
   }, [loaded])
 
+  const navTheme = useMemo(() => {
+    const navBaseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme
+    const theme = Colors[colorScheme]
+
+    return {
+      ...navBaseTheme,
+      colors: {
+        ...navBaseTheme.colors,
+        primary: theme.accent,
+        background: theme.background,
+        card: theme.cardBackground,
+        text: theme.text,
+        border: theme.border,
+        notification: theme.warning,
+      },
+    }
+  }, [colorScheme])
+
   if (!loaded) {
     return null
   }
-
-  const navTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme
 
   return (
     <ThemeProvider value={navTheme}>
@@ -66,10 +76,16 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="hydration"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
             name="details/[id]"
             options={{
               headerBackTitle: ' ',
-              headerBackTitleVisible: false,
             }}
           />
           <Stack.Screen name="+not-found" />

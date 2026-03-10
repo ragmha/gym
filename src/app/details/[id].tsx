@@ -2,7 +2,7 @@ import { CircularProgress } from '@/components/CircularProgress'
 import { RestTimer } from '@/components/RestTimer'
 import VideoPlayer from '@/components/VideoPlayer'
 import WorkoutDetail from '@/components/WorkoutDetail'
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useLocalSearchParams, useNavigation } from 'expo-router'
@@ -31,13 +31,15 @@ function DetailsScreen() {
     useExerciseStore()
   const exercise = id ? exercises[id] : undefined
 
-  const textColor = useThemeColor({}, 'text')
-  const subtitleText = useThemeColor({}, 'subtitleText')
-  const accentColor = useThemeColor({}, 'accent')
-  const successColor = useThemeColor({}, 'success')
-  const borderColor = useThemeColor({}, 'border')
-  const cardSurface = useThemeColor({}, 'cardSurface')
-  const backgroundColor = useThemeColor({}, 'background')
+  const {
+    text: textColor,
+    subtitleText,
+    accent: accentColor,
+    success: successColor,
+    border: borderColor,
+    cardSurface,
+    background: backgroundColor,
+  } = useTheme()
 
   const [showTimer, setShowTimer] = useState(false)
 

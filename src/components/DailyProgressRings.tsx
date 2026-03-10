@@ -7,7 +7,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Circle } from 'react-native-svg'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
@@ -106,8 +106,7 @@ export function DailyProgressRings({
   steps,
   stepsGoal,
 }: DailyProgressRingsProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtextColor = useThemeColor({}, 'icon')
+  const { text: textColor, icon: subtextColor } = useTheme()
 
   const rings: RingData[] = [
     {

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import React, { type ReactNode } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 
 interface HeaderProps {
   date?: Date
@@ -17,10 +17,12 @@ export default function Header({
   children,
   onCalendarPress,
 }: HeaderProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const borderColor = useThemeColor({}, 'border')
-  const accentColor = useThemeColor({}, 'accent')
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    border: borderColor,
+    accent: accentColor,
+  } = useTheme()
 
   if (children) {
     return (

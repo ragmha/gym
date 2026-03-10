@@ -1,17 +1,12 @@
 import { CircularProgress } from '@/components/CircularProgress'
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs'
 import Workout from '@/components/Workout'
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { StatusBar } from 'expo-status-bar'
 import React, { useCallback, useMemo, useState } from 'react'
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native'
+import { FlatList, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -22,13 +17,15 @@ export default function WorkoutsScreen() {
 
   const [tab, setTab] = useState<'active' | 'completed'>('active')
 
-  const backgroundColor = useThemeColor({}, 'background')
-  const textColor = useThemeColor({}, 'text')
-  const subtitleText = useThemeColor({}, 'subtitleText')
-  const accentColor = useThemeColor({}, 'accent')
-  const cardSurface = useThemeColor({}, 'cardSurface')
-  const successColor = useThemeColor({}, 'success')
-  const borderColor = useThemeColor({}, 'border')
+  const {
+    background: backgroundColor,
+    text: textColor,
+    subtitleText,
+    accent: accentColor,
+    cardSurface,
+    success: successColor,
+    border: borderColor,
+  } = useTheme()
 
   const totalCount = Object.keys(exercises).length
   const data = tab === 'active' ? activeExercises : completedExercises
@@ -154,57 +151,24 @@ export default function WorkoutsScreen() {
             </Animated.View>
 
             {/* Segmented control */}
-            <Animated.View
-              entering={FadeInDown.delay(200).duration(400)}
-              style={[
-                styles.segmentedControl,
-                { backgroundColor: cardSurface },
-              ]}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.segment,
-                  tab === 'active' && {
-                    backgroundColor: accentColor,
-                  },
-                ]}
-                onPress={() => setTab('active')}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
+            <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+              <View style={styles.segmentedControl}>
+                <SegmentedTabs
+                  options={[
                     {
-                      color: tab === 'active' ? '#fff' : subtitleText,
-                      fontWeight: tab === 'active' ? '600' : '500',
+                      value: 'active',
+                      label: `Active (${activeExercises.length})`,
+                    },
+                    {
+                      value: 'completed',
+                      label: `Done (${completedExercises.length})`,
                     },
                   ]}
-                >
-                  Active ({activeExercises.length})
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.segment,
-                  tab === 'completed' && {
-                    backgroundColor: accentColor,
-                  },
-                ]}
-                onPress={() => setTab('completed')}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    {
-                      color: tab === 'completed' ? '#fff' : subtitleText,
-                      fontWeight: tab === 'completed' ? '600' : '500',
-                    },
-                  ]}
-                >
-                  Done ({completedExercises.length})
-                </Text>
-              </TouchableOpacity>
+                  value={tab}
+                  onChange={setTab}
+                  fullWidth
+                />
+              </View>
             </Animated.View>
           </>
         }

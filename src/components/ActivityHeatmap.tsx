@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import { getActivityIntensity, isHealthKitAvailable } from '@/lib/healthkit'
 
 const WEEKS = 15
@@ -110,9 +110,11 @@ function generateMockIntensity(): Map<string, number> {
 
 export function ActivityHeatmap({ title = 'Activity' }: ActivityHeatmapProps) {
   const { width } = useWindowDimensions()
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const cardBg = useThemeColor({}, 'cardBackground')
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    cardBackground: cardBg,
+  } = useTheme()
 
   const [intensity, setIntensity] = useState<Map<string, number>>(new Map())
 

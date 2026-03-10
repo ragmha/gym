@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import { useWeightStore } from '@/stores/WeightStore'
 
 const KG_TO_LBS = 2.20462
@@ -34,11 +34,13 @@ export function WeightGoalSheet({ visible, onClose }: WeightGoalSheetProps) {
 
   const [inputValue, setInputValue] = useState(currentGoalDisplay)
 
-  const textColor = useThemeColor({}, 'text')
-  const subtextColor = useThemeColor({}, 'subtitleText')
-  const cardBg = useThemeColor({}, 'cardBackground')
-  const accentColor = useThemeColor({}, 'accent')
-  const borderColor = useThemeColor({}, 'border')
+  const {
+    text: textColor,
+    subtitleText: subtextColor,
+    cardBackground: cardBg,
+    accent: accentColor,
+    border: borderColor,
+  } = useTheme()
 
   const handleSave = useCallback(() => {
     const trimmed = inputValue.trim()

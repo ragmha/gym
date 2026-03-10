@@ -1,4 +1,4 @@
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import React, { useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
@@ -83,13 +83,15 @@ export default function WorkoutDetail({
     width: `${progressAnim.value * 100}%`,
   }))
 
-  const textColor = useThemeColor({}, 'text')
-  const subtitleText = useThemeColor({}, 'subtitleText')
-  const cardSurface = useThemeColor({}, 'cardSurface')
-  const successColor = useThemeColor({}, 'success')
-  const successInactive = useThemeColor({}, 'successInactive')
-  const borderColor = useThemeColor({}, 'border')
-  const accentColor = useThemeColor({}, 'accent')
+  const {
+    text: textColor,
+    subtitleText,
+    cardSurface,
+    success: successColor,
+    successInactive,
+    border: borderColor,
+    accent: accentColor,
+  } = useTheme()
 
   const allDone = selectedCircles.every(Boolean)
   const hasStarted = completedCount > 0

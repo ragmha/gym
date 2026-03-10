@@ -1,11 +1,13 @@
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import Ionicons from '@expo/vector-icons/Ionicons'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 interface CalendarStripProps {
   /** The date around which to generate the calendar strip. */
   focusDate?: Date
+  /** Controlled selected date. Defaults to today when not provided. */
+  selectedDate?: Date
   /** Called when the user taps a day. */
   onDateSelected?: (date: Date) => void
   /** Called when month navigation changes the focus. */
@@ -56,38 +58,70 @@ const MONTH_NAMES = [
   'December',
 ]
 
+function isFutureDate(date: Date, today: Date): boolean {
+  return (
+    date.getFullYear() > today.getFullYear() ||
+    (date.getFullYear() === today.getFullYear() &&
+      date.getMonth() > today.getMonth()) ||
+    (date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() > today.getDate())
+  )
+}
+
 export function CalendarStrip({
   focusDate,
+  selectedDate: selectedDateProp,
   onDateSelected,
   onFocusDateChange,
 }: CalendarStripProps) {
   const today = useMemo(() => new Date(), [])
   const center = focusDate ?? today
-  const [selectedDate, setSelectedDate] = useState<Date>(center)
+  const [selectedDate, setSelectedDate] = useState<Date>(
+    selectedDateProp ?? center,
+  )
 
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const accentColor = useThemeColor({}, 'accent')
-  const cardBg = useThemeColor({}, 'cardBackground')
-  const borderColor = useThemeColor({}, 'border')
+  // Sync when parent controls the selected date
+  useEffect(() => {
+    if (selectedDateProp) {
+      setSelectedDate(selectedDateProp)
+    }
+  }, [selectedDateProp])
+
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    accent: accentColor,
+    cardBackground: cardBg,
+    border: borderColor,
+  } = useTheme()
 
   const days = useMemo(() => getWeek(center), [center])
 
+  // Disable forward nav when already on the current week (or future)
+  const canGoForward = useMemo(() => {
+    const currentMonday = getMonday(center)
+    const todayMonday = getMonday(today)
+    return currentMonday < todayMonday
+  }, [center, today])
+
   const navigateWeek = useCallback(
     (direction: -1 | 1) => {
+      if (direction === 1 && !canGoForward) return
       const next = new Date(center)
       next.setDate(next.getDate() + direction * 7)
       onFocusDateChange?.(next)
     },
-    [center, onFocusDateChange],
+    [center, onFocusDateChange, canGoForward],
   )
 
   const handlePress = useCallback(
     (date: Date) => {
+      if (isFutureDate(date, today)) return
       setSelectedDate(date)
       onDateSelected?.(date)
     },
-    [onDateSelected],
+    [onDateSelected, today],
   )
 
   const monthLabel = `${MONTH_NAMES[center.getMonth()]} ${center.getFullYear()}`
@@ -109,9 +143,14 @@ export function CalendarStrip({
         <TouchableOpacity
           onPress={() => navigateWeek(1)}
           hitSlop={12}
-          style={styles.navButton}
+          style={[styles.navButton, !canGoForward && styles.navButtonDisabled]}
+          disabled={!canGoForward}
         >
-          <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={canGoForward ? subtitleColor : `${subtitleColor}40`}
+          />
         </TouchableOpacity>
       </View>
 
@@ -132,6 +171,7 @@ export function CalendarStrip({
         {days.map((date, i) => {
           const isSelected = isSameDay(date, selectedDate)
           const isToday = isSameDay(date, today)
+          const isFuture = isFutureDate(date, today)
 
           return (
             <TouchableOpacity
@@ -143,13 +183,15 @@ export function CalendarStrip({
                 isToday && !isSelected && { borderColor: `${accentColor}50` },
               ]}
               onPress={() => handlePress(date)}
-              activeOpacity={0.7}
+              activeOpacity={isFuture ? 1 : 0.7}
+              disabled={isFuture}
             >
               <Text
                 style={[
                   styles.dayNumber,
                   { color: isSelected ? '#FFFFFF' : textColor },
                   isToday && !isSelected && { color: accentColor },
+                  isFuture && { color: `${textColor}28` },
                 ]}
               >
                 {date.getDate()}
@@ -214,6 +256,9 @@ const styles = StyleSheet.create({
   },
   todayOutline: {
     borderWidth: 1.5,
+  },
+  navButtonDisabled: {
+    opacity: 0.4,
   },
   dayNumber: {
     fontSize: 14,

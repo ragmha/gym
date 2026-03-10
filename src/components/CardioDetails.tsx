@@ -1,6 +1,6 @@
+import { useTheme } from '@/hooks/useThemeColor'
 import React, { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 interface CardioProps {
   morning: number
@@ -19,9 +19,11 @@ export const CardioDetails: React.FC<CardioProps> = ({ morning, evening }) => {
     setIsEveningChecked(!isEveningChecked)
   }
 
-  const backgroundColor = useThemeColor({}, 'background')
-  const textColor = useThemeColor({}, 'text')
-  const shadowColor = useThemeColor({}, 'shadow')
+  const {
+    background: backgroundColor,
+    text: textColor,
+    shadow: shadowColor,
+  } = useTheme()
 
   return (
     <View style={[styles.container, { backgroundColor, shadowColor }]}>

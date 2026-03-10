@@ -1,4 +1,4 @@
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   StyleSheet,
@@ -34,11 +34,13 @@ export function RestTimer({ restSeconds, onDismiss }: RestTimerProps) {
 
   const progress = useSharedValue(1)
 
-  const textColor = useThemeColor({}, 'text')
-  const cardSurface = useThemeColor({}, 'cardSurface')
-  const subtitleText = useThemeColor({}, 'subtitleText')
-  const accentColor = useThemeColor({}, 'accent')
-  const successColor = useThemeColor({}, 'success')
+  const {
+    text: textColor,
+    cardSurface,
+    subtitleText,
+    accent: accentColor,
+    success: successColor,
+  } = useTheme()
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {

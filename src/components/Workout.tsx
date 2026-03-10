@@ -3,7 +3,7 @@ import React, { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeIn } from 'react-native-reanimated'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import type { Exercise } from '@/types/models'
 
 type WorkoutItem = Exercise
@@ -18,12 +18,14 @@ const Workout = ({
   isLast?: boolean
 }) => {
   const router = useRouter()
-  const textColor = useThemeColor({}, 'text')
-  const subtitleText = useThemeColor({}, 'subtitleText')
-  const cardSurface = useThemeColor({}, 'cardSurface')
-  const successColor = useThemeColor({}, 'success')
-  const accentColor = useThemeColor({}, 'accent')
-  const borderColor = useThemeColor({}, 'border')
+  const {
+    text: textColor,
+    subtitleText,
+    cardSurface,
+    success: successColor,
+    accent: accentColor,
+    border: borderColor,
+  } = useTheme()
 
   const completedSets = useMemo(
     () => item.exercises.filter((e) => e.completed).length,

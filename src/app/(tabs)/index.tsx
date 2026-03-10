@@ -18,7 +18,8 @@ import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { CalendarStrip } from '@/components/CalendarStrip'
 import { RecoveryGauge } from '@/components/RecoveryGauge'
 import { useHealthKit } from '@/hooks/useHealthKit'
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
+import { useTodayHydration } from '@/stores/HydrationStore'
 import { useWeightStore } from '@/stores/WeightStore'
 import { computeRecoveryScore } from '@/utils/recoveryScore'
 
@@ -30,7 +31,6 @@ if (
 }
 
 const SLEEP_GOAL_HOURS = 8
-const STEP_GOAL = 10_000
 const KG_TO_LBS = 2.20462
 
 // ── Icon badge component ──────────────────────────────────────
@@ -54,15 +54,23 @@ function IconBadge({
 
 export default function HomeScreen() {
   const router = useRouter()
-  const backgroundColor = useThemeColor({}, 'background')
-  const cardBg = useThemeColor({}, 'cardBackground')
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const accentColor = useThemeColor({}, 'accent')
-  const borderColor = useThemeColor({}, 'border')
+  const {
+    background: backgroundColor,
+    cardBackground: cardBg,
+    text: textColor,
+    subtitleText: subtitleColor,
+    accent: accentColor,
+    border: borderColor,
+  } = useTheme()
 
   const [recoveryExpanded, setRecoveryExpanded] = useState(false)
   const [focusDate, setFocusDate] = useState(() => new Date())
+  const [selectedDate, setSelectedDate] = useState(() => new Date())
+
+  const handleDateSelected = useCallback((date: Date) => {
+    setSelectedDate(date)
+    setFocusDate(date)
+  }, [])
 
   const {
     steps,
@@ -72,10 +80,25 @@ export default function HomeScreen() {
     hrv,
     restingHeartRate,
     refresh,
-  } = useHealthKit()
+  } = useHealthKit(selectedDate)
 
   const { latestEntry, distanceToGoal, goalKg, unit, trendDelta } =
     useWeightStore()
+
+  const { totalMl: hydrationMl, goalMl: hydrationGoal } = useTodayHydration()
+  const hydrationProgress =
+    hydrationGoal > 0 ? Math.min(hydrationMl / hydrationGoal, 1) : 0
+  const hydrationProgressLabel = Math.round(hydrationProgress * 100)
+  const hydrationBars = useMemo(
+    () =>
+      [0.24, 0.3, 0.36, 0.43, 0.5, 0.58, 0.66, 0.75, 0.84].map((base, i) =>
+        Math.min(
+          0.96,
+          Math.max(0.22, base * 0.45 + hydrationProgress * (0.4 + i * 0.03)),
+        ),
+      ),
+    [hydrationProgress],
+  )
 
   const [refreshing, setRefreshing] = useState(false)
 
@@ -141,7 +164,16 @@ export default function HomeScreen() {
 
   // ── Greeting ──────────────────────────────────────────────────
   const today = useMemo(() => new Date(), [])
-  const dateStr = today.toLocaleDateString('en-US', {
+  const isToday = useMemo(() => {
+    const d = selectedDate
+    const t = today
+    return (
+      d.getFullYear() === t.getFullYear() &&
+      d.getMonth() === t.getMonth() &&
+      d.getDate() === t.getDate()
+    )
+  }, [selectedDate, today])
+  const dateStr = selectedDate.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -174,6 +206,8 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={[styles.settingsBtn, { backgroundColor: cardBg }]}
             activeOpacity={0.7}
+            accessibilityLabel="Notifications"
+            accessibilityHint="Opens your notifications"
           >
             <Ionicons
               name="notifications-outline"
@@ -182,7 +216,9 @@ export default function HomeScreen() {
             />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.greeting, { color: textColor }]}>{greeting}!</Text>
+        <Text style={[styles.greeting, { color: textColor }]}>
+          {isToday ? `${greeting}!` : dateStr}
+        </Text>
         {/* Health badge */}
         <View style={styles.healthBadgeRow}>
           <View
@@ -197,14 +233,25 @@ export default function HomeScreen() {
       </View>
 
       {/* ── Calendar strip ─────────────────────────────────────── */}
-      <CalendarStrip focusDate={focusDate} onFocusDateChange={setFocusDate} />
+      <CalendarStrip
+        focusDate={focusDate}
+        selectedDate={selectedDate}
+        onFocusDateChange={setFocusDate}
+        onDateSelected={handleDateSelected}
+      />
 
       {/* ── Fitness Metrics — horizontal scroll ────────────────── */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: textColor }]}>
           Fitness Metrics
         </Text>
-        <Text style={[styles.seeAll, { color: accentColor }]}>See All</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/fitness-metrics')}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.seeAll, { color: accentColor }]}>See All</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -278,6 +325,49 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.metricChipValueLight}>
             {steps > 0 ? steps.toLocaleString() : '--'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Hydration — blue solid */}
+        <TouchableOpacity
+          style={[styles.metricChip, { backgroundColor: '#2563EB' }]}
+          onPress={() => router.push('/hydration')}
+          activeOpacity={0.7}
+          accessibilityLabel="Hydration metric"
+          accessibilityHint="Opens the hydration screen"
+        >
+          <View style={styles.metricChipTop}>
+            <Text style={styles.metricChipLabelLight}>Hydration</Text>
+            <IconBadge
+              name="water"
+              color="#2563EB"
+              bg="rgba(255,255,255,0.25)"
+              size={14}
+            />
+          </View>
+          <View style={styles.miniBars}>
+            {hydrationBars.map((h, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.miniBar,
+                  {
+                    height: h * 38,
+                    backgroundColor:
+                      i / hydrationBars.length < hydrationProgress
+                        ? 'rgba(255,255,255,0.42)'
+                        : 'rgba(255,255,255,0.18)',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.metricChipValueLight}>
+            {hydrationMl > 0 ? hydrationMl.toLocaleString() : '--'}
+            <Text style={styles.metricChipUnitLight}> ml</Text>
+          </Text>
+          <Text style={styles.metricChipMetaLight}>
+            {hydrationProgressLabel}% of {hydrationGoal}ml goal
           </Text>
         </TouchableOpacity>
 
@@ -422,7 +512,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   // ── Header ────────────────────────────────────────────────────
   header: {
@@ -502,7 +592,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   metricChip: {
-    width: 150,
+    width: 162,
     borderRadius: 20,
     padding: 16,
   },
@@ -526,6 +616,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.7)',
+  },
+  metricChipMetaLight: {
+    marginTop: 6,
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.72)',
   },
   miniBars: {
     flexDirection: 'row',
