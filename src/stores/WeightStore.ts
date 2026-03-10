@@ -22,7 +22,6 @@ function generateMockEntries(): WeightEntry[] {
     const d = new Date(today)
     d.setDate(d.getDate() - (13 - i))
     const dateStr = d.toISOString().slice(0, 10)
-    // Simulate a gradual decrease from ~82 kg to ~80 kg
     const weight = 82.0 - i * 0.15 + (Math.random() - 0.5) * 0.4
     return {
       id: `mock-${dateStr}`,
@@ -105,7 +104,6 @@ export const useWeightStoreBase = create<WeightState>()(
           note: note ?? null,
         }
 
-        // Optimistic update — insert sorted
         set((state) => {
           const updated = [...state.entries]
           const existingIdx = updated.findIndex((e) => e.date === entryDate)
@@ -137,7 +135,6 @@ export const useWeightStoreBase = create<WeightState>()(
             .single()
 
           if (!error && data) {
-            // Replace temp id with real id
             set((state) => ({
               entries: state.entries.map((e) =>
                 e.date === entryDate ? { ...e, id: data.id as string } : e,
@@ -163,7 +160,6 @@ export const useWeightStoreBase = create<WeightState>()(
           try {
             await supabase.from('weight_entries').delete().eq('id', id)
           } catch {
-            // Restore on failure
             set((state) => {
               const restored = [...state.entries, entry]
               restored.sort((a, b) => a.date.localeCompare(b.date))

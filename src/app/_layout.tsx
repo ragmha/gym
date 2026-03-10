@@ -13,7 +13,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {

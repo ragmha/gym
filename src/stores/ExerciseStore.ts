@@ -9,7 +9,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 
-// Mock data for initial development
 const MOCK_EXERCISES = [
   {
     id: 'a0000000-0000-4000-8000-000000000001',
@@ -85,7 +84,6 @@ const MOCK_EXERCISES = [
   },
 ]
 
-// Helper
 const today = new Date()
 
 interface ExerciseState {
@@ -108,7 +106,6 @@ interface ExerciseState {
   sync: () => Promise<void>
 }
 
-// Raw Zustand store – use with selectors in screens that need fine-grained subscriptions
 export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
   exercises: {},
   error: null,
@@ -120,13 +117,11 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
 
     set({ loading: true })
     try {
-      // Try to fetch from Supabase first
       const { data, error } = await supabase
         .from('exercises')
         .select('*')
         .order('day')
 
-      // If Supabase table doesn't exist, use mock data
       const exercisesData: ExerciseRow[] = error
         ? parseExerciseRows(MOCK_EXERCISES)
         : parseExerciseRows(data ?? [])
@@ -246,7 +241,6 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
 
     for (const exercise of unsyncedExercises) {
       try {
-        // Validate payload before writing to Supabase
         const payload = {
           completed: exercise.completed,
           exercises: exercise.exercises,
@@ -284,7 +278,6 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
   },
 }))
 
-// Convenience hook – keeps the same return shape as the old Legend State hook
 export const useExerciseStore = () => {
   const store = useExerciseStoreBase(
     useShallow((state) => ({

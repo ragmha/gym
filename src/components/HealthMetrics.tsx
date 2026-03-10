@@ -38,7 +38,6 @@ export function HealthMetrics({
   const textColor = useThemeColor({}, 'text')
   const subtextColor = useThemeColor({}, 'icon')
 
-  // Show fallback only when not in demo mode and HealthKit is unavailable
   if (!isAvailable && !isDemoMode) {
     return (
       <View style={styles.section}>
@@ -62,7 +61,6 @@ export function HealthMetrics({
     )
   }
 
-  // Not authorized — show connect prompt
   if (!isAuthorized) {
     return (
       <View style={styles.section}>

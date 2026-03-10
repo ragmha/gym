@@ -44,14 +44,12 @@ export function RecoveryGauge({
     strokeDashoffset: CIRCUMFERENCE * (1 - progress.value),
   }))
 
-  // Color based on recovery level
   const gaugeColor =
     recovery >= 67 ? '#30D158' : recovery >= 34 ? '#E8C558' : '#E8707A'
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg }]}>
       <View style={styles.row}>
-        {/* Gauge */}
         <View style={styles.gaugeContainer}>
           <Svg width={SIZE} height={SIZE}>
             <Circle
@@ -82,7 +80,6 @@ export function RecoveryGauge({
           </View>
         </View>
 
-        {/* Stats grid */}
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
             <Text style={[styles.statLabel, { color: subtitleColor }]}>
