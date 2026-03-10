@@ -1,35 +1,30 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 import { useThemeColor } from '@/hooks/useThemeColor'
 
 const TABS = ['Overview', 'Recovery'] as const
-type Tab = (typeof TABS)[number]
+export type Tab = (typeof TABS)[number]
 
 interface SummaryTabsProps {
-  onTabChange?: (tab: Tab) => void
+  activeTab: Tab
+  onTabChange: (tab: Tab) => void
 }
 
-export function SummaryTabs({ onTabChange }: SummaryTabsProps) {
-  const [active, setActive] = useState<Tab>('Overview')
+export function SummaryTabs({ activeTab, onTabChange }: SummaryTabsProps) {
   const textColor = useThemeColor({}, 'text')
   const subtitleColor = useThemeColor({}, 'subtitleText')
   const surfaceColor = useThemeColor({}, 'cardSurface')
 
-  function handlePress(tab: Tab) {
-    setActive(tab)
-    onTabChange?.(tab)
-  }
-
   return (
     <View style={styles.container}>
       {TABS.map((tab) => {
-        const isActive = tab === active
+        const isActive = tab === activeTab
         return (
           <TouchableOpacity
             key={tab}
             style={[styles.tab, isActive && { backgroundColor: surfaceColor }]}
-            onPress={() => handlePress(tab)}
+            onPress={() => onTabChange(tab)}
             activeOpacity={0.7}
           >
             <Text

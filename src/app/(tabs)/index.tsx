@@ -14,13 +14,11 @@ import {
 import { CalendarStrip } from '@/components/CalendarStrip'
 import Header from '@/components/Header'
 import { RecoveryGauge } from '@/components/RecoveryGauge'
-import { SummaryTabs } from '@/components/SummaryTabs'
+import { SummaryTabs, type Tab } from '@/components/SummaryTabs'
 import { useHealthKit } from '@/hooks/useHealthKit'
 import { useThemeColor } from '@/hooks/useThemeColor'
 import { useWeightStore } from '@/stores/WeightStore'
 import { computeRecoveryScore } from '@/utils/recoveryScore'
-
-type Tab = 'Overview' | 'Recovery'
 
 const SLEEP_GOAL_HOURS = 8
 const KG_TO_LBS = 2.20462
@@ -105,36 +103,38 @@ export default function HomeScreen() {
   // ── Tab content renderers ─────────────────────────────────────
   const renderOverview = () => (
     <>
-      {/* Recovery gauge — the hero */}
-      <RecoveryGauge
-        recovery={recovery.score}
-        strain={0}
-        heartRate={heartRate}
-        sleepPercent={sleepPercent}
-      />
-
-      {/* Insight card */}
-      <View
-        style={[
-          styles.insightCard,
-          {
-            backgroundColor: cardBg,
-            borderLeftColor:
-              recovery.score >= 67
-                ? '#30D158'
-                : recovery.score >= 34
-                  ? '#E8C558'
-                  : '#E8707A',
-          },
-        ]}
+      {/* Compact recovery banner — tap to switch to Recovery tab */}
+      <TouchableOpacity
+        style={[styles.recoveryBanner, { backgroundColor: cardBg }]}
+        onPress={() => setActiveTab('Recovery')}
+        activeOpacity={0.7}
       >
-        <Text style={[styles.insightTitle, { color: textColor }]}>
-          {recovery.label}
-        </Text>
-        <Text style={[styles.insightBody, { color: subtitleColor }]}>
-          {recovery.description}
-        </Text>
-      </View>
+        <View
+          style={[
+            styles.recoveryDot,
+            {
+              backgroundColor:
+                recovery.score >= 67
+                  ? '#30D158'
+                  : recovery.score >= 34
+                    ? '#E8C558'
+                    : '#E8707A',
+            },
+          ]}
+        />
+        <View style={styles.recoveryBannerText}>
+          <Text style={[styles.recoveryBannerScore, { color: textColor }]}>
+            Recovery {recovery.score}%
+          </Text>
+          <Text
+            style={[styles.recoveryBannerLabel, { color: subtitleColor }]}
+            numberOfLines={1}
+          >
+            {recovery.label}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
+      </TouchableOpacity>
 
       {/* Weight widget */}
       <TouchableOpacity
@@ -291,7 +291,7 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" />
       <Header />
       <CalendarStrip />
-      <SummaryTabs onTabChange={(tab) => setActiveTab(tab)} />
+      <SummaryTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === 'Overview' && renderOverview()}
       {activeTab === 'Recovery' && renderRecovery()}
@@ -415,5 +415,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     marginTop: 4,
+  },
+  // ── Recovery banner ───────────────────────────────────────────
+  recoveryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+  },
+  recoveryDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  recoveryBannerText: {
+    flex: 1,
+  },
+  recoveryBannerScore: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  recoveryBannerLabel: {
+    fontSize: 12,
+    marginTop: 2,
   },
 })
