@@ -82,7 +82,6 @@ function WeightChart({
 
   const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ')
 
-  // Grid lines (3 horizontal)
   const gridLines = [0, 0.5, 1].map((frac) => {
     const y = PADDING_TOP + PLOT_HEIGHT - frac * PLOT_HEIGHT
     const val = minW + frac * range
@@ -95,7 +94,6 @@ function WeightChart({
       height={CHART_HEIGHT}
       viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
     >
-      {/* Grid lines */}
       {gridLines.map((g) => (
         <Line
           key={g.label}
@@ -108,7 +106,6 @@ function WeightChart({
           strokeDasharray="4,4"
         />
       ))}
-      {/* Data line */}
       <Polyline
         points={polylinePoints}
         fill="none"
@@ -117,7 +114,6 @@ function WeightChart({
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-      {/* Data points */}
       {points.map((p, i) => (
         <SvgCircle
           key={entries[i].date}
@@ -161,7 +157,6 @@ export function WeightTracker() {
       return
     }
 
-    // Convert from display unit to kg for storage
     const kg = unit === 'lbs' ? parsed / KG_TO_LBS : parsed
     await addEntry(kg)
     setInputValue('')
@@ -189,7 +184,6 @@ export function WeightTracker() {
 
   return (
     <View style={styles.section}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.sectionTitle, { color: textColor }]}>Weight</Text>
         <TouchableOpacity onPress={toggleUnit} hitSlop={8}>
@@ -199,7 +193,6 @@ export function WeightTracker() {
         </TouchableOpacity>
       </View>
 
-      {/* Current weight + trend */}
       <View style={[styles.card, { backgroundColor: cardBg }]}>
         <View style={styles.currentRow}>
           <View>
@@ -225,7 +218,6 @@ export function WeightTracker() {
           </TouchableOpacity>
         </View>
 
-        {/* Inline input */}
         {showInput && (
           <View style={[styles.inputRow, { borderTopColor: gridColor }]}>
             <TextInput
@@ -248,7 +240,6 @@ export function WeightTracker() {
           </View>
         )}
 
-        {/* Chart */}
         <View style={styles.chartContainer}>
           <WeightChart
             entries={recentEntries}
@@ -259,7 +250,6 @@ export function WeightTracker() {
           />
         </View>
 
-        {/* X-axis labels */}
         {recentEntries.length >= 2 && (
           <View style={styles.xLabels}>
             <Text style={[styles.xLabel, { color: subtextColor }]}>

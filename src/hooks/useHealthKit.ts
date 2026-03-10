@@ -96,7 +96,6 @@ export function useHealthKit() {
       }
     }
 
-    // Provide mock data when HealthKit is unavailable (web, Android, Expo Go)
     const mock = generateMockData()
     return {
       isAvailable: false,
@@ -179,7 +178,6 @@ export function useHealthKit() {
 
   const refresh = useCallback(async () => {
     if (state.isDemoMode) {
-      // Refresh mock data
       const mock = generateMockData()
       setState((prev) => ({
         ...prev,
@@ -198,7 +196,6 @@ export function useHealthKit() {
     }
   }, [state.isAuthorized, state.isDemoMode, fetchData])
 
-  // Auto-initialize on mount if available
   useEffect(() => {
     if (isHealthKitAvailable() && !hasInitialized.current) {
       hasInitialized.current = true

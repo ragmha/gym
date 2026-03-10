@@ -16,7 +16,6 @@ export default function Header({ date = new Date(), children }: HeaderProps) {
   const borderColor = useThemeColor({}, 'border')
   const accentColor = useThemeColor({}, 'accent')
 
-  // Simple title mode for non-home screens
   if (children) {
     return (
       <View style={styles.simpleContainer}>

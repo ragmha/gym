@@ -62,7 +62,6 @@ export function CircularProgress({
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Background circle */}
         <Circle
           cx={radius}
           cy={radius}
@@ -71,7 +70,6 @@ export function CircularProgress({
           strokeWidth={inActiveStrokeWidth}
           fill="none"
         />
-        {/* Foreground arc — offset driven by animated props */}
         <AnimatedCircle
           cx={radius}
           cy={radius}

@@ -17,7 +17,6 @@ export default function HomeScreen() {
   const { steps, calories, sleepHours, heartRate, hrv, waterLiters } =
     useHealthKit()
 
-  // Convert liters to bottle count (rounded)
   const waterBottles = Math.round(waterLiters / WATER_BOTTLE_LITERS)
 
   return (
@@ -26,14 +25,8 @@ export default function HomeScreen() {
       contentContainerStyle={styles.content}
     >
       <StatusBar barStyle="light-content" />
-
-      {/* Date header */}
       <Header />
-
-      {/* Calendar strip */}
       <CalendarStrip />
-
-      {/* Activity cards 2×2 grid */}
       <ActivityCardGrid
         steps={steps}
         stepsGoal={STEPS_GOAL}
@@ -41,8 +34,6 @@ export default function HomeScreen() {
         waterBottles={waterBottles}
         heartRate={heartRate}
       />
-
-      {/* Key Statistics */}
       <KeyStatistics
         stats={[
           {
