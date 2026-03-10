@@ -119,6 +119,20 @@ export async function getLatestHRV(): Promise<number> {
   }
 }
 
+export async function getLatestRestingHeartRate(): Promise<number> {
+  if (!isHealthKitAvailable()) return 0
+
+  try {
+    const sample = await getMostRecentQuantitySample(
+      'HKQuantityTypeIdentifierRestingHeartRate',
+    )
+    return Math.round(sample?.quantity ?? 0)
+  } catch (err) {
+    console.warn('[HealthKit] Resting HR error:', err)
+    return 0
+  }
+}
+
 export async function getDailySleepHours(date?: Date): Promise<number> {
   if (!isHealthKitAvailable()) return 0
 

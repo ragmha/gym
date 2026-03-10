@@ -6,6 +6,8 @@
  */
 export type {
   Cardio,
+  DailyHealthSnapshot,
+  DailyHealthSnapshotUpsert,
   ExerciseClient as Exercise,
   ExerciseDetailClient as ExerciseDetail,
 } from '@/lib/validators'

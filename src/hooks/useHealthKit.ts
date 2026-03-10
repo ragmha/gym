@@ -7,6 +7,7 @@ import {
   getDailyWaterLiters,
   getLatestHeartRate,
   getLatestHRV,
+  getLatestRestingHeartRate,
   getRecentWorkouts,
   type HealthKitWorkout,
   initializeHealthKit,
@@ -19,6 +20,7 @@ function generateMockData(): {
   sleepHours: number
   heartRate: number
   hrv: number
+  restingHeartRate: number
   waterLiters: number
   workouts: HealthKitWorkout[]
 } {
@@ -37,6 +39,7 @@ function generateMockData(): {
   const sleepHours = Math.round((4 + Math.random() * 5) * 10) / 10 // 4.0–9.0
   const heartRate = rand(58, 95)
   const hrv = rand(20, 90)
+  const restingHeartRate = rand(48, 72)
   const waterLiters = Math.round((0.5 + Math.random() * 2.5) * 10) / 10 // 0.5–3.0
 
   return {
@@ -45,6 +48,7 @@ function generateMockData(): {
     sleepHours,
     heartRate,
     hrv,
+    restingHeartRate,
     waterLiters,
     workouts: [
       {
@@ -70,6 +74,7 @@ interface HealthKitState {
   sleepHours: number
   heartRate: number
   hrv: number
+  restingHeartRate: number
   waterLiters: number
   workouts: HealthKitWorkout[]
 }
@@ -91,6 +96,7 @@ export function useHealthKit() {
         sleepHours: 0,
         heartRate: 0,
         hrv: 0,
+        restingHeartRate: 0,
         waterLiters: 0,
         workouts: [],
       }
@@ -108,6 +114,7 @@ export function useHealthKit() {
       sleepHours: mock.sleepHours,
       heartRate: mock.heartRate,
       hrv: mock.hrv,
+      restingHeartRate: mock.restingHeartRate,
       waterLiters: mock.waterLiters,
       workouts: mock.workouts,
     }
@@ -123,6 +130,7 @@ export function useHealthKit() {
         sleepHours,
         heartRate,
         hrv,
+        restingHeartRate,
         waterLiters,
         workouts,
       ] = await Promise.all([
@@ -131,6 +139,7 @@ export function useHealthKit() {
         getDailySleepHours(),
         getLatestHeartRate(),
         getLatestHRV(),
+        getLatestRestingHeartRate(),
         getDailyWaterLiters(),
         getRecentWorkouts(7),
       ])
@@ -142,6 +151,7 @@ export function useHealthKit() {
         sleepHours,
         heartRate,
         hrv,
+        restingHeartRate,
         waterLiters,
         workouts,
         isLoading: false,
@@ -186,6 +196,7 @@ export function useHealthKit() {
         sleepHours: mock.sleepHours,
         heartRate: mock.heartRate,
         hrv: mock.hrv,
+        restingHeartRate: mock.restingHeartRate,
         waterLiters: mock.waterLiters,
         workouts: mock.workouts,
       }))
