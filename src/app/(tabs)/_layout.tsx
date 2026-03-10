@@ -1,6 +1,5 @@
 import { Tabs } from 'expo-router'
 import React from 'react'
-import { StyleSheet, View } from 'react-native'
 
 import { TabBarIcon } from '@/components/navigation/TabBarIcon'
 import { Colors } from '@/constants/Colors'
@@ -32,7 +31,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
-              name={focused ? 'heart' : 'heart-outline'}
+              name={focused ? 'home' : 'home-outline'}
               color={color}
             />
           ),
@@ -42,10 +41,11 @@ export default function TabLayout() {
         name="workouts"
         options={{
           title: 'Workouts',
-          tabBarIcon: ({ color }) => (
-            <View style={[styles.fab, { backgroundColor: theme.accent }]}>
-              <TabBarIcon name="add" color="#FFFFFF" />
-            </View>
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? 'barbell' : 'barbell-outline'}
+              color={color}
+            />
           ),
         }}
       />
@@ -55,7 +55,7 @@ export default function TabLayout() {
           title: 'Settings',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
-              name={focused ? 'person' : 'person-outline'}
+              name={focused ? 'settings' : 'settings-outline'}
               color={color}
             />
           ),
@@ -64,19 +64,3 @@ export default function TabLayout() {
     </Tabs>
   )
 }
-
-const styles = StyleSheet.create({
-  fab: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-})

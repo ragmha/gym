@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   getDailyCalories,
+  getDailyFlightsClimbed,
   getDailySleepHours,
   getDailySteps,
   getDailyWaterLiters,
@@ -22,6 +23,7 @@ function generateMockData(): {
   hrv: number
   restingHeartRate: number
   waterLiters: number
+  flightsClimbed: number
   workouts: HealthKitWorkout[]
 } {
   const today = new Date()
@@ -41,6 +43,7 @@ function generateMockData(): {
   const hrv = rand(20, 90)
   const restingHeartRate = rand(48, 72)
   const waterLiters = Math.round((0.5 + Math.random() * 2.5) * 10) / 10 // 0.5–3.0
+  const flightsClimbed = rand(0, 20)
 
   return {
     steps,
@@ -50,6 +53,7 @@ function generateMockData(): {
     hrv,
     restingHeartRate,
     waterLiters,
+    flightsClimbed,
     workouts: [
       {
         activityName: 'Running',
@@ -98,6 +102,7 @@ export function useHealthKit() {
         hrv: 0,
         restingHeartRate: 0,
         waterLiters: 0,
+        flightsClimbed: 0,
         workouts: [],
       }
     }
@@ -116,6 +121,7 @@ export function useHealthKit() {
       hrv: mock.hrv,
       restingHeartRate: mock.restingHeartRate,
       waterLiters: mock.waterLiters,
+      flightsClimbed: mock.flightsClimbed,
       workouts: mock.workouts,
     }
   })
@@ -132,6 +138,7 @@ export function useHealthKit() {
         hrv,
         restingHeartRate,
         waterLiters,
+        flightsClimbed,
         workouts,
       ] = await Promise.all([
         getDailySteps(),
@@ -141,6 +148,7 @@ export function useHealthKit() {
         getLatestHRV(),
         getLatestRestingHeartRate(),
         getDailyWaterLiters(),
+        getDailyFlightsClimbed(),
         getRecentWorkouts(7),
       ])
 
@@ -153,6 +161,7 @@ export function useHealthKit() {
         hrv,
         restingHeartRate,
         waterLiters,
+        flightsClimbed,
         workouts,
         isLoading: false,
       }))
@@ -198,6 +207,7 @@ export function useHealthKit() {
         hrv: mock.hrv,
         restingHeartRate: mock.restingHeartRate,
         waterLiters: mock.waterLiters,
+        flightsClimbed: mock.flightsClimbed,
         workouts: mock.workouts,
       }))
       return

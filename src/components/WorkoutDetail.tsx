@@ -1,15 +1,16 @@
 import { useThemeColor } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import Animated, {
-  SlideInDown,
+  FadeIn,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated'
 
-type Exercise = {
+type ExerciseDetailItem = {
   id: string
   title: string
   sets: number | 'To Failure'
@@ -18,15 +19,19 @@ type Exercise = {
 }
 
 type WorkoutDetailProps = {
-  item: Exercise
+  item: ExerciseDetailItem
   exerciseId: string
+  index: number
   onComplete?: (isComplete: boolean, selectedSets: boolean[]) => void
+  onSetCompleted?: () => void
 }
 
 export default function WorkoutDetail({
   item,
   exerciseId,
+  index,
   onComplete,
+  onSetCompleted,
 }: WorkoutDetailProps) {
   const defaultSets =
     typeof item.sets === 'string' || isNaN(item.sets) ? 1 : item.sets
@@ -39,145 +44,282 @@ export default function WorkoutDetail({
       : Array.from({ length: defaultSets }, () => false),
   )
 
-  const opacity = useSharedValue(1)
+  const completedCount = selectedCircles.filter(Boolean).length
+  const scale = useSharedValue(1)
+  const progressAnim = useSharedValue(
+    defaultSets > 0 ? completedCount / defaultSets : 0,
+  )
 
-  useEffect(() => {
-    opacity.value = withTiming(0.2, { duration: 100 }, () => {
-      opacity.value = withTiming(1, { duration: 200 })
+  const toggleCircle = (idx: number) => {
+    const next = [...selectedCircles]
+    const wasCompleted = next[idx]
+    next[idx] = !next[idx]
+    setSelectedCircles(next)
+
+    const newCompletedCount = next.filter(Boolean).length
+    progressAnim.value = withTiming(
+      defaultSets > 0 ? newCompletedCount / defaultSets : 0,
+      { duration: 300 },
+    )
+
+    // Micro-bounce feedback
+    scale.value = withSpring(0.95, { damping: 15 }, () => {
+      scale.value = withSpring(1)
     })
-  }, [opacity])
 
-  const toggleCircle = (index: number) => {
-    const newSelectedCircles = [...selectedCircles]
-    newSelectedCircles[index] = !newSelectedCircles[index]
-    setSelectedCircles(newSelectedCircles)
+    const allCompleted = next.every(Boolean)
+    onComplete?.(allCompleted, next)
 
-    const allCompleted = newSelectedCircles.every((circle) => circle === true)
-    onComplete?.(allCompleted, newSelectedCircles)
+    if (!wasCompleted && !allCompleted) {
+      onSetCompleted?.()
+    }
   }
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-    }
-  })
+  const bounceStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }))
 
-  const backgroundColor = useThemeColor({}, 'background')
+  const animatedProgressStyle = useAnimatedStyle(() => ({
+    width: `${progressAnim.value * 100}%`,
+  }))
+
   const textColor = useThemeColor({}, 'text')
-  const selectedCircleColor = useThemeColor({}, 'selectedCircle')
-  const shadowColor = useThemeColor({}, 'shadow')
+  const subtitleText = useThemeColor({}, 'subtitleText')
+  const cardSurface = useThemeColor({}, 'cardSurface')
+  const successColor = useThemeColor({}, 'success')
+  const successInactive = useThemeColor({}, 'successInactive')
+  const borderColor = useThemeColor({}, 'border')
+  const accentColor = useThemeColor({}, 'accent')
+
+  const allDone = selectedCircles.every(Boolean)
+  const hasStarted = completedCount > 0
 
   return (
     <Animated.View
-      style={[
-        styles.workoutItem,
-        animatedStyle,
-        { backgroundColor, shadowColor },
-      ]}
-      entering={SlideInDown}
+      entering={FadeIn.delay(index * 60).duration(300)}
+      style={[styles.card, { backgroundColor: cardSurface }]}
     >
-      <View style={styles.workoutDetails}>
-        <View style={styles.workoutTitleWithSets}>
-          <Text style={[styles.workoutTitle, { color: textColor }]}>
+      {/* Row 1: Index badge + Title + Completion fraction */}
+      <View style={styles.headerRow}>
+        <View
+          style={[
+            styles.indexBadge,
+            {
+              backgroundColor: allDone
+                ? successColor
+                : hasStarted
+                  ? accentColor
+                  : borderColor,
+            },
+          ]}
+        >
+          {allDone ? (
+            <Text style={[styles.indexText, { color: '#fff' }]}>✓</Text>
+          ) : (
+            <Text
+              style={[
+                styles.indexText,
+                { color: hasStarted ? '#fff' : subtitleText },
+              ]}
+            >
+              {index + 1}
+            </Text>
+          )}
+        </View>
+        <View style={styles.titleBlock}>
+          <Text
+            style={[
+              styles.title,
+              { color: allDone ? subtitleText : textColor },
+              allDone && styles.titleDone,
+            ]}
+            numberOfLines={1}
+          >
             {item.title}
           </Text>
-          <View style={styles.setDetailsRow}>
-            <Text style={[styles.setDetails, { color: textColor }]}>
-              {defaultSets}×{item.reps}
-              {item.variation ? ` ${item.variation}` : ''}
-            </Text>
-            <Text
-              style={[styles.chevron, { color: textColor }]}
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-            >
-              {'>'}
+          <View style={styles.detailRow}>
+            {item.variation ? (
+              <Text style={[styles.variation, { color: subtitleText }]}>
+                {item.variation}
+              </Text>
+            ) : null}
+            <Text style={[styles.repsInfo, { color: subtitleText }]}>
+              {defaultSets} × {item.reps} reps
             </Text>
           </View>
         </View>
-        <View style={styles.circlesContainer}>
-          {Array.from({ length: defaultSets }).map((_, index) => (
+        <Text
+          style={[
+            styles.fraction,
+            {
+              color: allDone
+                ? successColor
+                : hasStarted
+                  ? accentColor
+                  : subtitleText,
+            },
+          ]}
+        >
+          {completedCount}/{defaultSets}
+        </Text>
+      </View>
+
+      {/* Row 2: Set pills */}
+      <Animated.View style={[styles.pillRow, bounceStyle]}>
+        {Array.from({ length: defaultSets }).map((_, i) => {
+          const done = selectedCircles[i]
+          return (
             <TouchableOpacity
-              key={index}
+              key={i}
+              activeOpacity={0.6}
+              onPress={() => toggleCircle(i)}
               style={[
-                styles.circle,
-                selectedCircles[index] && {
-                  backgroundColor: selectedCircleColor,
-                  borderColor: '#FFFFFF',
+                styles.pill,
+                {
+                  backgroundColor: done ? successInactive : 'transparent',
+                  borderColor: done ? successColor : borderColor,
                 },
               ]}
-              onPress={() => toggleCircle(index)}
             >
-              <Text
-                style={[
-                  styles.repsText,
-                  { color: selectedCircles[index] ? '#FFFFFF' : textColor },
-                ]}
-              >
-                {item.reps}
-              </Text>
+              {done ? (
+                <Text style={[styles.pillCheck, { color: successColor }]}>
+                  ✓
+                </Text>
+              ) : (
+                <View style={styles.pillContent}>
+                  <Text style={[styles.pillLabel, { color: subtitleText }]}>
+                    S{i + 1}
+                  </Text>
+                  <Text style={[styles.pillText, { color: textColor }]}>
+                    {item.reps}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
-          ))}
+          )
+        })}
+      </Animated.View>
+
+      {/* Mini progress bar */}
+      {hasStarted && (
+        <View style={[styles.progressTrack, { backgroundColor: borderColor }]}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                backgroundColor: allDone ? successColor : accentColor,
+              },
+              animatedProgressStyle,
+            ]}
+          />
         </View>
-      </View>
+      )}
     </Animated.View>
   )
 }
 
 const styles = StyleSheet.create({
-  workoutItem: {
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 16,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  /* Row 1 */
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginHorizontal: 20,
-    marginVertical: 4,
-    borderRadius: 10,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    marginBottom: 14,
   },
-  workoutDetails: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  workoutTitleWithSets: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  workoutTitle: {
-    fontSize: 16,
-  },
-  setDetailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  setDetails: {
-    fontSize: 14,
-  },
-  chevron: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  circlesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  repsText: {
-    fontWeight: '400',
-    fontSize: 16,
-  },
-  circle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+  indexBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 5,
+    marginRight: 10,
+  },
+  indexText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  titleBlock: {
+    flex: 1,
+    marginRight: 8,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  titleDone: {
+    textDecorationLine: 'line-through',
+    opacity: 0.7,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 3,
+  },
+  variation: {
+    fontSize: 12,
+    fontWeight: '500',
+    opacity: 0.8,
+  },
+  repsInfo: {
+    fontSize: 12,
+    fontWeight: '400',
+  },
+  fraction: {
+    fontSize: 15,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  /* Row 2 */
+  pillRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  pill: {
+    height: 44,
+    minWidth: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  pillContent: {
+    alignItems: 'center',
+  },
+  pillLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 1,
+  },
+  pillText: {
+    fontSize: 14,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
+  pillCheck: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  /* Progress */
+  progressTrack: {
+    height: 2,
+    borderRadius: 1,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 1,
   },
 })

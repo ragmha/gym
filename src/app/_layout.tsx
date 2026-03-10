@@ -47,7 +47,10 @@ export default function RootLayout() {
             navigationBarColor: navTheme.colors.background,
           }}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="(tabs)"
+            options={{ headerShown: false, title: '' }}
+          />
           <Stack.Screen
             name="weight"
             options={{
@@ -65,8 +68,8 @@ export default function RootLayout() {
           <Stack.Screen
             name="details/[id]"
             options={{
-              headerBackVisible: true,
-              headerBackTitle: '',
+              headerBackTitle: ' ',
+              headerBackTitleVisible: false,
             }}
           />
           <Stack.Screen name="+not-found" />

@@ -24,6 +24,7 @@ const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierRestingHeartRate',
   'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
   'HKQuantityTypeIdentifierDietaryWater',
+  'HKQuantityTypeIdentifierFlightsClimbed',
   'HKCategoryTypeIdentifierSleepAnalysis',
   'HKWorkoutTypeIdentifier',
 ] as const
@@ -83,6 +84,48 @@ export async function getStepsHistory(
     results.push({
       date: d.toISOString().slice(0, 10),
       steps,
+    })
+  }
+
+  return results
+}
+
+export async function getDailyFlightsClimbed(date?: Date): Promise<number> {
+  if (!isHealthKitAvailable()) return 0
+
+  try {
+    const d = date ?? new Date()
+    const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+
+    const samples = await queryQuantitySamples(
+      'HKQuantityTypeIdentifierFlightsClimbed',
+      {
+        limit: 0,
+        filter: { date: { startDate: startOfDay, endDate: d } },
+      },
+    )
+
+    return Math.round(samples.reduce((sum, s) => sum + s.quantity, 0))
+  } catch (err) {
+    console.warn('[HealthKit] Flights climbed error:', err)
+    return 0
+  }
+}
+
+/** Fetch flights climbed for each day in a range. */
+export async function getFlightsHistory(
+  daysBack: number,
+): Promise<{ date: string; flights: number }[]> {
+  const today = new Date()
+  const results: { date: string; flights: number }[] = []
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const flights = await getDailyFlightsClimbed(d)
+    results.push({
+      date: d.toISOString().slice(0, 10),
+      flights,
     })
   }
 
@@ -201,6 +244,54 @@ export async function getDailyWaterLiters(date?: Date): Promise<number> {
     console.warn('[HealthKit] Water error:', err)
     return 0
   }
+}
+
+/**
+ * Return a Map of ISO date strings → total step count for each day.
+ * Days with a logged workout get a bonus of 5 000 steps to boost intensity.
+ * Two bulk HealthKit queries cover the entire range.
+ */
+export async function getActivityIntensity(
+  daysBack: number,
+): Promise<Map<string, number>> {
+  if (!isHealthKitAvailable()) return new Map()
+
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - daysBack)
+
+  const stepsByDay = new Map<string, number>()
+
+  try {
+    const stepSamples = await queryQuantitySamples(
+      'HKQuantityTypeIdentifierStepCount',
+      {
+        limit: 0,
+        filter: { date: { startDate: from, endDate: to } },
+      },
+    )
+    for (const s of stepSamples) {
+      const day = new Date(s.startDate).toISOString().slice(0, 10)
+      stepsByDay.set(day, (stepsByDay.get(day) ?? 0) + s.quantity)
+    }
+  } catch (err) {
+    console.warn('[HealthKit] Activity-intensity steps error:', err)
+  }
+
+  try {
+    const workoutSamples = await queryWorkoutSamples({
+      limit: 0,
+      filter: { date: { startDate: from, endDate: to } },
+    })
+    for (const w of workoutSamples) {
+      const day = new Date(w.startDate).toISOString().slice(0, 10)
+      stepsByDay.set(day, (stepsByDay.get(day) ?? 0) + 5_000)
+    }
+  } catch (err) {
+    console.warn('[HealthKit] Activity-intensity workouts error:', err)
+  }
+
+  return stepsByDay
 }
 
 export async function getRecentWorkouts(

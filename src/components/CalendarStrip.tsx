@@ -1,17 +1,15 @@
 import { useThemeColor } from '@/hooks/useThemeColor'
-import React, { useCallback, useRef, useState } from 'react'
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native'
+import Ionicons from '@expo/vector-icons/Ionicons'
+import React, { useCallback, useMemo, useState } from 'react'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 interface CalendarStripProps {
-  startDate?: Date
+  /** The date around which to generate the calendar strip. */
+  focusDate?: Date
+  /** Called when the user taps a day. */
   onDateSelected?: (date: Date) => void
+  /** Called when month navigation changes the focus. */
+  onFocusDateChange?: (date: Date) => void
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -22,33 +20,67 @@ function isSameDay(a: Date, b: Date): boolean {
   )
 }
 
-function getDaysAround(center: Date, count: number): Date[] {
-  const half = Math.floor(count / 2)
-  const days: Date[] = []
-  for (let i = -half; i <= half; i++) {
-    const d = new Date(center)
-    d.setDate(center.getDate() + i)
-    days.push(d)
-  }
-  return days
+/** Returns the Monday of the week containing `date`. */
+function getMonday(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay() // 0 = Sun, 1 = Mon, …
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  return d
 }
 
-const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+/** Build exactly one Mon–Sun week from the week containing `center`. */
+function getWeek(center: Date): Date[] {
+  const monday = getMonday(center)
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return d
+  })
+}
+
+const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
 
 export function CalendarStrip({
-  startDate = new Date(),
+  focusDate,
   onDateSelected,
+  onFocusDateChange,
 }: CalendarStripProps) {
-  const { width } = useWindowDimensions()
-  const [selectedDate, setSelectedDate] = useState<Date>(startDate)
-  const flatListRef = useRef<FlatList>(null)
+  const today = useMemo(() => new Date(), [])
+  const center = focusDate ?? today
+  const [selectedDate, setSelectedDate] = useState<Date>(center)
 
   const textColor = useThemeColor({}, 'text')
   const subtitleColor = useThemeColor({}, 'subtitleText')
   const accentColor = useThemeColor({}, 'accent')
+  const cardBg = useThemeColor({}, 'cardBackground')
+  const borderColor = useThemeColor({}, 'border')
 
-  const days = getDaysAround(startDate, 15)
-  const ITEM_WIDTH = Math.floor((width - 40) / 5) // show ~5 items
+  const days = useMemo(() => getWeek(center), [center])
+
+  const navigateWeek = useCallback(
+    (direction: -1 | 1) => {
+      const next = new Date(center)
+      next.setDate(next.getDate() + direction * 7)
+      onFocusDateChange?.(next)
+    },
+    [center, onFocusDateChange],
+  )
 
   const handlePress = useCallback(
     (date: Date) => {
@@ -58,105 +90,133 @@ export function CalendarStrip({
     [onDateSelected],
   )
 
-  const renderItem = useCallback(
-    ({ item }: { item: Date }) => {
-      const isSelected = isSameDay(item, selectedDate)
-      const isToday = isSameDay(item, new Date())
-
-      return (
-        <TouchableOpacity
-          style={[
-            styles.dayPill,
-            { width: ITEM_WIDTH - 8 },
-            isSelected && { backgroundColor: accentColor },
-          ]}
-          onPress={() => handlePress(item)}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.dateNumber,
-              { color: isSelected ? '#FFFFFF' : textColor },
-            ]}
-          >
-            {item.getDate()}
-          </Text>
-          <Text
-            style={[
-              styles.dayAbbrev,
-              {
-                color: isSelected ? 'rgba(255,255,255,0.8)' : subtitleColor,
-              },
-            ]}
-          >
-            {DAY_ABBREVS[item.getDay()]}
-          </Text>
-          {isToday && !isSelected && (
-            <View style={[styles.todayDot, { backgroundColor: accentColor }]} />
-          )}
-        </TouchableOpacity>
-      )
-    },
-    [
-      selectedDate,
-      accentColor,
-      textColor,
-      subtitleColor,
-      handlePress,
-      ITEM_WIDTH,
-    ],
-  )
-
-  const keyExtractor = useCallback((item: Date) => item.toISOString(), [])
+  const monthLabel = `${MONTH_NAMES[center.getMonth()]} ${center.getFullYear()}`
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        ref={flatListRef}
-        data={days}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        initialScrollIndex={Math.floor(days.length / 2) - 2}
-        getItemLayout={(_, index) => ({
-          length: ITEM_WIDTH,
-          offset: ITEM_WIDTH * index,
-          index,
+    <View style={[styles.container, { backgroundColor: cardBg, borderColor }]}>
+      {/* Month nav header */}
+      <View style={styles.navRow}>
+        <TouchableOpacity
+          onPress={() => navigateWeek(-1)}
+          hitSlop={12}
+          style={styles.navButton}
+        >
+          <Ionicons name="chevron-back" size={18} color={subtitleColor} />
+        </TouchableOpacity>
+        <Text style={[styles.monthLabel, { color: textColor }]}>
+          {monthLabel}
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigateWeek(1)}
+          hitSlop={12}
+          style={styles.navButton}
+        >
+          <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Day-of-week header */}
+      <View style={styles.dayLetterRow}>
+        {DAY_LETTERS.map((letter, i) => (
+          <Text
+            key={`h-${i}`}
+            style={[styles.dayLetter, { color: subtitleColor }]}
+          >
+            {letter}
+          </Text>
+        ))}
+      </View>
+
+      {/* Day circles */}
+      <View style={styles.dayRow}>
+        {days.map((date, i) => {
+          const isSelected = isSameDay(date, selectedDate)
+          const isToday = isSameDay(date, today)
+
+          return (
+            <TouchableOpacity
+              key={i}
+              style={[
+                styles.dayCircle,
+                isSelected && { backgroundColor: accentColor },
+                isToday && !isSelected && styles.todayOutline,
+                isToday && !isSelected && { borderColor: `${accentColor}50` },
+              ]}
+              onPress={() => handlePress(date)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.dayNumber,
+                  { color: isSelected ? '#FFFFFF' : textColor },
+                  isToday && !isSelected && { color: accentColor },
+                ]}
+              >
+                {date.getDate()}
+              </Text>
+            </TouchableOpacity>
+          )
         })}
-      />
+      </View>
     </View>
   )
 }
 
+const CIRCLE_SIZE = 36
+
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    borderWidth: 1,
   },
-  listContent: {
-    paddingHorizontal: 16,
-    gap: 8,
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  dayPill: {
+  navButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 20,
   },
-  dateNumber: {
-    fontSize: 22,
+  monthLabel: {
+    fontSize: 14,
     fontWeight: '700',
   },
-  dayAbbrev: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 4,
+  dayLetterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 4,
   },
-  todayDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    marginTop: 4,
+  dayLetter: {
+    width: CIRCLE_SIZE,
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  dayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  dayCircle: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: CIRCLE_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  todayOutline: {
+    borderWidth: 1.5,
+  },
+  dayNumber: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 })

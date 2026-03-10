@@ -2,26 +2,55 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useCallback, useMemo, useState } from 'react'
 import {
+  LayoutAnimation,
+  Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
+  UIManager,
   View,
 } from 'react-native'
 
+import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { CalendarStrip } from '@/components/CalendarStrip'
-import Header from '@/components/Header'
 import { RecoveryGauge } from '@/components/RecoveryGauge'
-import { SummaryTabs, type Tab } from '@/components/SummaryTabs'
 import { useHealthKit } from '@/hooks/useHealthKit'
 import { useThemeColor } from '@/hooks/useThemeColor'
 import { useWeightStore } from '@/stores/WeightStore'
 import { computeRecoveryScore } from '@/utils/recoveryScore'
 
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true)
+}
+
 const SLEEP_GOAL_HOURS = 8
+const STEP_GOAL = 10_000
 const KG_TO_LBS = 2.20462
+
+// ── Icon badge component ──────────────────────────────────────
+function IconBadge({
+  name,
+  color,
+  bg,
+  size = 18,
+}: {
+  name: React.ComponentProps<typeof Ionicons>['name']
+  color: string
+  bg: string
+  size?: number
+}) {
+  return (
+    <View style={[styles.iconBadge, { backgroundColor: bg }]}>
+      <Ionicons name={name} size={size} color={color} />
+    </View>
+  )
+}
 
 export default function HomeScreen() {
   const router = useRouter()
@@ -29,8 +58,11 @@ export default function HomeScreen() {
   const cardBg = useThemeColor({}, 'cardBackground')
   const textColor = useThemeColor({}, 'text')
   const subtitleColor = useThemeColor({}, 'subtitleText')
+  const accentColor = useThemeColor({}, 'accent')
+  const borderColor = useThemeColor({}, 'border')
 
-  const [activeTab, setActiveTab] = useState<Tab>('Overview')
+  const [recoveryExpanded, setRecoveryExpanded] = useState(false)
+  const [focusDate, setFocusDate] = useState(() => new Date())
 
   const {
     steps,
@@ -68,6 +100,13 @@ export default function HomeScreen() {
 
   const sleepPercent = Math.round((sleepHours / SLEEP_GOAL_HOURS) * 100)
 
+  const recoveryColor =
+    recovery.score >= 67
+      ? '#30D158'
+      : recovery.score >= 34
+        ? '#E8C558'
+        : '#E8707A'
+
   // ── Weight display helpers ────────────────────────────────────
   const weightDisplay = latestEntry
     ? unit === 'lbs'
@@ -100,185 +139,21 @@ export default function HomeScreen() {
           : subtitleColor
       : subtitleColor
 
-  // ── Tab content renderers ─────────────────────────────────────
-  const renderOverview = () => (
-    <>
-      {/* Compact recovery banner — tap to switch to Recovery tab */}
-      <TouchableOpacity
-        style={[styles.recoveryBanner, { backgroundColor: cardBg }]}
-        onPress={() => setActiveTab('Recovery')}
-        activeOpacity={0.7}
-      >
-        <View
-          style={[
-            styles.recoveryDot,
-            {
-              backgroundColor:
-                recovery.score >= 67
-                  ? '#30D158'
-                  : recovery.score >= 34
-                    ? '#E8C558'
-                    : '#E8707A',
-            },
-          ]}
-        />
-        <View style={styles.recoveryBannerText}>
-          <Text style={[styles.recoveryBannerScore, { color: textColor }]}>
-            Recovery {recovery.score}%
-          </Text>
-          <Text
-            style={[styles.recoveryBannerLabel, { color: subtitleColor }]}
-            numberOfLines={1}
-          >
-            {recovery.label}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
-      </TouchableOpacity>
+  // ── Greeting ──────────────────────────────────────────────────
+  const today = useMemo(() => new Date(), [])
+  const dateStr = today.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+  const hour = today.getHours()
+  const greeting =
+    hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
 
-      {/* Weight widget */}
-      <TouchableOpacity
-        style={[styles.weightCard, { backgroundColor: cardBg }]}
-        onPress={() => router.push('/weight')}
-        activeOpacity={0.7}
-      >
-        <View style={styles.weightLeft}>
-          <Text style={[styles.weightLabel, { color: subtitleColor }]}>
-            WEIGHT
-          </Text>
-          <View style={styles.weightRow}>
-            <Text style={[styles.weightValue, { color: textColor }]}>
-              {weightDisplay}
-            </Text>
-            <Text style={[styles.weightUnit, { color: subtitleColor }]}>
-              {unit}
-            </Text>
-            {trendIcon && (
-              <Ionicons
-                name={trendIcon as 'trending-down'}
-                size={18}
-                color={trendColor}
-                style={styles.trendIcon}
-              />
-            )}
-          </View>
-          {goalDistDisplay ? (
-            <Text style={[styles.goalText, { color: '#FFB800' }]}>
-              {goalDistDisplay}
-            </Text>
-          ) : null}
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={subtitleColor} />
-      </TouchableOpacity>
-
-      {/* Quick stats — 2 key metrics */}
-      <View style={styles.quickStats}>
-        <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: cardBg }]}
-          onPress={() => router.push('/steps')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.quickStatValue, { color: textColor }]}>
-            {steps > 0 ? steps.toLocaleString() : '--'}
-          </Text>
-          <Text style={[styles.quickStatUnit, { color: '#E8C558' }]}>
-            steps
-          </Text>
-          <Text style={[styles.quickStatLabel, { color: subtitleColor }]}>
-            Steps
-          </Text>
-        </TouchableOpacity>
-        <View style={[styles.quickStatItem, { backgroundColor: cardBg }]}>
-          <Text style={[styles.quickStatValue, { color: textColor }]}>
-            {calories > 0 ? `${calories}` : '--'}
-          </Text>
-          <Text style={[styles.quickStatUnit, { color: '#E8707A' }]}>kcal</Text>
-          <Text style={[styles.quickStatLabel, { color: subtitleColor }]}>
-            Calories
-          </Text>
-        </View>
-      </View>
-    </>
-  )
-
-  const renderRecovery = () => (
-    <>
-      <RecoveryGauge
-        recovery={recovery.score}
-        strain={0}
-        heartRate={heartRate}
-        sleepPercent={sleepPercent}
-      />
-      <View
-        style={[
-          styles.insightCard,
-          {
-            backgroundColor: cardBg,
-            borderLeftColor:
-              recovery.score >= 67
-                ? '#30D158'
-                : recovery.score >= 34
-                  ? '#E8C558'
-                  : '#E8707A',
-          },
-        ]}
-      >
-        <Text style={[styles.insightTitle, { color: textColor }]}>
-          {recovery.label}
-        </Text>
-        <Text style={[styles.insightBody, { color: subtitleColor }]}>
-          {recovery.description}
-        </Text>
-      </View>
-      <View style={styles.statsSection}>
-        <Text style={[styles.statsSectionTitle, { color: textColor }]}>
-          RECOVERY STATISTICS
-        </Text>
-        {[
-          {
-            label: 'HRV',
-            value: hrv > 0 ? `${hrv} ms` : '--',
-            icon: 'pulse-outline' as const,
-            color: '#30D158',
-          },
-          {
-            label: 'Resting HR',
-            value: restingHeartRate > 0 ? `${restingHeartRate} bpm` : '--',
-            icon: 'heart-outline' as const,
-            color: '#E8707A',
-          },
-          {
-            label: 'SpO2',
-            value: '--',
-            icon: 'water-outline' as const,
-            color: '#5B9BD5',
-          },
-          {
-            label: 'Skin Temp',
-            value: '--',
-            icon: 'thermometer-outline' as const,
-            color: '#E8C558',
-          },
-        ].map((stat) => (
-          <View
-            key={stat.label}
-            style={[
-              styles.statRow,
-              { borderBottomColor: `${subtitleColor}20` },
-            ]}
-          >
-            <Ionicons name={stat.icon} size={20} color={stat.color} />
-            <Text style={[styles.statRowLabel, { color: textColor }]}>
-              {stat.label}
-            </Text>
-            <Text style={[styles.statRowValue, { color: textColor }]}>
-              {stat.value}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </>
-  )
+  const toggleRecovery = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    setRecoveryExpanded((v) => !v)
+  }, [])
 
   return (
     <ScrollView
@@ -289,12 +164,255 @@ export default function HomeScreen() {
       }
     >
       <StatusBar barStyle="light-content" />
-      <Header />
-      <CalendarStrip />
-      <SummaryTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {activeTab === 'Overview' && renderOverview()}
-      {activeTab === 'Recovery' && renderRecovery()}
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <Text style={[styles.dateLabel, { color: subtitleColor }]}>
+            {dateStr.toUpperCase()}
+          </Text>
+          <TouchableOpacity
+            style={[styles.settingsBtn, { backgroundColor: cardBg }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="notifications-outline"
+              size={18}
+              color={textColor}
+            />
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.greeting, { color: textColor }]}>{greeting}!</Text>
+        {/* Health badge */}
+        <View style={styles.healthBadgeRow}>
+          <View
+            style={[styles.healthBadge, { backgroundColor: recoveryColor }]}
+          >
+            <Ionicons name="star" size={10} color="#000" />
+          </View>
+          <Text style={[styles.healthBadgeText, { color: recoveryColor }]}>
+            {recovery.score}% Healthy
+          </Text>
+        </View>
+      </View>
+
+      {/* ── Calendar strip ─────────────────────────────────────── */}
+      <CalendarStrip focusDate={focusDate} onFocusDateChange={setFocusDate} />
+
+      {/* ── Fitness Metrics — horizontal scroll ────────────────── */}
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>
+          Fitness Metrics
+        </Text>
+        <Text style={[styles.seeAll, { color: accentColor }]}>See All</Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.metricsScroll}
+      >
+        {/* Score — orange solid */}
+        <TouchableOpacity
+          style={[styles.metricChip, { backgroundColor: accentColor }]}
+          onPress={toggleRecovery}
+          activeOpacity={0.7}
+        >
+          <View style={styles.metricChipTop}>
+            <Text style={styles.metricChipLabelLight}>Score</Text>
+            <IconBadge
+              name="shield-checkmark"
+              color={accentColor}
+              bg="rgba(255,255,255,0.25)"
+              size={14}
+            />
+          </View>
+          <View style={styles.miniBars}>
+            {[0.35, 0.6, 0.45, 0.8, 0.5, 0.7, 0.55, 0.9, 0.65].map((h, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.miniBar,
+                  {
+                    height: h * 38,
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.metricChipValueLight}>
+            {recovery.score}
+            <Text style={styles.metricChipUnitLight}>%</Text>
+          </Text>
+        </TouchableOpacity>
+
+        {/* Steps — blue solid */}
+        <TouchableOpacity
+          style={[styles.metricChip, { backgroundColor: '#2563EB' }]}
+          onPress={() => router.push('/steps')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.metricChipTop}>
+            <Text style={styles.metricChipLabelLight}>Steps</Text>
+            <IconBadge
+              name="footsteps"
+              color="#2563EB"
+              bg="rgba(255,255,255,0.25)"
+              size={14}
+            />
+          </View>
+          <View style={styles.miniBars}>
+            {[0.3, 0.5, 0.75, 0.4, 0.65, 0.85, 0.5, 0.7, 0.6].map((h, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.miniBar,
+                  {
+                    height: h * 38,
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.metricChipValueLight}>
+            {steps > 0 ? steps.toLocaleString() : '--'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Calories — orange solid */}
+        <View style={[styles.metricChip, { backgroundColor: accentColor }]}>
+          <View style={styles.metricChipTop}>
+            <Text style={styles.metricChipLabelLight}>Calories</Text>
+            <IconBadge
+              name="flame"
+              color={accentColor}
+              bg="rgba(255,255,255,0.25)"
+              size={14}
+            />
+          </View>
+          <View style={styles.miniBars}>
+            {[0.55, 0.4, 0.7, 0.45, 0.85, 0.35, 0.75, 0.6, 0.5].map((h, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.miniBar,
+                  {
+                    height: h * 38,
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.metricChipValueLight}>
+            {calories > 0 ? calories.toLocaleString() : '--'}
+            <Text style={styles.metricChipUnitLight}> kcal</Text>
+          </Text>
+        </View>
+
+        {/* Sleep — blue solid */}
+        <View style={[styles.metricChip, { backgroundColor: '#2563EB' }]}>
+          <View style={styles.metricChipTop}>
+            <Text style={styles.metricChipLabelLight}>Sleep</Text>
+            <IconBadge
+              name="moon"
+              color="#2563EB"
+              bg="rgba(255,255,255,0.25)"
+              size={14}
+            />
+          </View>
+          <View style={styles.miniBars}>
+            {[0.65, 0.5, 0.6, 0.8, 0.4, 0.9, 0.55, 0.7, 0.6].map((h, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.miniBar,
+                  {
+                    height: h * 38,
+                    backgroundColor: 'rgba(255,255,255,0.25)',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.metricChipValueLight}>
+            {sleepHours > 0 ? sleepHours.toFixed(1) : '--'}
+            <Text style={styles.metricChipUnitLight}> hrs</Text>
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* ── Expandable recovery detail ─────────────────────────── */}
+      {recoveryExpanded && (
+        <>
+          <RecoveryGauge
+            recovery={recovery.score}
+            strain={0}
+            heartRate={heartRate}
+            sleepPercent={sleepPercent}
+          />
+          <View
+            style={[
+              styles.insightCard,
+              {
+                backgroundColor: cardBg,
+                borderLeftColor: recoveryColor,
+                borderColor,
+              },
+            ]}
+          >
+            <Text style={[styles.insightTitle, { color: textColor }]}>
+              {recovery.label}
+            </Text>
+            <Text style={[styles.insightBody, { color: subtitleColor }]}>
+              {recovery.description}
+            </Text>
+          </View>
+        </>
+      )}
+
+      {/* ── Weight ─────────────────────────────────────────────── */}
+      <TouchableOpacity
+        style={[styles.weightCard, { backgroundColor: cardBg, borderColor }]}
+        onPress={() => router.push('/weight')}
+        activeOpacity={0.7}
+      >
+        <View style={styles.weightLeft}>
+          <View style={styles.weightHeaderRow}>
+            <IconBadge name="scale" color="#FFF" bg={accentColor} size={14} />
+            <Text style={[styles.weightLabel, { color: subtitleColor }]}>
+              Weight
+            </Text>
+          </View>
+          <View style={styles.weightRow}>
+            <Text style={[styles.weightValue, { color: textColor }]}>
+              {weightDisplay}
+            </Text>
+            <Text style={[styles.weightUnit, { color: subtitleColor }]}>
+              {unit}
+            </Text>
+            {trendIcon && (
+              <Ionicons
+                name={trendIcon as 'trending-down'}
+                size={16}
+                color={trendColor}
+                style={styles.trendIcon}
+              />
+            )}
+          </View>
+          {goalDistDisplay ? (
+            <Text style={[styles.goalText, { color: accentColor }]}>
+              {goalDistDisplay}
+            </Text>
+          ) : null}
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
+      </TouchableOpacity>
+
+      {/* ── Activity heatmap ───────────────────────────────────── */}
+      <ActivityHeatmap />
     </ScrollView>
   )
 }
@@ -304,25 +422,146 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 100,
+    paddingBottom: 40,
+  },
+  // ── Header ────────────────────────────────────────────────────
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: 4,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dateLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  settingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greeting: {
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  healthBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  healthBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  healthBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  // ── Section header ────────────────────────────────────────────
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  seeAll: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // ── Icon badge ────────────────────────────────────────────────
+  iconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // ── Metric chips (horizontal scroll) ──────────────────────────
+  metricsScroll: {
+    paddingHorizontal: 20,
+    gap: 10,
+    paddingBottom: 4,
+    marginBottom: 16,
+  },
+  metricChip: {
+    width: 150,
+    borderRadius: 20,
+    padding: 16,
+  },
+  metricChipTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  metricChipLabelLight: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+  },
+  metricChipValueLight: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  metricChipUnitLight: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  miniBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 40,
+    marginBottom: 10,
+  },
+  miniBar: {
+    flex: 1,
+    marginHorizontal: 1.5,
+    borderRadius: 4,
+    minWidth: 8,
   },
   // ── Weight card ───────────────────────────────────────────────
   weightCard: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 14,
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
+    borderWidth: 1,
   },
   weightLeft: {
     flex: 1,
   },
+  weightHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
   weightLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 4,
+    fontSize: 13,
+    fontWeight: '600',
   },
   weightRow: {
     flexDirection: 'row',
@@ -330,7 +569,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   weightValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
   },
   weightUnit: {
@@ -341,105 +580,26 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   goalText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 4,
   },
   // ── Insight card ──────────────────────────────────────────────
   insightCard: {
     marginHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 14,
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
     borderLeftWidth: 4,
+    borderWidth: 1,
   },
   insightTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   insightBody: {
     fontSize: 13,
     lineHeight: 18,
-  },
-  // ── Recovery stats ────────────────────────────────────────────
-  statsSection: {
-    marginHorizontal: 20,
-    marginBottom: 16,
-  },
-  statsSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-  },
-  statRowLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  statRowValue: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  // ── Quick stats ───────────────────────────────────────────────
-  quickStats: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    gap: 10,
-    marginBottom: 16,
-  },
-  quickStatItem: {
-    flex: 1,
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-  },
-  quickStatValue: {
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  quickStatUnit: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  quickStatLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  // ── Recovery banner ───────────────────────────────────────────
-  recoveryBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 16,
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
-  },
-  recoveryDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  recoveryBannerText: {
-    flex: 1,
-  },
-  recoveryBannerScore: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  recoveryBannerLabel: {
-    fontSize: 12,
-    marginTop: 2,
   },
 })
