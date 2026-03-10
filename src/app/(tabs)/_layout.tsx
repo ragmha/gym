@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router'
 import React from 'react'
+import { StyleSheet, View } from 'react-native'
 
 import { TabBarIcon } from '@/components/navigation/TabBarIcon'
 import { Colors } from '@/constants/Colors'
@@ -12,12 +13,16 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.tint,
+        tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {
           backgroundColor: theme.tabBarBackground,
           borderTopColor: theme.tabBarBorder,
+          height: 80,
+          paddingBottom: 20,
+          paddingTop: 8,
         },
+        tabBarShowLabel: false,
         headerShown: false,
       }}
     >
@@ -27,7 +32,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
-              name={focused ? 'home' : 'home-outline'}
+              name={focused ? 'heart' : 'heart-outline'}
               color={color}
             />
           ),
@@ -37,11 +42,10 @@ export default function TabLayout() {
         name="workouts"
         options={{
           title: 'Workouts',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon
-              name={focused ? 'barbell' : 'barbell-outline'}
-              color={color}
-            />
+          tabBarIcon: ({ color }) => (
+            <View style={[styles.fab, { backgroundColor: theme.accent }]}>
+              <TabBarIcon name="add" color="#FFFFFF" />
+            </View>
           ),
         }}
       />
@@ -51,7 +55,7 @@ export default function TabLayout() {
           title: 'Settings',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
-              name={focused ? 'settings' : 'settings-outline'}
+              name={focused ? 'person' : 'person-outline'}
               color={color}
             />
           ),
@@ -60,3 +64,19 @@ export default function TabLayout() {
     </Tabs>
   )
 }
+
+const styles = StyleSheet.create({
+  fab: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+})
