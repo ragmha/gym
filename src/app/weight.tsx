@@ -16,7 +16,7 @@ import {
   View,
 } from 'react-native'
 
-import { WeightBarChart } from '@/components/WeightBarChart'
+import { WeightBarChart, type ChartMode } from '@/components/WeightBarChart'
 import { WeightGoalSheet } from '@/components/WeightGoalSheet'
 import { useWeightStore } from '@/stores/WeightStore'
 
@@ -68,6 +68,7 @@ export default function WeightScreen() {
   const [showGoalSheet, setShowGoalSheet] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const [chartMode, setChartMode] = useState<ChartMode>('bar')
   const inputRef = useRef<TextInput>(null)
 
   const todayStr = useMemo(
@@ -184,13 +185,42 @@ export default function WeightScreen() {
           {/* Last track info */}
           <Text style={styles.lastTrack}>{lastTrackText}</Text>
 
-          {/* Bar chart */}
+          {/* Chart mode toggle + chart */}
+          <View style={styles.toggleRow}>
+            {(['bar', 'line'] as const).map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[
+                  styles.togglePill,
+                  chartMode === m && styles.togglePillActive,
+                ]}
+                onPress={() => setChartMode(m)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={m === 'bar' ? 'bar-chart' : 'trending-up'}
+                  size={16}
+                  color={chartMode === m ? '#000' : '#888'}
+                />
+                <Text
+                  style={[
+                    styles.toggleText,
+                    chartMode === m && styles.toggleTextActive,
+                  ]}
+                >
+                  {m === 'bar' ? 'Bar' : 'Line'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <View style={styles.chartContainer}>
             <WeightBarChart
               entries={recentEntries}
               goalKg={goalKg}
               unit={unit}
               height={180}
+              mode={chartMode}
             />
           </View>
 
@@ -283,6 +313,33 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 40,
+  },
+  // ── Chart toggle ──────────────────────────────────────────────
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  togglePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#1A1A1A',
+  },
+  togglePillActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  toggleText: {
+    color: '#888',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  toggleTextActive: {
+    color: '#000000',
   },
   headerRow: {
     flexDirection: 'row',

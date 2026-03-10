@@ -8,7 +8,7 @@ import {
 } from '@shopify/react-native-skia'
 import React, { useCallback, useMemo, useRef } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
-import { Bar, CartesianChart } from 'victory-native'
+import { Bar, CartesianChart, Line } from 'victory-native'
 
 import type { WeightEntry } from '@/stores/WeightStore'
 
@@ -18,6 +18,8 @@ const KG_TO_LBS = 2.20462
 const BAR_COLORS_PAST = ['#FFB800', '#FF8C00', '#FF5500'] as const
 const BAR_COLOR_FUTURE = '#2A2A2A'
 const BAR_WIDTH = 18 // pixels per bar slot
+const LINE_POINT_WIDTH = 14 // pixels per point in line mode
+const LINE_COLOR = '#FFFFFF'
 
 const GOAL_LINE_COLOR = '#FFB800'
 
@@ -43,11 +45,14 @@ interface ChartDatum {
   dateLabel: string
 }
 
+export type ChartMode = 'bar' | 'line'
+
 interface WeightBarChartProps {
   entries: WeightEntry[]
   goalKg: number | null
   unit: 'kg' | 'lbs'
   height?: number
+  mode?: ChartMode
 }
 
 // ── Component ───────────────────────────────────────────────────────
@@ -57,6 +62,7 @@ export function WeightBarChart({
   goalKg,
   unit,
   height = 220,
+  mode = 'bar',
 }: WeightBarChartProps) {
   const font = useFont(require('../assets/fonts/SpaceMono-Regular.ttf'), 10)
 
@@ -118,17 +124,18 @@ export function WeightBarChart({
   }, [entries, goalKg, unit])
 
   // Chart width based on number of days — wider than screen so it scrolls
-  const chartWidth = chartData.length * BAR_WIDTH
+  const pointWidth = mode === 'line' ? LINE_POINT_WIDTH : BAR_WIDTH
+  const chartWidth = chartData.length * pointWidth
 
   // Auto-scroll to today on layout
   const scrollRef = useRef<ScrollView>(null)
   const todayIndex = chartData.findIndex((d) => d.isToday)
   const handleLayout = useCallback(() => {
     if (todayIndex >= 0 && scrollRef.current) {
-      const offset = Math.max(0, todayIndex * BAR_WIDTH - 160)
+      const offset = Math.max(0, todayIndex * pointWidth - 160)
       scrollRef.current.scrollTo({ x: offset, animated: false })
     }
-  }, [todayIndex])
+  }, [todayIndex, pointWidth])
 
   if (entries.length < 2) {
     return (
@@ -166,38 +173,68 @@ export function WeightBarChart({
           >
             {({ points, chartBounds }) => (
               <>
-                {/* Individual bars with per-bar coloring */}
-                {points.weight.map(
-                  (point: (typeof points.weight)[number], index: number) => {
-                    const datum = chartData[index]
-                    if (!datum || datum.weight === 0) return null
+                {/* Bar mode */}
+                {mode === 'bar' &&
+                  points.weight.map(
+                    (point: (typeof points.weight)[number], index: number) => {
+                      const datum = chartData[index]
+                      if (!datum || datum.weight === 0) return null
 
-                    return (
-                      <Bar
-                        key={index}
-                        barCount={points.weight.length}
-                        points={[point]}
-                        chartBounds={chartBounds}
-                        innerPadding={0.15}
-                        roundedCorners={{ topLeft: 3, topRight: 3 }}
-                        animate={{ type: 'timing', duration: 600 }}
-                      >
-                        {datum.isFuture ? (
-                          <LinearGradient
-                            start={vec(0, chartBounds.top)}
-                            end={vec(0, chartBounds.bottom)}
-                            colors={[BAR_COLOR_FUTURE, BAR_COLOR_FUTURE]}
-                          />
-                        ) : (
-                          <LinearGradient
-                            start={vec(0, chartBounds.top)}
-                            end={vec(0, chartBounds.bottom)}
-                            colors={[BAR_COLORS_PAST[0], BAR_COLORS_PAST[2]]}
-                          />
-                        )}
-                      </Bar>
-                    )
-                  },
+                      return (
+                        <Bar
+                          key={index}
+                          barCount={points.weight.length}
+                          points={[point]}
+                          chartBounds={chartBounds}
+                          innerPadding={0.15}
+                          roundedCorners={{ topLeft: 3, topRight: 3 }}
+                          animate={{ type: 'timing', duration: 600 }}
+                        >
+                          {datum.isFuture ? (
+                            <LinearGradient
+                              start={vec(0, chartBounds.top)}
+                              end={vec(0, chartBounds.bottom)}
+                              colors={[BAR_COLOR_FUTURE, BAR_COLOR_FUTURE]}
+                            />
+                          ) : (
+                            <LinearGradient
+                              start={vec(0, chartBounds.top)}
+                              end={vec(0, chartBounds.bottom)}
+                              colors={[BAR_COLORS_PAST[0], BAR_COLORS_PAST[2]]}
+                            />
+                          )}
+                        </Bar>
+                      )
+                    },
+                  )}
+
+                {/* Line mode */}
+                {mode === 'line' && (
+                  <>
+                    <Line
+                      points={points.weight}
+                      color={LINE_COLOR}
+                      strokeWidth={2.5}
+                      curveType="natural"
+                      animate={{ type: 'timing', duration: 600 }}
+                    >
+                      <LinearGradient
+                        start={vec(0, chartBounds.top)}
+                        end={vec(0, chartBounds.bottom)}
+                        colors={[
+                          'rgba(255,255,255,0.15)',
+                          'rgba(255,255,255,0)',
+                        ]}
+                      />
+                    </Line>
+                    <Line
+                      points={points.weight}
+                      color={LINE_COLOR}
+                      strokeWidth={2.5}
+                      curveType="natural"
+                      animate={{ type: 'timing', duration: 600 }}
+                    />
+                  </>
                 )}
 
                 {/* Goal line */}
