@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -48,8 +49,21 @@ function formatLastTrackDate(dateStr: string): string {
 
 export default function WeightScreen() {
   const router = useRouter()
-  const { recentEntries, latestEntry, distanceToGoal, goalKg, unit, addEntry } =
-    useWeightStore()
+  const {
+    recentEntries,
+    latestEntry,
+    distanceToGoal,
+    goalKg,
+    unit,
+    addEntry,
+    deleteEntry,
+  } = useWeightStore()
+
+  // Entries sorted newest first for the list
+  const sortedEntries = useMemo(
+    () => [...recentEntries].reverse(),
+    [recentEntries],
+  )
 
   const [showGoalSheet, setShowGoalSheet] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -131,50 +145,122 @@ export default function WeightScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Date */}
-        <Text style={styles.dateText}>{todayStr.toUpperCase()}</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Date */}
+          <Text style={styles.dateText}>{todayStr.toUpperCase()}</Text>
 
-        {/* Hero weight — tap to edit */}
-        {isEditing ? (
-          <TextInput
-            ref={inputRef}
-            style={styles.heroWeightInput}
-            value={inputValue}
-            onChangeText={setInputValue}
-            onSubmitEditing={handleAddEntry}
-            onBlur={handleAddEntry}
-            keyboardType="decimal-pad"
-            returnKeyType="done"
-            selectTextOnFocus
-            autoFocus
-          />
-        ) : (
-          <Pressable onPress={startEditing}>
-            <Text style={styles.heroWeight}>{heroWeight}</Text>
-          </Pressable>
-        )}
+          {/* Hero weight — tap to edit */}
+          {isEditing ? (
+            <TextInput
+              ref={inputRef}
+              style={styles.heroWeightInput}
+              value={inputValue}
+              onChangeText={setInputValue}
+              onSubmitEditing={handleAddEntry}
+              onBlur={handleAddEntry}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              selectTextOnFocus
+              autoFocus
+            />
+          ) : (
+            <Pressable onPress={startEditing}>
+              <Text style={styles.heroWeight}>{heroWeight}</Text>
+            </Pressable>
+          )}
 
-        {/* Goal distance OR set a goal */}
-        {goalDistanceText ? (
-          <Text style={styles.goalDistance}>{goalDistanceText}</Text>
-        ) : (
-          <Pressable onPress={() => setShowGoalSheet(true)}>
-            <Text style={styles.setGoalText}>Set a goal</Text>
-          </Pressable>
-        )}
+          {/* Goal distance OR set a goal */}
+          {goalDistanceText ? (
+            <Text style={styles.goalDistance}>{goalDistanceText}</Text>
+          ) : (
+            <Pressable onPress={() => setShowGoalSheet(true)}>
+              <Text style={styles.setGoalText}>Set a goal</Text>
+            </Pressable>
+          )}
 
-        {/* Last track info */}
-        <Text style={styles.lastTrack}>{lastTrackText}</Text>
+          {/* Last track info */}
+          <Text style={styles.lastTrack}>{lastTrackText}</Text>
 
-        {/* Bar chart */}
-        <View style={styles.chartContainer}>
-          <WeightBarChart
-            entries={recentEntries}
-            goalKg={goalKg}
-            unit={unit}
-            height={200}
-          />
-        </View>
+          {/* Bar chart */}
+          <View style={styles.chartContainer}>
+            <WeightBarChart
+              entries={recentEntries}
+              goalKg={goalKg}
+              unit={unit}
+              height={180}
+            />
+          </View>
+
+          {/* Weight history list */}
+          <View style={styles.historySection}>
+            <Text style={styles.historyTitle}>HISTORY</Text>
+            {sortedEntries.map((entry, idx) => {
+              const prevEntry = sortedEntries[idx + 1]
+              const delta = prevEntry
+                ? entry.weightKg - prevEntry.weightKg
+                : null
+              const displayWeight = formatWeight(entry.weightKg, unit)
+              const dateLabel = formatLastTrackDate(entry.date)
+              const deltaDisplay =
+                delta !== null
+                  ? `${delta > 0 ? '+' : ''}${formatWeight(Math.abs(delta), unit)}`
+                  : null
+              const deltaColor =
+                delta !== null
+                  ? delta < 0
+                    ? '#30D158'
+                    : delta > 0
+                      ? '#FF3B30'
+                      : '#666'
+                  : '#666'
+
+              return (
+                <TouchableOpacity
+                  key={entry.id}
+                  style={styles.historyRow}
+                  onLongPress={() => {
+                    if (Platform.OS === 'web') return
+                    Alert.alert(
+                      'Delete entry',
+                      `Remove ${displayWeight} ${unit} on ${dateLabel}?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Delete',
+                          style: 'destructive',
+                          onPress: () => deleteEntry(entry.id),
+                        },
+                      ],
+                    )
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.historyLeft}>
+                    <Text style={styles.historyDate}>{dateLabel}</Text>
+                  </View>
+                  <View style={styles.historyRight}>
+                    <Text style={styles.historyWeight}>
+                      {displayWeight} {unit}
+                    </Text>
+                    {deltaDisplay && (
+                      <Text
+                        style={[styles.historyDelta, { color: deltaColor }]}
+                      >
+                        {deltaDisplay}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+            {sortedEntries.length === 0 && (
+              <Text style={styles.historyEmpty}>No entries yet</Text>
+            )}
+          </View>
+        </ScrollView>
       </SafeAreaView>
 
       {/* Goal sheet */}
@@ -193,7 +279,10 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   headerRow: {
     flexDirection: 'row',
@@ -258,7 +347,53 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   chartContainer: {
-    flex: 1,
     marginHorizontal: -8,
+    marginBottom: 24,
+  },
+  // ── History list ──────────────────────────────────────────────
+  historySection: {
+    marginTop: 8,
+  },
+  historyTitle: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#222',
+  },
+  historyLeft: {
+    flex: 1,
+  },
+  historyDate: {
+    color: '#AAAAAA',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  historyRight: {
+    alignItems: 'flex-end',
+  },
+  historyWeight: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  historyDelta: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  historyEmpty: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 })
