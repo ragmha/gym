@@ -20,29 +20,69 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { CircularProgress } from '@/components/CircularProgress'
 import { useHealthKit } from '@/hooks/useHealthKit'
+import { getDailySteps, isHealthKitAvailable } from '@/lib/healthkit'
 
 // ── Constants ─────────────────────────────────────────────────────────
 
 const DEFAULT_STEPS_GOAL = 10_000
 const STORAGE_KEY = 'steps-goal'
-const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 type Period = 'Day' | 'Week' | 'Month'
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-function getDayOfWeekIndex(): number {
-  const day = new Date().getDay() // 0=Sun
-  return day === 0 ? 6 : day - 1 // Convert to Mon=0
+function formatDayLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { weekday: 'short' })
 }
 
-function generateWeekData(todaySteps: number): number[] {
-  // Generate plausible mock data for the week with today's actual steps
-  const todayIdx = getDayOfWeekIndex()
-  return DAYS_OF_WEEK.map((_, i) => {
-    if (i === todayIdx) return todaySteps
-    if (i > todayIdx) return 0 // Future days
-    return Math.round(3000 + Math.random() * 12000) // Past days random
-  })
+function formatMonthDayLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+interface DayData {
+  date: string
+  steps: number
+  label: string
+  isToday: boolean
+  isFuture: boolean
+}
+
+async function fetchHistoryData(
+  daysBack: number,
+  todaySteps: number,
+): Promise<DayData[]> {
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10)
+  const results: DayData[] = []
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const dateStr = d.toISOString().slice(0, 10)
+    const isToday = dateStr === todayStr
+
+    let daySteps: number
+    if (isToday) {
+      daySteps = todaySteps
+    } else if (isHealthKitAvailable()) {
+      daySteps = await getDailySteps(d)
+    } else {
+      // Demo mode: generate plausible data
+      daySteps = Math.round(2000 + Math.random() * 10000)
+    }
+
+    results.push({
+      date: dateStr,
+      steps: daySteps,
+      label:
+        daysBack <= 7 ? formatDayLabel(dateStr) : formatMonthDayLabel(dateStr),
+      isToday,
+      isFuture: false,
+    })
+  }
+
+  return results
 }
 
 // ── Component ───────────────────────────────────────────────────────
@@ -54,6 +94,8 @@ export default function StepsScreen() {
   const [stepsGoal, setStepsGoal] = useState(DEFAULT_STEPS_GOAL)
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [goalInput, setGoalInput] = useState('')
+  const [historyData, setHistoryData] = useState<DayData[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
 
   // Load persisted goal
   useEffect(() => {
@@ -95,10 +137,28 @@ export default function StepsScreen() {
   const distanceKm = (steps * 0.000762).toFixed(1) // ~0.762m per step
   const activeMinutes = Math.round(steps / 100) // ~100 steps/min
 
-  const weekData = useMemo(() => generateWeekData(steps), [steps])
-  const weekMax = Math.max(...weekData, 1)
+  // Fetch history when period changes
+  useEffect(() => {
+    const daysBack = period === 'Day' ? 1 : period === 'Week' ? 7 : 30
+    if (daysBack <= 1) {
+      setHistoryData([])
+      return
+    }
+    setLoadingHistory(true)
+    fetchHistoryData(daysBack, steps).then((data) => {
+      setHistoryData(data)
+      setLoadingHistory(false)
+    })
+  }, [period, steps])
 
-  const todayIdx = getDayOfWeekIndex()
+  const chartMax = useMemo(
+    () => Math.max(...historyData.map((d) => d.steps), 1),
+    [historyData],
+  )
+  const chartTotal = useMemo(
+    () => historyData.reduce((s, d) => s + d.steps, 0),
+    [historyData],
+  )
 
   const todayDate = new Date().toLocaleDateString('en-US', {
     day: 'numeric',
@@ -228,53 +288,85 @@ export default function StepsScreen() {
             ))}
           </View>
 
-          {/* Week analytics */}
-          <Text style={styles.sectionTitle}>Week analytics</Text>
-          <View style={styles.weekChart}>
-            {weekData.map((val, i) => {
-              const barHeight = weekMax > 0 ? (val / weekMax) * 120 : 0
-              const isToday = i === todayIdx
-              const isFuture = i > todayIdx
-
-              return (
-                <View key={i} style={styles.barCol}>
-                  <View style={styles.barWrapper}>
-                    {val > 0 && (
-                      <Text style={styles.barLabel}>
-                        {(val / 1000).toFixed(1)}k
-                      </Text>
-                    )}
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: Math.max(barHeight, 4),
-                          backgroundColor: isFuture
-                            ? '#2A2A2A'
-                            : isToday
-                              ? '#6C63FF'
-                              : 'rgba(108,99,255,0.4)',
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text
-                    style={[styles.dayLabel, isToday && styles.dayLabelActive]}
-                  >
-                    {DAYS_OF_WEEK[i]}
+          {/* Analytics chart */}
+          {period !== 'Day' && (
+            <>
+              <Text style={styles.sectionTitle}>
+                {period} analytics
+                {chartTotal > 0 && (
+                  <Text style={styles.sectionSubtitle}>
+                    {'  '}
+                    {chartTotal.toLocaleString()} total
                   </Text>
+                )}
+              </Text>
+              {loadingHistory ? (
+                <View style={styles.loadingChart}>
+                  <Text style={styles.loadingText}>Loading...</Text>
                 </View>
-              )
-            })}
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chartScrollContent}
+                >
+                  <View style={styles.weekChart}>
+                    {historyData.map((day) => {
+                      const barHeight =
+                        chartMax > 0 ? (day.steps / chartMax) * 120 : 0
 
-            {/* Goal line */}
-            <View
-              style={[
-                styles.goalLine,
-                { bottom: (stepsGoal / weekMax) * 120 + 20 },
-              ]}
-            />
-          </View>
+                      return (
+                        <View key={day.date} style={styles.barCol}>
+                          <View style={styles.barWrapper}>
+                            {day.steps > 0 && (
+                              <Text style={styles.barLabel}>
+                                {day.steps >= 1000
+                                  ? `${(day.steps / 1000).toFixed(1)}k`
+                                  : String(day.steps)}
+                              </Text>
+                            )}
+                            <View
+                              style={[
+                                styles.bar,
+                                {
+                                  height: Math.max(barHeight, 4),
+                                  backgroundColor: day.isToday
+                                    ? '#6C63FF'
+                                    : 'rgba(108,99,255,0.4)',
+                                  width: period === 'Month' ? 16 : 28,
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text
+                            style={[
+                              styles.dayLabel,
+                              day.isToday && styles.dayLabelActive,
+                              period === 'Month' && styles.monthLabel,
+                            ]}
+                          >
+                            {day.label}
+                          </Text>
+                        </View>
+                      )
+                    })}
+
+                    {/* Goal line */}
+                    {chartMax >= stepsGoal && (
+                      <View
+                        style={[
+                          styles.goalLine,
+                          {
+                            bottom: (stepsGoal / chartMax) * 120 + 20,
+                          },
+                        ]}
+                      />
+                    )}
+                  </View>
+                </ScrollView>
+              )}
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
 
@@ -458,12 +550,29 @@ const styles = StyleSheet.create({
   periodTextActive: {
     color: '#FFFFFF',
   },
-  // ── Week chart ────────────────────────────────────────────────
+  // ── Chart ─────────────────────────────────────────────────────
   sectionTitle: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 16,
+  },
+  sectionSubtitle: {
+    color: '#8B8FA3',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  loadingChart: {
+    height: 170,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: '#8B8FA3',
+    fontSize: 14,
+  },
+  chartScrollContent: {
+    paddingRight: 20,
   },
   weekChart: {
     flexDirection: 'row',
@@ -499,6 +608,9 @@ const styles = StyleSheet.create({
   dayLabelActive: {
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  monthLabel: {
+    fontSize: 8,
   },
   goalLine: {
     position: 'absolute',
