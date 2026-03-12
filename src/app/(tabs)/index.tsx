@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React, { useCallback, useMemo, useState } from 'react'
 import {
-  LayoutAnimation,
   Platform,
   RefreshControl,
   ScrollView,
@@ -16,8 +15,8 @@ import {
 
 import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { CalendarStrip } from '@/components/CalendarStrip'
-import { ArcGauge, LineSparkline, MiniBars } from '@/components/MiniCharts'
-import { RecoveryGauge } from '@/components/RecoveryGauge'
+import type { MetricRing } from '@/components/WorkoutXPCard'
+import { FitnessRingsCard } from '@/components/WorkoutXPCard'
 import { useHealthKit } from '@/hooks/useHealthKit'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useTodayHydration } from '@/stores/HydrationStore'
@@ -64,7 +63,6 @@ export default function HomeScreen() {
     border: borderColor,
   } = useTheme()
 
-  const [recoveryExpanded, setRecoveryExpanded] = useState(false)
   const [focusDate, setFocusDate] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState(() => new Date())
 
@@ -74,10 +72,10 @@ export default function HomeScreen() {
   }, [])
 
   const {
+    sleepHours,
     steps,
     calories,
-    sleepHours,
-    heartRate,
+    workouts,
     hrv,
     restingHeartRate,
     refresh,
@@ -87,9 +85,6 @@ export default function HomeScreen() {
     useWeightStore()
 
   const { totalMl: hydrationMl, goalMl: hydrationGoal } = useTodayHydration()
-  const hydrationProgress =
-    hydrationGoal > 0 ? Math.min(hydrationMl / hydrationGoal, 1) : 0
-  const hydrationProgressLabel = Math.round(hydrationProgress * 100)
 
   const [refreshing, setRefreshing] = useState(false)
 
@@ -111,8 +106,6 @@ export default function HomeScreen() {
       }),
     [hrv, restingHeartRate, sleepHours],
   )
-
-  const sleepPercent = Math.round((sleepHours / SLEEP_GOAL_HOURS) * 100)
 
   const recoveryColor =
     recovery.score >= 67
@@ -173,10 +166,80 @@ export default function HomeScreen() {
   const greeting =
     hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
 
-  const toggleRecovery = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-    setRecoveryExpanded((v) => !v)
-  }, [])
+  // ── Fitness ring metrics ──────────────────────────────────────
+  const cardioMinutes = Math.round(
+    workouts.reduce((sum, w) => sum + (w.duration ?? 0), 0),
+  )
+
+  const weightLostKg =
+    distanceToGoal !== null ? Math.max(-distanceToGoal, 0) : 0
+  const weightLostDisplay =
+    unit === 'lbs' ? weightLostKg * KG_TO_LBS : weightLostKg
+  const weightGoalDisplay =
+    goalKg != null
+      ? unit === 'lbs'
+        ? (goalKg > 0 ? goalKg : 5) * KG_TO_LBS
+        : goalKg > 0
+          ? goalKg
+          : 5
+      : unit === 'lbs'
+        ? 10
+        : 5
+
+  const fitnessMetrics: MetricRing[] = useMemo(
+    () => [
+      {
+        label: 'Calories',
+        value: calories,
+        goal: 600,
+        unit: 'kcal',
+        color: '#FF6B35',
+        icon: 'flame',
+      },
+      {
+        label: 'Hydration',
+        value: hydrationMl,
+        goal: hydrationGoal,
+        unit: 'ml',
+        color: '#2563EB',
+        icon: 'water',
+      },
+      {
+        label: 'Weight Loss',
+        value: Math.round(weightLostDisplay * 10) / 10,
+        goal: Math.round(weightGoalDisplay * 10) / 10,
+        unit,
+        color: '#30D158',
+        icon: 'trending-down',
+      },
+      {
+        label: 'Steps',
+        value: steps,
+        goal: 10_000,
+        unit: 'steps',
+        color: '#0EA5E9',
+        icon: 'footsteps',
+      },
+      {
+        label: 'Cardio',
+        value: cardioMinutes,
+        goal: 45,
+        unit: 'min',
+        color: '#E8707A',
+        icon: 'heart-circle',
+      },
+    ],
+    [
+      calories,
+      hydrationMl,
+      hydrationGoal,
+      weightLostDisplay,
+      weightGoalDisplay,
+      unit,
+      steps,
+      cardioMinutes,
+    ],
+  )
 
   return (
     <ScrollView
@@ -231,7 +294,7 @@ export default function HomeScreen() {
         onDateSelected={handleDateSelected}
       />
 
-      {/* ── Fitness Metrics — horizontal scroll ────────────────── */}
+      {/* ── Fitness Metrics Card ─────────────────────────────── */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: textColor }]}>
           Fitness Metrics
@@ -245,166 +308,10 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.metricsScroll}
-      >
-        {/* Score — orange solid */}
-        <TouchableOpacity
-          style={[styles.metricChip, { backgroundColor: accentColor }]}
-          onPress={toggleRecovery}
-          activeOpacity={0.7}
-        >
-          <View style={styles.metricChipTop}>
-            <Text style={styles.metricChipLabelLight}>Score</Text>
-            <IconBadge
-              name="shield-checkmark"
-              color={accentColor}
-              bg="rgba(255,255,255,0.25)"
-              size={14}
-            />
-          </View>
-          <ArcGauge
-            progress={recovery.score / 100}
-            color="#ffffff"
-            bg={accentColor}
-            size={44}
-          />
-          <Text style={styles.metricChipValueLight}>
-            {recovery.score}
-            <Text style={styles.metricChipUnitLight}>%</Text>
-          </Text>
-        </TouchableOpacity>
-
-        {/* Steps — blue solid */}
-        <TouchableOpacity
-          style={[styles.metricChip, { backgroundColor: '#2563EB' }]}
-          onPress={() => router.push('/steps')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.metricChipTop}>
-            <Text style={styles.metricChipLabelLight}>Steps</Text>
-            <IconBadge
-              name="footsteps"
-              color="#2563EB"
-              bg="rgba(255,255,255,0.25)"
-              size={14}
-            />
-          </View>
-          <MiniBars
-            progress={steps / 10_000}
-            color="#ffffff"
-            seed="Steps"
-            height={38}
-          />
-          <Text style={styles.metricChipValueLight}>
-            {steps > 0 ? steps.toLocaleString() : '--'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Hydration — blue solid */}
-        <TouchableOpacity
-          style={[styles.metricChip, { backgroundColor: '#2563EB' }]}
-          onPress={() => router.push('/hydration')}
-          activeOpacity={0.7}
-          accessibilityLabel="Hydration metric"
-          accessibilityHint="Opens the hydration screen"
-        >
-          <View style={styles.metricChipTop}>
-            <Text style={styles.metricChipLabelLight}>Hydration</Text>
-            <IconBadge
-              name="water"
-              color="#2563EB"
-              bg="rgba(255,255,255,0.25)"
-              size={14}
-            />
-          </View>
-          <MiniBars
-            progress={hydrationProgress}
-            color="#ffffff"
-            seed="Hydration"
-            height={38}
-          />
-          <Text style={styles.metricChipValueLight}>
-            {hydrationMl > 0 ? hydrationMl.toLocaleString() : '--'}
-            <Text style={styles.metricChipUnitLight}> ml</Text>
-          </Text>
-          <Text style={styles.metricChipMetaLight}>
-            {hydrationProgressLabel}% of {hydrationGoal}ml goal
-          </Text>
-        </TouchableOpacity>
-
-        {/* Calories — orange solid */}
-        <View style={[styles.metricChip, { backgroundColor: accentColor }]}>
-          <View style={styles.metricChipTop}>
-            <Text style={styles.metricChipLabelLight}>Calories</Text>
-            <IconBadge
-              name="flame"
-              color={accentColor}
-              bg="rgba(255,255,255,0.25)"
-              size={14}
-            />
-          </View>
-          <MiniBars
-            progress={calories / 600}
-            color="#ffffff"
-            seed="Calories"
-            height={38}
-          />
-          <Text style={styles.metricChipValueLight}>
-            {calories > 0 ? calories.toLocaleString() : '--'}
-            <Text style={styles.metricChipUnitLight}> kcal</Text>
-          </Text>
-        </View>
-
-        {/* Sleep — blue solid */}
-        <View style={[styles.metricChip, { backgroundColor: '#2563EB' }]}>
-          <View style={styles.metricChipTop}>
-            <Text style={styles.metricChipLabelLight}>Sleep</Text>
-            <IconBadge
-              name="moon"
-              color="#2563EB"
-              bg="rgba(255,255,255,0.25)"
-              size={14}
-            />
-          </View>
-          <LineSparkline color="#ffffff" seed="Sleep" height={38} />
-          <Text style={styles.metricChipValueLight}>
-            {sleepHours > 0 ? sleepHours.toFixed(1) : '--'}
-            <Text style={styles.metricChipUnitLight}> hrs</Text>
-          </Text>
-        </View>
-      </ScrollView>
-
-      {/* ── Expandable recovery detail ─────────────────────────── */}
-      {recoveryExpanded && (
-        <>
-          <RecoveryGauge
-            recovery={recovery.score}
-            strain={0}
-            heartRate={heartRate}
-            sleepPercent={sleepPercent}
-          />
-          <View
-            style={[
-              styles.insightCard,
-              {
-                backgroundColor: cardBg,
-                borderLeftColor: recoveryColor,
-                borderColor,
-              },
-            ]}
-          >
-            <Text style={[styles.insightTitle, { color: textColor }]}>
-              {recovery.label}
-            </Text>
-            <Text style={[styles.insightBody, { color: subtitleColor }]}>
-              {recovery.description}
-            </Text>
-          </View>
-        </>
-      )}
+      <FitnessRingsCard
+        metrics={fitnessMetrics}
+        onPress={() => router.push('/fitness-metrics')}
+      />
 
       {/* ── Weight ─────────────────────────────────────────────── */}
       <TouchableOpacity
@@ -527,58 +434,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // ── Metric chips (horizontal scroll) ──────────────────────────
-  metricsScroll: {
-    paddingHorizontal: 20,
-    gap: 10,
-    paddingBottom: 4,
-    marginBottom: 16,
-  },
-  metricChip: {
-    width: 162,
-    borderRadius: 20,
-    padding: 16,
-  },
-  metricChipTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  metricChipLabelLight: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.85)',
-  },
-  metricChipValueLight: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  metricChipUnitLight: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
-  },
-  metricChipMetaLight: {
-    marginTop: 6,
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.72)',
-  },
-  miniBars: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: 40,
-    marginBottom: 10,
-  },
-  miniBar: {
-    flex: 1,
-    marginHorizontal: 1.5,
-    borderRadius: 4,
-    minWidth: 8,
-  },
   // ── Weight card ───────────────────────────────────────────────
   weightCard: {
     flexDirection: 'row',
@@ -622,23 +477,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 4,
-  },
-  // ── Insight card ──────────────────────────────────────────────
-  insightCard: {
-    marginHorizontal: 20,
-    marginBottom: 14,
-    borderRadius: 16,
-    padding: 14,
-    borderLeftWidth: 4,
-    borderWidth: 1,
-  },
-  insightTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  insightBody: {
-    fontSize: 13,
-    lineHeight: 18,
   },
 })
