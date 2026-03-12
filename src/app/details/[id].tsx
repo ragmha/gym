@@ -75,6 +75,10 @@ function DetailsScreen() {
     setShowTimer(true)
   }, [])
 
+  const handleSetUncompleted = useCallback(() => {
+    setShowTimer(false)
+  }, [])
+
   const completedExerciseCount = exercise
     ? exercise.exercises.filter((e) => e.completed).length
     : 0
@@ -267,6 +271,7 @@ function DetailsScreen() {
                   handleExerciseComplete(detail.id, isComplete, selectedSets)
                 }
                 onSetCompleted={handleSetCompleted}
+                onSetUncompleted={handleSetUncompleted}
               />
             ))}
 

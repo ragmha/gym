@@ -24,6 +24,7 @@ type WorkoutDetailProps = {
   index: number
   onComplete?: (isComplete: boolean, selectedSets: boolean[]) => void
   onSetCompleted?: () => void
+  onSetUncompleted?: () => void
 }
 
 export default function WorkoutDetail({
@@ -32,6 +33,7 @@ export default function WorkoutDetail({
   index,
   onComplete,
   onSetCompleted,
+  onSetUncompleted,
 }: WorkoutDetailProps) {
   const defaultSets =
     typeof item.sets === 'string' || isNaN(item.sets) ? 1 : item.sets
@@ -72,6 +74,8 @@ export default function WorkoutDetail({
 
     if (!wasCompleted && !allCompleted) {
       onSetCompleted?.()
+    } else if (wasCompleted) {
+      onSetUncompleted?.()
     }
   }
 
