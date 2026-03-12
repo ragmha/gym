@@ -16,6 +16,7 @@ import {
 
 import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { CalendarStrip } from '@/components/CalendarStrip'
+import { ArcGauge, LineSparkline, MiniBars } from '@/components/MiniCharts'
 import { RecoveryGauge } from '@/components/RecoveryGauge'
 import { useHealthKit } from '@/hooks/useHealthKit'
 import { useTheme } from '@/hooks/useThemeColor'
@@ -89,16 +90,6 @@ export default function HomeScreen() {
   const hydrationProgress =
     hydrationGoal > 0 ? Math.min(hydrationMl / hydrationGoal, 1) : 0
   const hydrationProgressLabel = Math.round(hydrationProgress * 100)
-  const hydrationBars = useMemo(
-    () =>
-      [0.24, 0.3, 0.36, 0.43, 0.5, 0.58, 0.66, 0.75, 0.84].map((base, i) =>
-        Math.min(
-          0.96,
-          Math.max(0.22, base * 0.45 + hydrationProgress * (0.4 + i * 0.03)),
-        ),
-      ),
-    [hydrationProgress],
-  )
 
   const [refreshing, setRefreshing] = useState(false)
 
@@ -274,20 +265,12 @@ export default function HomeScreen() {
               size={14}
             />
           </View>
-          <View style={styles.miniBars}>
-            {[0.35, 0.6, 0.45, 0.8, 0.5, 0.7, 0.55, 0.9, 0.65].map((h, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.miniBar,
-                  {
-                    height: h * 38,
-                    backgroundColor: 'rgba(255,255,255,0.3)',
-                  },
-                ]}
-              />
-            ))}
-          </View>
+          <ArcGauge
+            progress={recovery.score / 100}
+            color="#ffffff"
+            bg={accentColor}
+            size={44}
+          />
           <Text style={styles.metricChipValueLight}>
             {recovery.score}
             <Text style={styles.metricChipUnitLight}>%</Text>
@@ -309,20 +292,12 @@ export default function HomeScreen() {
               size={14}
             />
           </View>
-          <View style={styles.miniBars}>
-            {[0.3, 0.5, 0.75, 0.4, 0.65, 0.85, 0.5, 0.7, 0.6].map((h, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.miniBar,
-                  {
-                    height: h * 38,
-                    backgroundColor: 'rgba(255,255,255,0.25)',
-                  },
-                ]}
-              />
-            ))}
-          </View>
+          <MiniBars
+            progress={steps / 10_000}
+            color="#ffffff"
+            seed="Steps"
+            height={38}
+          />
           <Text style={styles.metricChipValueLight}>
             {steps > 0 ? steps.toLocaleString() : '--'}
           </Text>
@@ -345,23 +320,12 @@ export default function HomeScreen() {
               size={14}
             />
           </View>
-          <View style={styles.miniBars}>
-            {hydrationBars.map((h, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.miniBar,
-                  {
-                    height: h * 38,
-                    backgroundColor:
-                      i / hydrationBars.length < hydrationProgress
-                        ? 'rgba(255,255,255,0.42)'
-                        : 'rgba(255,255,255,0.18)',
-                  },
-                ]}
-              />
-            ))}
-          </View>
+          <MiniBars
+            progress={hydrationProgress}
+            color="#ffffff"
+            seed="Hydration"
+            height={38}
+          />
           <Text style={styles.metricChipValueLight}>
             {hydrationMl > 0 ? hydrationMl.toLocaleString() : '--'}
             <Text style={styles.metricChipUnitLight}> ml</Text>
@@ -382,20 +346,12 @@ export default function HomeScreen() {
               size={14}
             />
           </View>
-          <View style={styles.miniBars}>
-            {[0.55, 0.4, 0.7, 0.45, 0.85, 0.35, 0.75, 0.6, 0.5].map((h, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.miniBar,
-                  {
-                    height: h * 38,
-                    backgroundColor: 'rgba(255,255,255,0.3)',
-                  },
-                ]}
-              />
-            ))}
-          </View>
+          <MiniBars
+            progress={calories / 600}
+            color="#ffffff"
+            seed="Calories"
+            height={38}
+          />
           <Text style={styles.metricChipValueLight}>
             {calories > 0 ? calories.toLocaleString() : '--'}
             <Text style={styles.metricChipUnitLight}> kcal</Text>
@@ -413,20 +369,7 @@ export default function HomeScreen() {
               size={14}
             />
           </View>
-          <View style={styles.miniBars}>
-            {[0.65, 0.5, 0.6, 0.8, 0.4, 0.9, 0.55, 0.7, 0.6].map((h, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.miniBar,
-                  {
-                    height: h * 38,
-                    backgroundColor: 'rgba(255,255,255,0.25)',
-                  },
-                ]}
-              />
-            ))}
-          </View>
+          <LineSparkline color="#ffffff" seed="Sleep" height={38} />
           <Text style={styles.metricChipValueLight}>
             {sleepHours > 0 ? sleepHours.toFixed(1) : '--'}
             <Text style={styles.metricChipUnitLight}> hrs</Text>

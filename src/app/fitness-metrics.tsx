@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useHealthKit } from '@/hooks/useHealthKit'
-import { useTheme } from '@/hooks/useThemeColor'
+import { useThemeColor } from '@/hooks/useThemeColor'
 import { useTodayHydration } from '@/stores/HydrationStore'
 import { computeRecoveryScore } from '@/utils/recoveryScore'
 
@@ -176,14 +176,11 @@ function MetricCard({
 export default function FitnessMetricsScreen() {
   const router = useRouter()
 
-  const theme = useTheme()
-  const {
-    cardBackground: cardBg,
-    text: textColor,
-    subtitleText: subtitleColor,
-    border: borderColor,
-    background: backgroundColor,
-  } = theme
+  const cardBg = useThemeColor({}, 'cardBackground')
+  const textColor = useThemeColor({}, 'text')
+  const subtitleColor = useThemeColor({}, 'subtitleText')
+  const borderColor = useThemeColor({}, 'border')
+  const backgroundColor = useThemeColor({}, 'background')
 
   const {
     steps,
