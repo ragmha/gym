@@ -19,6 +19,19 @@ on:
           - preview
           - production
         default: preview
+  workflow_call:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        type: string
+        default: all
+      profile:
+        description: 'EAS build profile'
+        type: string
+        default: production
+    secrets:
+      EXPO_TOKEN:
+        required: true
 
 concurrency:
   group: build-${{ github.ref }}
