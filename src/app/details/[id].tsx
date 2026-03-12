@@ -1,6 +1,7 @@
 import { CircularProgress } from '@/components/CircularProgress'
 import { RestTimer } from '@/components/RestTimer'
 import VideoPlayer from '@/components/VideoPlayer'
+import { WorkoutCompleteModal } from '@/components/WorkoutCompleteModal'
 import WorkoutDetail from '@/components/WorkoutDetail'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
@@ -42,6 +43,8 @@ function DetailsScreen() {
   } = useTheme()
 
   const [showTimer, setShowTimer] = useState(false)
+  const [showCompleteModal, setShowCompleteModal] = useState(false)
+  const [hasShownComplete, setHasShownComplete] = useState(false)
 
   // Animated progress
   const progressWidth = useSharedValue(0)
@@ -107,7 +110,16 @@ function DetailsScreen() {
     width: `${progressWidth.value * 100}%`,
   }))
 
-  const allWorkoutsDone = completedExerciseCount === totalExerciseCount
+  const allWorkoutsDone =
+    completedExerciseCount === totalExerciseCount && totalExerciseCount > 0
+
+  // Show congratulations modal once when all exercises become complete
+  useEffect(() => {
+    if (allWorkoutsDone && !hasShownComplete) {
+      setShowCompleteModal(true)
+      setHasShownComplete(true)
+    }
+  }, [allWorkoutsDone, hasShownComplete])
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -286,6 +298,23 @@ function DetailsScreen() {
         <RestTimer
           restSeconds={REST_SECONDS}
           onDismiss={() => setShowTimer(false)}
+        />
+      )}
+
+      {/* Workout complete modal */}
+      {exercise && (
+        <WorkoutCompleteModal
+          visible={showCompleteModal}
+          onDismiss={() => setShowCompleteModal(false)}
+          workoutTitle={exercise.title}
+          exerciseCount={totalExerciseCount}
+          setsCompleted={completedSetsCount}
+          totalSets={totalSetsCount}
+          cardioMinutes={
+            exercise.cardio
+              ? exercise.cardio.morning + exercise.cardio.evening
+              : undefined
+          }
         />
       )}
     </View>
