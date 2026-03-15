@@ -10,4 +10,6 @@ export type {
   DailyHealthSnapshotUpsert,
   ExerciseClient as Exercise,
   ExerciseDetailClient as ExerciseDetail,
+  WorkoutSession,
+  WorkoutSessionInsert,
 } from '@/lib/validators'

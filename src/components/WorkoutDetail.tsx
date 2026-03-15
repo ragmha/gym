@@ -1,7 +1,13 @@
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
-import React, { useState } from 'react'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import React, { useCallback, useState } from 'react'
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 import Animated, {
   FadeIn,
   useAnimatedStyle,
@@ -9,6 +15,8 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
+
+const WEIGHT_STEP = 2.5 // kg increment/decrement
 
 type ExerciseDetailItem = {
   id: string
@@ -37,13 +45,50 @@ export default function WorkoutDetail({
 }: WorkoutDetailProps) {
   const defaultSets =
     typeof item.sets === 'string' || isNaN(item.sets) ? 1 : item.sets
-  const { getSelectedSets } = useExerciseStore()
+  const { getSelectedSets, getWeightPerSet, updateExerciseWeight } =
+    useExerciseStore()
   const initialSelectedCircles = getSelectedSets(exerciseId, item.id)
+  const initialWeights = getWeightPerSet(exerciseId, item.id)
 
   const [selectedCircles, setSelectedCircles] = useState<boolean[]>(
     initialSelectedCircles.length > 0
       ? initialSelectedCircles
       : Array.from({ length: defaultSets }, () => false),
+  )
+
+  const [weights, setWeights] = useState<number[]>(
+    initialWeights.length > 0
+      ? initialWeights
+      : Array.from({ length: defaultSets }, () => 0),
+  )
+
+  /** All sets share the same weight — use the first set's weight as display */
+  const displayWeight = weights[0] ?? 0
+
+  const adjustWeight = useCallback(
+    (delta: number) => {
+      const newWeight = Math.max(0, displayWeight + delta)
+      const newWeights = weights.map(() => newWeight)
+      setWeights(newWeights)
+      // Persist each set's weight to store
+      for (let i = 0; i < newWeights.length; i++) {
+        updateExerciseWeight(exerciseId, item.id, i, newWeight)
+      }
+    },
+    [displayWeight, weights, exerciseId, item.id, updateExerciseWeight],
+  )
+
+  const handleWeightInput = useCallback(
+    (text: string) => {
+      const parsed = parseFloat(text)
+      const newWeight = isNaN(parsed) ? 0 : Math.max(0, parsed)
+      const newWeights = weights.map(() => newWeight)
+      setWeights(newWeights)
+      for (let i = 0; i < newWeights.length; i++) {
+        updateExerciseWeight(exerciseId, item.id, i, newWeight)
+      }
+    },
+    [weights, exerciseId, item.id, updateExerciseWeight],
   )
 
   const completedCount = selectedCircles.filter(Boolean).length
@@ -152,6 +197,11 @@ export default function WorkoutDetail({
             <Text style={[styles.repsInfo, { color: subtitleText }]}>
               {defaultSets} × {item.reps} reps
             </Text>
+            {displayWeight > 0 && (
+              <Text style={[styles.repsInfo, { color: subtitleText }]}>
+                · {displayWeight} kg
+              </Text>
+            )}
           </View>
         </View>
         <Text
@@ -168,6 +218,44 @@ export default function WorkoutDetail({
         >
           {completedCount}/{defaultSets}
         </Text>
+      </View>
+
+      {/* Weight adjuster */}
+      <View style={styles.weightRow}>
+        <TouchableOpacity
+          onPress={() => adjustWeight(-WEIGHT_STEP)}
+          style={[styles.weightBtn, { borderColor }]}
+          activeOpacity={0.6}
+          disabled={displayWeight <= 0}
+        >
+          <Text
+            style={[
+              styles.weightBtnText,
+              { color: displayWeight > 0 ? textColor : subtitleText },
+            ]}
+          >
+            −
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.weightCenter}>
+          <TextInput
+            style={[styles.weightValue, { color: textColor }]}
+            value={displayWeight > 0 ? String(displayWeight) : ''}
+            placeholder="0"
+            placeholderTextColor={subtitleText}
+            keyboardType="numeric"
+            onChangeText={handleWeightInput}
+            selectTextOnFocus
+          />
+          <Text style={[styles.weightUnit, { color: subtitleText }]}>kg</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => adjustWeight(WEIGHT_STEP)}
+          style={[styles.weightBtn, { borderColor }]}
+          activeOpacity={0.6}
+        >
+          <Text style={[styles.weightBtnText, { color: textColor }]}>+</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Row 2: Set pills */}
@@ -283,6 +371,44 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
+  },
+  /* Weight adjuster */
+  weightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  weightBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  weightBtnText: {
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 22,
+  },
+  weightCenter: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  weightValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    minWidth: 40,
+    textAlign: 'center',
+    padding: 0,
+  },
+  weightUnit: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   /* Row 2 */
   pillRow: {

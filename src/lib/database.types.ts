@@ -13,9 +13,17 @@ import type {
   ExerciseInsert,
   ExerciseRow,
   ExerciseUpdate,
+  WorkoutSession,
+  WorkoutSessionInsert,
 } from './validators'
 
-export type { ExerciseInsert, ExerciseRow, ExerciseUpdate }
+export type {
+  ExerciseInsert,
+  ExerciseRow,
+  ExerciseUpdate,
+  WorkoutSession,
+  WorkoutSessionInsert,
+}
 
 export interface Database {
   public: {
@@ -51,6 +59,12 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
+      }
+      workout_sessions: {
+        Row: WorkoutSession
+        Insert: WorkoutSessionInsert
+        Update: Partial<WorkoutSessionInsert>
         Relationships: []
       }
     }

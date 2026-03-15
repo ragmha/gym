@@ -1,6 +1,10 @@
 import { supabase } from '@/lib/supabase'
-import type { ExerciseRow } from '@/lib/validators'
-import { exerciseUpdateSchema, parseExerciseRows } from '@/lib/validators'
+import type { ExerciseRow, WorkoutSessionInsert } from '@/lib/validators'
+import {
+  exerciseUpdateSchema,
+  parseExerciseRows,
+  workoutSessionInsertSchema,
+} from '@/lib/validators'
 import { Exercise, ExerciseDetail } from '@/types/models'
 import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
 import { useEffect, useMemo } from 'react'
@@ -401,11 +405,14 @@ const today = new Date()
 
 interface ExerciseState {
   exercises: Record<string, Exercise>
+  /** ISO timestamp of when each workout was started (keyed by localId) */
+  workoutStartTimes: Record<string, string>
   error: string | null
   loading: boolean
   initialized: boolean
 
   initialize: () => Promise<void>
+  startWorkout: (localId: string) => void
   completeExercise: (localId: string) => void
   completeExerciseDetail: (
     exerciseLocalId: string,
@@ -414,13 +421,22 @@ interface ExerciseState {
     selectedSets: boolean[],
   ) => void
   getSelectedSets: (exerciseLocalId: string, detailId: string) => boolean[]
+  getWeightPerSet: (exerciseLocalId: string, detailId: string) => number[]
+  updateExerciseWeight: (
+    exerciseLocalId: string,
+    detailId: string,
+    setIndex: number,
+    weight: number,
+  ) => void
   getExercise: (localId: string) => Exercise | undefined
   getDetail: (localId: string) => ExerciseDetail[]
+  saveWorkoutSession: (localId: string) => Promise<WorkoutSessionInsert | null>
   sync: () => Promise<void>
 }
 
 export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
   exercises: {},
+  workoutStartTimes: {},
   error: null,
   loading: false,
   initialized: false,
@@ -490,6 +506,15 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
                   },
                   () => false,
                 ),
+                weightPerSet: Array.from(
+                  {
+                    length:
+                      detail.sets === 'To Failure' || detail.sets == null
+                        ? 1
+                        : Number(detail.sets),
+                  },
+                  () => 0,
+                ),
               })),
               localId: uuidv4(),
               synced: true,
@@ -509,6 +534,19 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
     } finally {
       set({ loading: false })
     }
+  },
+
+  startWorkout: (localId: string) => {
+    set((state) => {
+      // Don't overwrite if already started
+      if (state.workoutStartTimes[localId]) return state
+      return {
+        workoutStartTimes: {
+          ...state.workoutStartTimes,
+          [localId]: new Date().toISOString(),
+        },
+      }
+    })
   },
 
   completeExercise: (localId: string) => {
@@ -557,6 +595,40 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
     return detail?.selectedSets || []
   },
 
+  getWeightPerSet: (exerciseLocalId: string, detailId: string) => {
+    const exercise = get().exercises[exerciseLocalId]
+    const detail = exercise?.exercises.find((d) => d.id === detailId)
+    return detail?.weightPerSet || []
+  },
+
+  updateExerciseWeight: (
+    exerciseLocalId: string,
+    detailId: string,
+    setIndex: number,
+    weight: number,
+  ) => {
+    set((state) => {
+      const exercise = state.exercises[exerciseLocalId]
+      if (!exercise) return state
+      const updatedExercises = exercise.exercises.map((detail) => {
+        if (detail.id !== detailId) return detail
+        const newWeights = [...detail.weightPerSet]
+        newWeights[setIndex] = Math.max(0, weight)
+        return { ...detail, weightPerSet: newWeights }
+      })
+      return {
+        exercises: {
+          ...state.exercises,
+          [exerciseLocalId]: {
+            ...exercise,
+            exercises: updatedExercises,
+            synced: false,
+          },
+        },
+      }
+    })
+  },
+
   getExercise: (localId: string) => {
     return get().exercises[localId]
   },
@@ -564,6 +636,82 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
   getDetail: (localId: string) => {
     const exercise = get().exercises[localId]
     return exercise?.exercises || []
+  },
+
+  saveWorkoutSession: async (localId: string) => {
+    const exercise = get().exercises[localId]
+    if (!exercise) return null
+
+    const startedAt =
+      get().workoutStartTimes[localId] ?? new Date().toISOString()
+    const completedAt = new Date().toISOString()
+    const durationSeconds = Math.round(
+      (new Date(completedAt).getTime() - new Date(startedAt).getTime()) / 1000,
+    )
+
+    // Calculate sets
+    let setsCompleted = 0
+    let totalSets = 0
+    let exercisesCompleted = 0
+    for (const ex of exercise.exercises) {
+      const sets = ex.selectedSets ?? []
+      totalSets += sets.length
+      setsCompleted += sets.filter(Boolean).length
+      if (ex.completed) exercisesCompleted++
+    }
+
+    const cardioMinutes = exercise.cardio
+      ? exercise.cardio.morning + exercise.cardio.evening
+      : 0
+
+    const session: WorkoutSessionInsert = {
+      exercise_day: exercise.id,
+      exercise_week: '1', // TODO: derive from exercise data when multi-week support exists
+      title: exercise.title,
+      started_at: startedAt,
+      completed_at: completedAt,
+      duration_seconds: durationSeconds,
+      total_volume_kg: (() => {
+        let volume = 0
+        for (const ex of exercise.exercises) {
+          const sets = ex.selectedSets ?? []
+          const weights = ex.weightPerSet ?? []
+          for (let i = 0; i < sets.length; i++) {
+            if (sets[i]) {
+              // volume = weight (kg) × reps for each completed set
+              const weightKg = weights[i] ?? 0
+              volume += weightKg * ex.reps
+            }
+          }
+        }
+        return Math.round(volume * 100) / 100
+      })(),
+      sets_completed: setsCompleted,
+      total_sets: totalSets,
+      exercises_completed: exercisesCompleted,
+      total_exercises: exercise.exercises.length,
+      cardio_minutes: cardioMinutes,
+    }
+
+    const parsed = workoutSessionInsertSchema.safeParse(session)
+    if (!parsed.success) {
+      console.error('[WorkoutSession] Validation failed:', parsed.error.issues)
+      return session // Return for UI even if save fails
+    }
+
+    try {
+      const { error } = await supabase
+        .from('workout_sessions')
+        .insert(parsed.data)
+
+      if (error) {
+        console.warn('[WorkoutSession] Supabase insert error:', error.message)
+      }
+    } catch (err) {
+      console.warn('[WorkoutSession] Save failed:', err)
+    }
+
+    return session
   },
 
   sync: async () => {
@@ -613,15 +761,20 @@ export const useExerciseStore = () => {
   const store = useExerciseStoreBase(
     useShallow((state) => ({
       exercises: state.exercises,
+      workoutStartTimes: state.workoutStartTimes,
       error: state.error,
       loading: state.loading,
       initialized: state.initialized,
       initialize: state.initialize,
+      startWorkout: state.startWorkout,
       completeExercise: state.completeExercise,
       completeExerciseDetail: state.completeExerciseDetail,
       getSelectedSets: state.getSelectedSets,
+      getWeightPerSet: state.getWeightPerSet,
+      updateExerciseWeight: state.updateExerciseWeight,
       getExercise: state.getExercise,
       getDetail: state.getDetail,
+      saveWorkoutSession: state.saveWorkoutSession,
       sync: state.sync,
     })),
   )
