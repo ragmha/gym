@@ -146,7 +146,7 @@ export default function HomeScreen() {
           : subtitleColor
       : subtitleColor
 
-  // ── Greeting ──────────────────────────────────────────────────
+  // ── Date helpers ──────────────────────────────────────────────
   const today = useMemo(() => new Date(), [])
   const isToday = useMemo(() => {
     const d = selectedDate
@@ -162,9 +162,6 @@ export default function HomeScreen() {
     day: 'numeric',
     year: 'numeric',
   })
-  const hour = today.getHours()
-  const greeting =
-    hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
 
   // ── Fitness ring metrics ──────────────────────────────────────
   const cardioMinutes = Math.round(
@@ -251,12 +248,57 @@ export default function HomeScreen() {
     >
       <StatusBar barStyle="light-content" />
 
-      {/* ── Header ─────────────────────────────────────────────── */}
+      {/* ── Compact header ────────────────────────────────────── */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Text style={[styles.dateLabel, { color: subtitleColor }]}>
-            {dateStr.toUpperCase()}
-          </Text>
+        <View style={styles.headerRow}>
+          {/* Health score pill */}
+          <View style={styles.healthPill}>
+            <View
+              style={[styles.healthDot, { backgroundColor: recoveryColor }]}
+            />
+            <Text style={[styles.healthPillText, { color: recoveryColor }]}>
+              {recovery.score}%
+            </Text>
+          </View>
+
+          {/* Date nav */}
+          <View style={styles.dateNav}>
+            <TouchableOpacity
+              onPress={() => {
+                const prev = new Date(focusDate)
+                prev.setDate(prev.getDate() - 7)
+                setFocusDate(prev)
+                handleDateSelected(prev)
+              }}
+              hitSlop={12}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={18} color={subtitleColor} />
+            </TouchableOpacity>
+            <Text style={[styles.dateNavLabel, { color: textColor }]}>
+              {isToday ? 'TODAY' : dateStr.toUpperCase()}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                const next = new Date(focusDate)
+                next.setDate(next.getDate() + 7)
+                if (next <= new Date()) {
+                  setFocusDate(next)
+                  handleDateSelected(next)
+                }
+              }}
+              hitSlop={12}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={subtitleColor}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Notification bell */}
           <TouchableOpacity
             style={[styles.settingsBtn, { backgroundColor: cardBg }]}
             activeOpacity={0.7}
@@ -270,28 +312,15 @@ export default function HomeScreen() {
             />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.greeting, { color: textColor }]}>
-          {isToday ? `${greeting}!` : dateStr}
-        </Text>
-        {/* Health badge */}
-        <View style={styles.healthBadgeRow}>
-          <View
-            style={[styles.healthBadge, { backgroundColor: recoveryColor }]}
-          >
-            <Ionicons name="star" size={10} color="#000" />
-          </View>
-          <Text style={[styles.healthBadgeText, { color: recoveryColor }]}>
-            {recovery.score}% Healthy
-          </Text>
-        </View>
       </View>
 
-      {/* ── Calendar strip ─────────────────────────────────────── */}
+      {/* ── Compact calendar strip ─────────────────────────────── */}
       <CalendarStrip
         focusDate={focusDate}
         selectedDate={selectedDate}
         onFocusDateChange={setFocusDate}
         onDateSelected={handleDateSelected}
+        compact
       />
 
       {/* ── Fitness Metrics Card ─────────────────────────────── */}
@@ -368,17 +397,35 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 56,
-    paddingBottom: 4,
+    paddingBottom: 8,
   },
-  headerTop: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  dateLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+  healthPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  healthDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  healthPillText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  dateNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dateNavLabel: {
+    fontSize: 14,
+    fontWeight: '800',
     letterSpacing: 1,
   },
   settingsBtn: {
@@ -387,28 +434,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  healthBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  healthBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  healthBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
   },
   // ── Section header ────────────────────────────────────────────
   sectionHeader: {

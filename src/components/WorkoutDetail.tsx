@@ -1,7 +1,7 @@
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import { useRouter } from 'expo-router'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   StyleSheet,
   Text,
@@ -63,6 +63,23 @@ export default function WorkoutDetail({
       ? initialWeights
       : Array.from({ length: defaultSets }, () => 0),
   )
+
+  // Sync local state when the store is updated (e.g. from exercise-edit screen)
+  const storeWeights = getWeightPerSet(exerciseId, item.id)
+  const storeSelectedSets = getSelectedSets(exerciseId, item.id)
+  const weightsKey = storeWeights.join(',')
+  const selectedKey = storeSelectedSets.join(',')
+  useEffect(() => {
+    if (storeWeights.length > 0) {
+      setWeights(storeWeights)
+    }
+  }, [weightsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (storeSelectedSets.length > 0) {
+      setSelectedCircles(storeSelectedSets)
+    }
+  }, [selectedKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /** All sets share the same weight — use the first set's weight as display */
   const displayWeight = weights[0] ?? 0

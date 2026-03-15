@@ -12,6 +12,8 @@ interface CalendarStripProps {
   onDateSelected?: (date: Date) => void
   /** Called when month navigation changes the focus. */
   onFocusDateChange?: (date: Date) => void
+  /** When true, renders a minimal strip without the month nav and day letters. */
+  compact?: boolean
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -74,6 +76,7 @@ export function CalendarStrip({
   selectedDate: selectedDateProp,
   onDateSelected,
   onFocusDateChange,
+  compact = false,
 }: CalendarStripProps) {
   const today = useMemo(() => new Date(), [])
   const center = focusDate ?? today
@@ -125,6 +128,55 @@ export function CalendarStrip({
   )
 
   const monthLabel = `${MONTH_NAMES[center.getMonth()]} ${center.getFullYear()}`
+
+  if (compact) {
+    return (
+      <View style={styles.compactContainer}>
+        <View style={styles.dayRow}>
+          {days.map((date, i) => {
+            const isSelected = isSameDay(date, selectedDate)
+            const isToday = isSameDay(date, today)
+            const isFuture = isFutureDate(date, today)
+
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.compactDay,
+                  isSelected && { backgroundColor: accentColor },
+                  isToday && !isSelected && styles.todayOutline,
+                  isToday && !isSelected && { borderColor: `${accentColor}50` },
+                ]}
+                onPress={() => handlePress(date)}
+                activeOpacity={isFuture ? 1 : 0.7}
+                disabled={isFuture}
+              >
+                <Text
+                  style={[
+                    styles.compactDayLetter,
+                    { color: isSelected ? '#FFFFFF' : subtitleColor },
+                    isFuture && { color: `${textColor}28` },
+                  ]}
+                >
+                  {DAY_LETTERS[i]}
+                </Text>
+                <Text
+                  style={[
+                    styles.dayNumber,
+                    { color: isSelected ? '#FFFFFF' : textColor },
+                    isToday && !isSelected && { color: accentColor },
+                    isFuture && { color: `${textColor}28` },
+                  ]}
+                >
+                  {date.getDate()}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+      </View>
+    )
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: cardBg, borderColor }]}>
@@ -205,6 +257,7 @@ export function CalendarStrip({
 }
 
 const CIRCLE_SIZE = 36
+const COMPACT_SIZE = 40
 
 const styles = StyleSheet.create({
   container: {
@@ -214,6 +267,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 16,
     borderWidth: 1,
+  },
+  compactContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  compactDay: {
+    width: COMPACT_SIZE,
+    height: COMPACT_SIZE,
+    borderRadius: COMPACT_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
+  },
+  compactDayLetter: {
+    fontSize: 9,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   navRow: {
     flexDirection: 'row',
