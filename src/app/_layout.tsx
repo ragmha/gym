@@ -6,12 +6,14 @@ import {
 import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { AppState } from 'react-native'
 import 'react-native-reanimated'
 
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
+import { useExerciseStoreBase } from '@/stores/ExerciseStore'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -26,6 +28,21 @@ export default function RootLayout() {
       SplashScreen.hideAsync()
     }
   }, [loaded])
+
+  // Auto-sync unsynced exercise data when app returns to foreground
+  const appState = useRef(AppState.currentState)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextState === 'active'
+      ) {
+        useExerciseStoreBase.getState().sync()
+      }
+      appState.current = nextState
+    })
+    return () => subscription.remove()
+  }, [])
 
   const navTheme = useMemo(() => {
     const navBaseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme

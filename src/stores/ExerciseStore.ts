@@ -441,6 +441,10 @@ interface ExerciseState {
       variation?: string | null
     },
   ) => void
+  updateCardio: (
+    exerciseLocalId: string,
+    cardio: { morning: number; evening: number },
+  ) => void
   saveWorkoutSession: (localId: string) => Promise<WorkoutSessionInsert | null>
   sync: () => Promise<void>
 }
@@ -571,6 +575,8 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
         },
       },
     }))
+    // Auto-sync completion state to Supabase
+    get().sync()
   },
 
   completeExerciseDetail: (
@@ -711,6 +717,30 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
     })
   },
 
+  updateCardio: (
+    exerciseLocalId: string,
+    cardio: { morning: number; evening: number },
+  ) => {
+    set((state) => {
+      const exercise = state.exercises[exerciseLocalId]
+      if (!exercise) return state
+      return {
+        exercises: {
+          ...state.exercises,
+          [exerciseLocalId]: {
+            ...exercise,
+            cardio: {
+              morning: Math.max(0, cardio.morning),
+              evening: Math.max(0, cardio.evening),
+            },
+            synced: false,
+          },
+        },
+      }
+    })
+    get().sync()
+  },
+
   saveWorkoutSession: async (localId: string) => {
     const exercise = get().exercises[localId]
     if (!exercise) return null
@@ -811,6 +841,7 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
         const payload = {
           completed: exercise.completed,
           exercises: exercise.exercises,
+          cardio: exercise.cardio,
         }
 
         const parsed = exerciseUpdateSchema.safeParse(payload)
@@ -861,6 +892,7 @@ export const useExerciseStore = () => {
       getWeightPerSet: state.getWeightPerSet,
       updateExerciseWeight: state.updateExerciseWeight,
       updateExerciseDetail: state.updateExerciseDetail,
+      updateCardio: state.updateCardio,
       getExercise: state.getExercise,
       getDetail: state.getDetail,
       saveWorkoutSession: state.saveWorkoutSession,

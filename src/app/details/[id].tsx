@@ -7,8 +7,14 @@ import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useLocalSearchParams, useNavigation } from 'expo-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -28,8 +34,13 @@ function DetailsScreen() {
   }>()
   const id = Array.isArray(rawId) ? rawId[0] : rawId
   const title = Array.isArray(rawTitle) ? rawTitle[0] : rawTitle
-  const { exercises, completeExerciseDetail, completeExercise } =
-    useExerciseStore()
+  const {
+    exercises,
+    completeExerciseDetail,
+    completeExercise,
+    saveWorkoutSession,
+    updateCardio,
+  } = useExerciseStore()
   const exercise = id ? exercises[id] : undefined
 
   const {
@@ -45,6 +56,8 @@ function DetailsScreen() {
   const [showTimer, setShowTimer] = useState(false)
   const [showCompleteModal, setShowCompleteModal] = useState(false)
   const [hasShownComplete, setHasShownComplete] = useState(false)
+  const [showCardioEditor, setShowCardioEditor] = useState(false)
+  const hasSavedSession = useRef(false)
 
   // Animated progress
   const progressWidth = useSharedValue(0)
@@ -118,8 +131,13 @@ function DetailsScreen() {
     if (allWorkoutsDone && !hasShownComplete) {
       setShowCompleteModal(true)
       setHasShownComplete(true)
+      // Save workout session to Supabase
+      if (exercise && !hasSavedSession.current) {
+        hasSavedSession.current = true
+        saveWorkoutSession(exercise.localId)
+      }
     }
-  }, [allWorkoutsDone, hasShownComplete])
+  }, [allWorkoutsDone, hasShownComplete, exercise, saveWorkoutSession])
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -208,7 +226,11 @@ function DetailsScreen() {
                           { backgroundColor: borderColor },
                         ]}
                       />
-                      <View style={styles.statItem}>
+                      <TouchableOpacity
+                        style={styles.statItem}
+                        onPress={() => setShowCardioEditor((v) => !v)}
+                        activeOpacity={0.7}
+                      >
                         <Text style={[styles.statValue, { color: textColor }]}>
                           {exercise.cardio.morning + exercise.cardio.evening}m
                         </Text>
@@ -217,7 +239,7 @@ function DetailsScreen() {
                         >
                           Cardio
                         </Text>
-                      </View>
+                      </TouchableOpacity>
                     </>
                   )}
                 </View>
@@ -262,6 +284,154 @@ function DetailsScreen() {
                 </Animated.View>
               )}
             </Animated.View>
+
+            {/* ── Cardio editor ── */}
+            {showCardioEditor && exercise.cardio && (
+              <Animated.View
+                entering={FadeInDown.duration(300)}
+                style={[styles.cardioEditor, { backgroundColor: cardSurface }]}
+              >
+                <Text style={[styles.cardioEditorTitle, { color: textColor }]}>
+                  Adjust Cardio
+                </Text>
+
+                {/* Morning */}
+                <View style={styles.cardioRow}>
+                  <Ionicons
+                    name="sunny-outline"
+                    size={16}
+                    color={subtitleText}
+                  />
+                  <Text
+                    style={[styles.cardioRowLabel, { color: subtitleText }]}
+                  >
+                    Morning
+                  </Text>
+                  <View style={styles.cardioStepperRow}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        updateCardio(exercise.localId, {
+                          morning: exercise.cardio.morning - 5,
+                          evening: exercise.cardio.evening,
+                        })
+                      }
+                      style={[
+                        styles.cardioStepperBtn,
+                        { borderColor: borderColor },
+                      ]}
+                      activeOpacity={0.6}
+                      disabled={exercise.cardio.morning <= 0}
+                    >
+                      <Text
+                        style={[
+                          styles.cardioStepperText,
+                          {
+                            color:
+                              exercise.cardio.morning > 0
+                                ? textColor
+                                : subtitleText,
+                          },
+                        ]}
+                      >
+                        −
+                      </Text>
+                    </TouchableOpacity>
+                    <Text
+                      style={[styles.cardioStepperValue, { color: textColor }]}
+                    >
+                      {exercise.cardio.morning}m
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        updateCardio(exercise.localId, {
+                          morning: exercise.cardio.morning + 5,
+                          evening: exercise.cardio.evening,
+                        })
+                      }
+                      style={[
+                        styles.cardioStepperBtn,
+                        { borderColor: borderColor },
+                      ]}
+                      activeOpacity={0.6}
+                    >
+                      <Text
+                        style={[styles.cardioStepperText, { color: textColor }]}
+                      >
+                        +
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Evening */}
+                <View style={styles.cardioRow}>
+                  <Ionicons
+                    name="moon-outline"
+                    size={16}
+                    color={subtitleText}
+                  />
+                  <Text
+                    style={[styles.cardioRowLabel, { color: subtitleText }]}
+                  >
+                    Evening
+                  </Text>
+                  <View style={styles.cardioStepperRow}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        updateCardio(exercise.localId, {
+                          morning: exercise.cardio.morning,
+                          evening: exercise.cardio.evening - 5,
+                        })
+                      }
+                      style={[
+                        styles.cardioStepperBtn,
+                        { borderColor: borderColor },
+                      ]}
+                      activeOpacity={0.6}
+                      disabled={exercise.cardio.evening <= 0}
+                    >
+                      <Text
+                        style={[
+                          styles.cardioStepperText,
+                          {
+                            color:
+                              exercise.cardio.evening > 0
+                                ? textColor
+                                : subtitleText,
+                          },
+                        ]}
+                      >
+                        −
+                      </Text>
+                    </TouchableOpacity>
+                    <Text
+                      style={[styles.cardioStepperValue, { color: textColor }]}
+                    >
+                      {exercise.cardio.evening}m
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        updateCardio(exercise.localId, {
+                          morning: exercise.cardio.morning,
+                          evening: exercise.cardio.evening + 5,
+                        })
+                      }
+                      style={[
+                        styles.cardioStepperBtn,
+                        { borderColor: borderColor },
+                      ]}
+                      activeOpacity={0.6}
+                    >
+                      <Text
+                        style={[styles.cardioStepperText, { color: textColor }]}
+                      >
+                        +
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Animated.View>
+            )}
 
             {/* ── Exercise list ── */}
             <View style={styles.sectionHeader}>
@@ -424,5 +594,52 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 20,
+  },
+  /* ── Cardio editor ── */
+  cardioEditor: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderRadius: 16,
+    padding: 16,
+    gap: 14,
+  },
+  cardioEditorTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  cardioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardioRowLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  cardioStepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cardioStepperBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardioStepperText: {
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  cardioStepperValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    minWidth: 36,
+    textAlign: 'center',
   },
 })
