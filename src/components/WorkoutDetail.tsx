@@ -1,5 +1,6 @@
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
+import { useRouter } from 'expo-router'
 import React, { useCallback, useState } from 'react'
 import {
   StyleSheet,
@@ -43,6 +44,7 @@ export default function WorkoutDetail({
   onSetCompleted,
   onSetUncompleted,
 }: WorkoutDetailProps) {
+  const router = useRouter()
   const defaultSets =
     typeof item.sets === 'string' || isNaN(item.sets) ? 1 : item.sets
   const { getSelectedSets, getWeightPerSet, updateExerciseWeight } =
@@ -177,7 +179,16 @@ export default function WorkoutDetail({
             </Text>
           )}
         </View>
-        <View style={styles.titleBlock}>
+        <TouchableOpacity
+          style={styles.titleBlock}
+          onPress={() =>
+            router.push({
+              pathname: '/exercise-edit',
+              params: { exerciseLocalId: exerciseId, detailId: item.id },
+            })
+          }
+          activeOpacity={0.6}
+        >
           <Text
             style={[
               styles.title,
@@ -203,7 +214,7 @@ export default function WorkoutDetail({
               </Text>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
         <Text
           style={[
             styles.fraction,

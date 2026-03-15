@@ -430,6 +430,16 @@ interface ExerciseState {
   ) => void
   getExercise: (localId: string) => Exercise | undefined
   getDetail: (localId: string) => ExerciseDetail[]
+  updateExerciseDetail: (
+    exerciseLocalId: string,
+    detailId: string,
+    updates: {
+      sets?: number
+      reps?: number
+      defaultWeight?: number
+      variation?: string | null
+    },
+  ) => void
   saveWorkoutSession: (localId: string) => Promise<WorkoutSessionInsert | null>
   sync: () => Promise<void>
 }
@@ -638,6 +648,68 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
     return exercise?.exercises || []
   },
 
+  updateExerciseDetail: (
+    exerciseLocalId: string,
+    detailId: string,
+    updates: {
+      sets?: number
+      reps?: number
+      defaultWeight?: number
+      variation?: string | null
+    },
+  ) => {
+    set((state) => {
+      const exercise = state.exercises[exerciseLocalId]
+      if (!exercise) return state
+      const updatedExercises = exercise.exercises.map((detail) => {
+        if (detail.id !== detailId) return detail
+        const newSets = updates.sets ?? detail.sets
+        const newReps = updates.reps ?? detail.reps
+        const newVariation =
+          updates.variation !== undefined ? updates.variation : detail.variation
+
+        // Resize selectedSets and weightPerSet arrays if sets count changed
+        let newSelectedSets = detail.selectedSets
+        let newWeightPerSet = detail.weightPerSet
+        if (updates.sets != null && updates.sets !== detail.sets) {
+          newSelectedSets = Array.from(
+            { length: newSets },
+            (_, i) => detail.selectedSets[i] ?? false,
+          )
+          const defaultW = updates.defaultWeight ?? detail.weightPerSet[0] ?? 0
+          newWeightPerSet = Array.from(
+            { length: newSets },
+            (_, i) => detail.weightPerSet[i] ?? defaultW,
+          )
+        }
+
+        // Apply default weight to all sets if specified
+        if (updates.defaultWeight != null) {
+          newWeightPerSet = newWeightPerSet.map(() => updates.defaultWeight!)
+        }
+
+        return {
+          ...detail,
+          sets: newSets,
+          reps: newReps,
+          variation: newVariation,
+          selectedSets: newSelectedSets,
+          weightPerSet: newWeightPerSet,
+        }
+      })
+      return {
+        exercises: {
+          ...state.exercises,
+          [exerciseLocalId]: {
+            ...exercise,
+            exercises: updatedExercises,
+            synced: false,
+          },
+        },
+      }
+    })
+  },
+
   saveWorkoutSession: async (localId: string) => {
     const exercise = get().exercises[localId]
     if (!exercise) return null
@@ -772,6 +844,7 @@ export const useExerciseStore = () => {
       getSelectedSets: state.getSelectedSets,
       getWeightPerSet: state.getWeightPerSet,
       updateExerciseWeight: state.updateExerciseWeight,
+      updateExerciseDetail: state.updateExerciseDetail,
       getExercise: state.getExercise,
       getDetail: state.getDetail,
       saveWorkoutSession: state.saveWorkoutSession,

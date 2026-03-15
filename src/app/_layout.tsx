@@ -88,6 +88,13 @@ export default function RootLayout() {
               headerBackTitle: ' ',
             }}
           />
+          <Stack.Screen
+            name="exercise-edit"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
           <Stack.Screen name="+not-found" />
         </Stack>
       </ErrorBoundary>
