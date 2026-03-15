@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 
 interface StatItem {
   icon: string
@@ -27,9 +27,11 @@ export function OverviewStats({
   totalMinutes,
   exerciseCount,
 }: OverviewStatsProps) {
-  const cardBg = useThemeColor({}, 'cardBackground')
-  const textColor = useThemeColor({}, 'text')
-  const subtextColor = useThemeColor({}, 'icon')
+  const {
+    cardBackground: cardBg,
+    text: textColor,
+    icon: subtextColor,
+  } = useTheme()
 
   const stats: StatItem[] = [
     {

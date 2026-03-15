@@ -1,20 +1,28 @@
 import Ionicons from '@expo/vector-icons/Ionicons'
 import React, { type ReactNode } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 
 interface HeaderProps {
   date?: Date
   /** When provided, renders a simple centered title instead of the date layout. */
   children?: ReactNode
+  /** Callback when the calendar icon / date area is tapped. */
+  onCalendarPress?: () => void
 }
 
-export default function Header({ date = new Date(), children }: HeaderProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const borderColor = useThemeColor({}, 'border')
-  const accentColor = useThemeColor({}, 'accent')
+export default function Header({
+  date = new Date(),
+  children,
+  onCalendarPress,
+}: HeaderProps) {
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    border: borderColor,
+    accent: accentColor,
+  } = useTheme()
 
   if (children) {
     return (
@@ -32,19 +40,33 @@ export default function Header({ date = new Date(), children }: HeaderProps) {
     month: 'long',
   })
 
+  const leftContent = (
+    <>
+      <View style={[styles.calendarIcon, { borderColor }]}>
+        <Ionicons name="calendar-outline" size={22} color={subtitleColor} />
+      </View>
+      <View>
+        <Text style={[styles.dayName, { color: subtitleColor }]}>
+          {dayName}
+        </Text>
+        <Text style={[styles.dateText, { color: textColor }]}>{dateStr}</Text>
+      </View>
+    </>
+  )
+
   return (
     <View style={styles.container}>
-      <View style={styles.left}>
-        <View style={[styles.calendarIcon, { borderColor }]}>
-          <Ionicons name="calendar-outline" size={22} color={subtitleColor} />
-        </View>
-        <View>
-          <Text style={[styles.dayName, { color: subtitleColor }]}>
-            {dayName}
-          </Text>
-          <Text style={[styles.dateText, { color: textColor }]}>{dateStr}</Text>
-        </View>
-      </View>
+      {onCalendarPress ? (
+        <TouchableOpacity
+          style={styles.left}
+          onPress={onCalendarPress}
+          activeOpacity={0.7}
+        >
+          {leftContent}
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.left}>{leftContent}</View>
+      )}
       <View style={[styles.avatar, { borderColor: accentColor }]}>
         <Ionicons name="person" size={24} color={accentColor} />
       </View>

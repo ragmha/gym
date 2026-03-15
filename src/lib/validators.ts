@@ -67,6 +67,8 @@ export const exerciseDetailClientSchema = exerciseDetailSchema.extend({
   sets: z.number(),
   completed: z.boolean(),
   selectedSets: z.array(z.boolean()),
+  /** Weight in kg for each set (user-adjustable). Index matches set index. */
+  weightPerSet: z.array(z.number()),
 })
 
 /** Full client-side exercise model */
@@ -105,6 +107,72 @@ export type ExerciseDetailClient = z.infer<typeof exerciseDetailClientSchema>
 
 /** Client-side exercise model (with UI state) */
 export type ExerciseClient = z.infer<typeof exerciseClientSchema>
+
+// ─── Daily health snapshot schemas ──────────────────────────────────
+
+/** Schema for the daily_health_snapshots table row */
+export const dailyHealthSnapshotSchema = z.object({
+  id: z.uuid(),
+  date: z.string(), // YYYY-MM-DD
+  steps: z.number().nullable(),
+  calories: z.number().nullable(),
+  sleepMinutes: z.number().nullable(),
+  hrv: z.number().nullable(),
+  restingHr: z.number().nullable(),
+  heartRate: z.number().nullable(),
+  waterLiters: z.number().nullable(),
+  recoveryScore: z.number().int().min(0).max(100).nullable(),
+  strainScore: z.number().min(0).max(21).nullable(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+})
+
+/** Inferred type for a daily health snapshot */
+export type DailyHealthSnapshot = z.infer<typeof dailyHealthSnapshotSchema>
+
+/** Schema for upserting a snapshot (omit server-generated fields) */
+export const dailyHealthSnapshotUpsertSchema = dailyHealthSnapshotSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+})
+
+export type DailyHealthSnapshotUpsert = z.infer<
+  typeof dailyHealthSnapshotUpsertSchema
+>
+
+// ─── Workout session schemas ────────────────────────────────────────
+
+/** Schema for a workout_sessions table row */
+export const workoutSessionSchema = z.object({
+  id: z.uuid(),
+  exercise_day: z.string(),
+  exercise_week: z.string(),
+  title: z.string(),
+  started_at: z.string(),
+  completed_at: z.string(),
+  duration_seconds: z.number().int().min(0),
+  total_volume_kg: z.number().min(0),
+  sets_completed: z.number().int().min(0),
+  total_sets: z.number().int().min(0),
+  exercises_completed: z.number().int().min(0),
+  total_exercises: z.number().int().min(0),
+  cardio_minutes: z.number().int().min(0),
+  notes: z.string().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+})
+
+/** Schema for inserting a workout session (omit server-generated fields) */
+export const workoutSessionInsertSchema = workoutSessionSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+})
+
+/** Inferred types */
+export type WorkoutSession = z.infer<typeof workoutSessionSchema>
+export type WorkoutSessionInsert = z.infer<typeof workoutSessionInsertSchema>
 
 // ─── Parse helpers ──────────────────────────────────────────────────
 

@@ -30,6 +30,7 @@ const mock = {
       },
     ]),
   ),
+  saveWorkoutSample: jest.fn(() => Promise.resolve({})),
 }
 
 module.exports = mock

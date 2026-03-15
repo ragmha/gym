@@ -5,7 +5,9 @@ import {
   queryQuantitySamples,
   queryWorkoutSamples,
   requestAuthorization,
+  saveWorkoutSample,
 } from '@kingstinct/react-native-healthkit'
+import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
 
 export interface HealthKitWorkout {
@@ -24,8 +26,14 @@ const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierRestingHeartRate',
   'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
   'HKQuantityTypeIdentifierDietaryWater',
+  'HKQuantityTypeIdentifierFlightsClimbed',
   'HKCategoryTypeIdentifierSleepAnalysis',
   'HKWorkoutTypeIdentifier',
+] as const
+
+const WRITE_PERMISSIONS = [
+  'HKWorkoutTypeIdentifier',
+  'HKQuantityTypeIdentifierActiveEnergyBurned',
 ] as const
 
 export function isHealthKitAvailable(): boolean {
@@ -39,7 +47,10 @@ export async function initializeHealthKit(): Promise<boolean> {
     const available = await isHealthDataAvailable()
     if (!available) return false
 
-    await requestAuthorization({ toRead: [...READ_PERMISSIONS] })
+    await requestAuthorization({
+      toRead: [...READ_PERMISSIONS],
+      toShare: [...WRITE_PERMISSIONS],
+    })
     return true
   } catch (err) {
     console.warn('[HealthKit] Authorization error:', err)
@@ -67,6 +78,68 @@ export async function getDailySteps(date?: Date): Promise<number> {
     console.warn('[HealthKit] Steps error:', err)
     return 0
   }
+}
+
+/** Fetch steps for each day in a range. Returns { date: string, steps: number }[] */
+export async function getStepsHistory(
+  daysBack: number,
+): Promise<{ date: string; steps: number }[]> {
+  const today = new Date()
+  const results: { date: string; steps: number }[] = []
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const steps = await getDailySteps(d)
+    results.push({
+      date: d.toISOString().slice(0, 10),
+      steps,
+    })
+  }
+
+  return results
+}
+
+export async function getDailyFlightsClimbed(date?: Date): Promise<number> {
+  if (!isHealthKitAvailable()) return 0
+
+  try {
+    const d = date ?? new Date()
+    const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+
+    const samples = await queryQuantitySamples(
+      'HKQuantityTypeIdentifierFlightsClimbed',
+      {
+        limit: 0,
+        filter: { date: { startDate: startOfDay, endDate: d } },
+      },
+    )
+
+    return Math.round(samples.reduce((sum, s) => sum + s.quantity, 0))
+  } catch (err) {
+    console.warn('[HealthKit] Flights climbed error:', err)
+    return 0
+  }
+}
+
+/** Fetch flights climbed for each day in a range. */
+export async function getFlightsHistory(
+  daysBack: number,
+): Promise<{ date: string; flights: number }[]> {
+  const today = new Date()
+  const results: { date: string; flights: number }[] = []
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const flights = await getDailyFlightsClimbed(d)
+    results.push({
+      date: d.toISOString().slice(0, 10),
+      flights,
+    })
+  }
+
+  return results
 }
 
 export async function getDailyCalories(date?: Date): Promise<number> {
@@ -115,6 +188,20 @@ export async function getLatestHRV(): Promise<number> {
     return Math.round(sample?.quantity ?? 0)
   } catch (err) {
     console.warn('[HealthKit] HRV error:', err)
+    return 0
+  }
+}
+
+export async function getLatestRestingHeartRate(): Promise<number> {
+  if (!isHealthKitAvailable()) return 0
+
+  try {
+    const sample = await getMostRecentQuantitySample(
+      'HKQuantityTypeIdentifierRestingHeartRate',
+    )
+    return Math.round(sample?.quantity ?? 0)
+  } catch (err) {
+    console.warn('[HealthKit] Resting HR error:', err)
     return 0
   }
 }
@@ -169,6 +256,54 @@ export async function getDailyWaterLiters(date?: Date): Promise<number> {
   }
 }
 
+/**
+ * Return a Map of ISO date strings → total step count for each day.
+ * Days with a logged workout get a bonus of 5 000 steps to boost intensity.
+ * Two bulk HealthKit queries cover the entire range.
+ */
+export async function getActivityIntensity(
+  daysBack: number,
+): Promise<Map<string, number>> {
+  if (!isHealthKitAvailable()) return new Map()
+
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - daysBack)
+
+  const stepsByDay = new Map<string, number>()
+
+  try {
+    const stepSamples = await queryQuantitySamples(
+      'HKQuantityTypeIdentifierStepCount',
+      {
+        limit: 0,
+        filter: { date: { startDate: from, endDate: to } },
+      },
+    )
+    for (const s of stepSamples) {
+      const day = new Date(s.startDate).toISOString().slice(0, 10)
+      stepsByDay.set(day, (stepsByDay.get(day) ?? 0) + s.quantity)
+    }
+  } catch (err) {
+    console.warn('[HealthKit] Activity-intensity steps error:', err)
+  }
+
+  try {
+    const workoutSamples = await queryWorkoutSamples({
+      limit: 0,
+      filter: { date: { startDate: from, endDate: to } },
+    })
+    for (const w of workoutSamples) {
+      const day = new Date(w.startDate).toISOString().slice(0, 10)
+      stepsByDay.set(day, (stepsByDay.get(day) ?? 0) + 5_000)
+    }
+  } catch (err) {
+    console.warn('[HealthKit] Activity-intensity workouts error:', err)
+  }
+
+  return stepsByDay
+}
+
 export async function getRecentWorkouts(
   daysBack: number = 7,
 ): Promise<HealthKitWorkout[]> {
@@ -197,5 +332,54 @@ export async function getRecentWorkouts(
   } catch (err) {
     console.warn('[HealthKit] Workouts error:', err)
     return []
+  }
+}
+
+/**
+ * Save a cardio workout to Apple Health.
+ * Called when a workout with cardio minutes is completed in the app.
+ */
+export async function saveCardioWorkoutToHealthKit(params: {
+  /** Total cardio duration in minutes */
+  durationMinutes: number
+  /** When the cardio started */
+  startDate: Date
+  /** When the cardio ended */
+  endDate: Date
+  /** Estimated calories burned (optional) */
+  caloriesBurned?: number
+}): Promise<boolean> {
+  if (!isHealthKitAvailable()) return false
+
+  try {
+    const { durationMinutes, startDate, endDate, caloriesBurned } = params
+    if (durationMinutes <= 0) return false
+
+    const quantities = caloriesBurned
+      ? [
+          {
+            quantityType: 'HKQuantityTypeIdentifierActiveEnergyBurned' as const,
+            quantity: caloriesBurned,
+            unit: 'kcal',
+            startDate,
+            endDate,
+          },
+        ]
+      : []
+
+    await saveWorkoutSample(
+      WorkoutActivityType.mixedCardio,
+      quantities,
+      startDate,
+      endDate,
+      {
+        ...(caloriesBurned ? { energyBurned: caloriesBurned } : {}),
+      },
+    )
+
+    return true
+  } catch (err) {
+    console.warn('[HealthKit] Save cardio workout error:', err)
+    return false
   }
 }

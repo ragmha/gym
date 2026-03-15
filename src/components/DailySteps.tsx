@@ -2,7 +2,7 @@ import React from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
 import { CircularProgress } from '@/components/CircularProgress'
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 
 export interface DailyStepsProps {
   steps: number
@@ -17,9 +17,11 @@ export function DailySteps({
   goal = DEFAULT_STEP_GOAL,
   isDemoMode = false,
 }: DailyStepsProps) {
-  const cardBg = useThemeColor({}, 'cardBackground')
-  const textColor = useThemeColor({}, 'text')
-  const subtextColor = useThemeColor({}, 'icon')
+  const {
+    cardBackground: cardBg,
+    text: textColor,
+    icon: subtextColor,
+  } = useTheme()
 
   if (Platform.OS !== 'ios' && !isDemoMode) {
     return (

@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import Svg, { Line, Polyline, Circle as SvgCircle } from 'react-native-svg'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import { useWeightStore, type WeightEntry } from '@/stores/WeightStore'
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -133,12 +133,14 @@ export function WeightTracker() {
   const { recentEntries, latestEntry, trendDelta, unit, addEntry, setUnit } =
     useWeightStore()
 
-  const cardBg = useThemeColor({}, 'cardBackground')
-  const textColor = useThemeColor({}, 'text')
-  const subtextColor = useThemeColor({}, 'icon')
-  const accentColor = useThemeColor({}, 'accent')
-  const borderColor = useThemeColor({}, 'border')
-  const gridColor = useThemeColor({}, 'separator')
+  const {
+    cardBackground: cardBg,
+    text: textColor,
+    icon: subtextColor,
+    accent: accentColor,
+    border: borderColor,
+    separator: gridColor,
+  } = useTheme()
 
   const [inputValue, setInputValue] = useState('')
   const [showInput, setShowInput] = useState(false)
