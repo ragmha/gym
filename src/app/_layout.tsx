@@ -7,13 +7,25 @@ import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect, useMemo, useRef } from 'react'
-import { AppState } from 'react-native'
+import { Alert, AppState } from 'react-native'
 import 'react-native-reanimated'
 
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useExerciseStoreBase } from '@/stores/ExerciseStore'
+
+// Show JS errors as alerts in Release mode (no red screen)
+if (!__DEV__) {
+  const originalHandler = ErrorUtils.getGlobalHandler()
+  ErrorUtils.setGlobalHandler((error, isFatal) => {
+    Alert.alert(
+      isFatal ? 'Fatal Error' : 'Error',
+      String(error?.message || error),
+    )
+    originalHandler?.(error, isFatal)
+  })
+}
 
 SplashScreen.preventAutoHideAsync()
 
