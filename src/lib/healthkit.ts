@@ -5,7 +5,9 @@ import {
   queryQuantitySamples,
   queryWorkoutSamples,
   requestAuthorization,
+  saveWorkoutSample,
 } from '@kingstinct/react-native-healthkit'
+import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
 
 export interface HealthKitWorkout {
@@ -29,6 +31,11 @@ const READ_PERMISSIONS = [
   'HKWorkoutTypeIdentifier',
 ] as const
 
+const WRITE_PERMISSIONS = [
+  'HKWorkoutTypeIdentifier',
+  'HKQuantityTypeIdentifierActiveEnergyBurned',
+] as const
+
 export function isHealthKitAvailable(): boolean {
   return Platform.OS === 'ios'
 }
@@ -40,7 +47,10 @@ export async function initializeHealthKit(): Promise<boolean> {
     const available = await isHealthDataAvailable()
     if (!available) return false
 
-    await requestAuthorization({ toRead: [...READ_PERMISSIONS] })
+    await requestAuthorization({
+      toRead: [...READ_PERMISSIONS],
+      toShare: [...WRITE_PERMISSIONS],
+    })
     return true
   } catch (err) {
     console.warn('[HealthKit] Authorization error:', err)
@@ -322,5 +332,54 @@ export async function getRecentWorkouts(
   } catch (err) {
     console.warn('[HealthKit] Workouts error:', err)
     return []
+  }
+}
+
+/**
+ * Save a cardio workout to Apple Health.
+ * Called when a workout with cardio minutes is completed in the app.
+ */
+export async function saveCardioWorkoutToHealthKit(params: {
+  /** Total cardio duration in minutes */
+  durationMinutes: number
+  /** When the cardio started */
+  startDate: Date
+  /** When the cardio ended */
+  endDate: Date
+  /** Estimated calories burned (optional) */
+  caloriesBurned?: number
+}): Promise<boolean> {
+  if (!isHealthKitAvailable()) return false
+
+  try {
+    const { durationMinutes, startDate, endDate, caloriesBurned } = params
+    if (durationMinutes <= 0) return false
+
+    const quantities = caloriesBurned
+      ? [
+          {
+            quantityType: 'HKQuantityTypeIdentifierActiveEnergyBurned' as const,
+            quantity: caloriesBurned,
+            unit: 'kcal',
+            startDate,
+            endDate,
+          },
+        ]
+      : []
+
+    await saveWorkoutSample(
+      WorkoutActivityType.mixedCardio,
+      quantities,
+      startDate,
+      endDate,
+      {
+        ...(caloriesBurned ? { energyBurned: caloriesBurned } : {}),
+      },
+    )
+
+    return true
+  } catch (err) {
+    console.warn('[HealthKit] Save cardio workout error:', err)
+    return false
   }
 }

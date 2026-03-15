@@ -1,3 +1,4 @@
+import { saveCardioWorkoutToHealthKit } from '@/lib/healthkit'
 import { supabase } from '@/lib/supabase'
 import type { ExerciseRow, WorkoutSessionInsert } from '@/lib/validators'
 import {
@@ -781,6 +782,21 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
       }
     } catch (err) {
       console.warn('[WorkoutSession] Save failed:', err)
+    }
+
+    // Sync cardio to Apple Health (bidirectional: app → HealthKit)
+    if (cardioMinutes > 0) {
+      const workoutEnd = new Date(completedAt)
+      const workoutStart = new Date(
+        workoutEnd.getTime() - cardioMinutes * 60_000,
+      )
+      saveCardioWorkoutToHealthKit({
+        durationMinutes: cardioMinutes,
+        startDate: workoutStart,
+        endDate: workoutEnd,
+      }).catch((err) =>
+        console.warn('[WorkoutSession] HealthKit sync failed:', err),
+      )
     }
 
     return session
