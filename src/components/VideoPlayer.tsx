@@ -1,6 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useState } from 'react'
-import { Platform, StyleSheet, View, useColorScheme } from 'react-native'
+import {
+  Image,
+  Linking,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from 'react-native'
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,6 +20,14 @@ import Animated, {
 import { WebView } from 'react-native-webview'
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient)
+
+/** Extract the YouTube video ID from a URL */
+function extractVideoId(url: string): string | null {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+  )
+  return match?.[1] ?? null
+}
 
 function VideoSkeleton() {
   const translateX = useSharedValue(-300)
@@ -38,7 +55,6 @@ function VideoSkeleton() {
         isDark ? styles.skeletonDark : styles.skeletonLight,
       ]}
     >
-      {/* Thumbnail area with 16:9 aspect ratio */}
       <View style={styles.thumbnailArea}>
         <View style={styles.thumbnailContent} />
       </View>
@@ -61,39 +77,43 @@ function VideoSkeleton() {
   )
 }
 
-export default function VideoPlayer({
-  uri,
-  autoPlay,
-}: {
-  uri: string
-  autoPlay?: boolean
-}) {
+export default function VideoPlayer({ uri }: { uri: string }) {
   const [isLoading, setIsLoading] = useState(true)
-  const videoUri = `${uri}?autoplay=${autoPlay ? 1 : 0}&fs=0`
+  const [embedFailed, setEmbedFailed] = useState(false)
+  const videoId = extractVideoId(uri)
 
-  if (Platform.OS === 'web') {
+  const embedUrl = videoId
+    ? `https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0&showinfo=0&controls=1&playsinline=1`
+    : null
+  const thumbnailUrl = videoId
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : null
+
+  if (!videoId) return null
+
+  // Fallback: thumbnail + tap to watch in YouTube
+  if (embedFailed || Platform.OS === 'web') {
     return (
-      <View style={styles.container}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => Linking.openURL(uri)}
+        style={styles.container}
+      >
         <View style={styles.videoWrapper}>
-          {isLoading && <VideoSkeleton />}
-          <iframe
-            width="100%"
-            height="100%"
-            src={videoUri}
-            allow="autoplay; encrypted-media"
-            allowFullScreen={false}
-            onLoad={() => setIsLoading(false)}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: isLoading ? 0 : 1,
-            }}
-          />
+          {thumbnailUrl && (
+            <Image
+              source={{ uri: thumbnailUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          )}
+          <View style={styles.playOverlay}>
+            <View style={styles.playButton}>
+              <Text style={styles.playIcon}>▶</Text>
+            </View>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     )
   }
 
@@ -102,22 +122,34 @@ export default function VideoPlayer({
       <View style={styles.videoWrapper}>
         {isLoading && <VideoSkeleton />}
         <WebView
-          source={{ uri: videoUri }}
-          style={[
-            styles.video,
-            {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: isLoading ? 0 : 1,
-            },
-          ]}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
+          source={{ uri: embedUrl! }}
+          style={[styles.video, { opacity: isLoading ? 0 : 1 }]}
+          javaScriptEnabled
+          domStorageEnabled
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
           allowsFullscreenVideo={false}
           onLoadEnd={() => setIsLoading(false)}
+          onHttpError={(e) => {
+            if (e.nativeEvent.statusCode >= 400) setEmbedFailed(true)
+          }}
+          onError={() => setEmbedFailed(true)}
+          injectedJavaScript={`
+            (function() {
+              var check = setInterval(function() {
+                var err = document.querySelector('.ytp-error');
+                if (err) {
+                  window.ReactNativeWebView.postMessage('EMBED_ERROR');
+                  clearInterval(check);
+                }
+              }, 500);
+              setTimeout(function() { clearInterval(check); }, 8000);
+            })();
+            true;
+          `}
+          onMessage={(e) => {
+            if (e.nativeEvent.data === 'EMBED_ERROR') setEmbedFailed(true)
+          }}
         />
       </View>
     </View>
@@ -126,8 +158,8 @@ export default function VideoPlayer({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: '#000',
+    overflow: 'hidden',
   },
   videoWrapper: {
     width: '100%',
@@ -136,8 +168,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   video: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000',
+  },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+  playButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playIcon: {
+    color: '#fff',
+    fontSize: 22,
+    marginLeft: 3,
   },
   skeletonContainer: {
     position: 'absolute',
@@ -163,45 +214,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: '#282828',
-  },
-  infoArea: {
-    padding: 12,
-    gap: 12,
-  },
-  titleBar: {
-    height: 20,
-    width: '70%',
-    borderRadius: 4,
-  },
-  channelInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  channelAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  channelText: {
-    flex: 1,
-    gap: 8,
-  },
-  channelName: {
-    height: 14,
-    width: '40%',
-    borderRadius: 4,
-  },
-  videoStats: {
-    height: 14,
-    width: '30%',
-    borderRadius: 4,
-  },
-  elementDark: {
-    backgroundColor: '#282828',
-  },
-  elementLight: {
-    backgroundColor: '#e6e6e6',
   },
   shimmer: {
     position: 'absolute',

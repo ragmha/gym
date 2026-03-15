@@ -1,4 +1,4 @@
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
@@ -7,9 +7,11 @@ import { ProgressCard } from './ProgressCard'
 
 export function WorkoutProgress() {
   const router = useRouter()
-  const cardBackgroundColor = useThemeColor({}, 'cardBackground')
-  const textColor = useThemeColor({}, 'text')
-  const progressColor = useThemeColor({}, 'selectedCircle')
+  const {
+    cardBackground: cardBackgroundColor,
+    text: textColor,
+    selectedCircle: progressColor,
+  } = useTheme()
 
   const { completedCount, exercises } = useExerciseStore()
   const totalExercises = Object.keys(exercises).length

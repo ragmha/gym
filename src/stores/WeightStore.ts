@@ -40,11 +40,13 @@ interface WeightState {
   error: string | null
   initialized: boolean
   unit: 'kg' | 'lbs'
+  goalKg: number | null
 
   initialize: () => Promise<void>
   addEntry: (weightKg: number, date?: string, note?: string) => Promise<void>
   deleteEntry: (id: string) => Promise<void>
   setUnit: (unit: 'kg' | 'lbs') => void
+  setGoal: (kg: number | null) => void
 }
 
 export const useWeightStoreBase = create<WeightState>()(
@@ -55,6 +57,7 @@ export const useWeightStoreBase = create<WeightState>()(
       error: null,
       initialized: false,
       unit: 'kg',
+      goalKg: null,
 
       initialize: async () => {
         if (get().initialized) return
@@ -170,11 +173,16 @@ export const useWeightStoreBase = create<WeightState>()(
       },
 
       setUnit: (unit) => set({ unit }),
+
+      setGoal: (kg) =>
+        set({
+          goalKg: kg !== null && (!Number.isFinite(kg) || kg <= 0) ? null : kg,
+        }),
     }),
     {
       name: 'weight-store',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ unit: state.unit }),
+      partialize: (state) => ({ unit: state.unit, goalKg: state.goalKg }),
     },
   ),
 )
@@ -189,10 +197,12 @@ export function useWeightStore() {
       error: state.error,
       initialized: state.initialized,
       unit: state.unit,
+      goalKg: state.goalKg,
       initialize: state.initialize,
       addEntry: state.addEntry,
       deleteEntry: state.deleteEntry,
       setUnit: state.setUnit,
+      setGoal: state.setGoal,
     })),
   )
 
@@ -206,7 +216,7 @@ export function useWeightStore() {
     [store.entries],
   )
 
-  const recentEntries = useMemo(() => store.entries.slice(-14), [store.entries])
+  const recentEntries = useMemo(() => store.entries.slice(-30), [store.entries])
 
   const trendDelta = useMemo(() => {
     if (store.entries.length < 2) return null
@@ -218,10 +228,26 @@ export function useWeightStore() {
     return Math.round((recentAvg - olderAvg) * 10) / 10
   }, [store.entries])
 
+  const distanceToGoal = useMemo(() => {
+    if (store.goalKg === null || !latestEntry) return null
+    return Math.round((latestEntry.weightKg - store.goalKg) * 10) / 10
+  }, [store.goalKg, latestEntry])
+
+  const isOnTrack = useMemo(() => {
+    if (store.goalKg === null || trendDelta === null) return null
+    // If goal is below current weight (losing), trend should be negative
+    // If goal is above current weight (gaining), trend should be positive
+    const needToLose = latestEntry ? latestEntry.weightKg > store.goalKg : false
+    if (needToLose) return trendDelta < 0
+    return trendDelta > 0
+  }, [store.goalKg, trendDelta, latestEntry])
+
   return {
     ...store,
     latestEntry,
     recentEntries,
     trendDelta,
+    distanceToGoal,
+    isOnTrack,
   }
 }

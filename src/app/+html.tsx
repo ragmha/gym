@@ -1,6 +1,8 @@
 import { ScrollViewStyleReset } from 'expo-router/html'
 import { type PropsWithChildren } from 'react'
 
+import { Colors } from '@/constants/Colors'
+
 /**
  * This file is web-only and used to configure the root HTML for every web page during static rendering.
  * The contents of this function only run in Node.js environments and do not have access to the DOM or browser APIs.
@@ -32,11 +34,22 @@ export default function Root({ children }: PropsWithChildren) {
 }
 
 const responsiveBackground = `
+html {
+  color-scheme: light dark;
+  background-color: ${Colors.light.background};
+}
+
 body {
-  background-color: #fff;
+  background-color: ${Colors.light.background};
+  color: ${Colors.light.text};
 }
 @media (prefers-color-scheme: dark) {
+  html {
+    background-color: ${Colors.dark.background};
+  }
+
   body {
-    background-color: #000;
+    background-color: ${Colors.dark.background};
+    color: ${Colors.dark.text};
   }
 }`

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import React from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 
 interface StatRow {
   icon: React.ComponentProps<typeof Ionicons>['name']
@@ -18,10 +18,12 @@ interface KeyStatisticsProps {
 }
 
 export function KeyStatistics({ stats }: KeyStatisticsProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const cardBg = useThemeColor({}, 'cardSurface')
-  const accentColor = useThemeColor({}, 'accent')
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    cardSurface: cardBg,
+    accent: accentColor,
+  } = useTheme()
 
   return (
     <View style={styles.section}>

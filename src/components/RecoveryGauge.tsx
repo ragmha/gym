@@ -7,7 +7,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Circle } from 'react-native-svg'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
@@ -30,9 +30,12 @@ export function RecoveryGauge({
   heartRate,
   sleepPercent,
 }: RecoveryGaugeProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const cardBg = useThemeColor({}, 'cardSurface')
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    cardBackground: cardBg,
+    border: borderColor,
+  } = useTheme()
 
   const progress = useSharedValue(0)
 
@@ -48,7 +51,7 @@ export function RecoveryGauge({
     recovery >= 67 ? '#30D158' : recovery >= 34 ? '#E8C558' : '#E8707A'
 
   return (
-    <View style={[styles.card, { backgroundColor: cardBg }]}>
+    <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
       <View style={styles.row}>
         <View style={styles.gaugeContainer}>
           <Svg width={SIZE} height={SIZE}>
@@ -120,9 +123,10 @@ export function RecoveryGauge({
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 20,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
   },
   row: {
     flexDirection: 'row',

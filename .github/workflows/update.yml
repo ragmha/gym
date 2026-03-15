@@ -10,6 +10,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   update:
@@ -26,10 +27,17 @@ jobs:
           fi
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -44,11 +52,18 @@ jobs:
         id: fingerprint
         uses: expo/expo-github-action/fingerprint@main
 
-      - name: Abort on native changes
+      - name: Trigger EAS Build on native changes
         if: steps.fingerprint.outputs.fingerprint-diff != '[]'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "::error::Native changes detected — OTA update is unsafe. Trigger a new EAS Build instead."
-          exit 1
+          echo "::warning::Native changes detected — triggering EAS Build instead of OTA update."
+          gh workflow run build.yml \
+            --ref "$GITHUB_REF" \
+            -f platform=all \
+            -f profile=production
+          echo "EAS Build triggered. Skipping OTA update."
 
       - name: Publish update
+        if: steps.fingerprint.outputs.fingerprint-diff == '[]'
         run: eas update --auto

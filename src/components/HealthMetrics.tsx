@@ -8,7 +8,7 @@ import {
 } from 'react-native'
 
 import { ProgressCard } from '@/components/ProgressCard'
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import type { HealthKitWorkout } from '@/lib/healthkit'
 
 interface HealthMetricsProps {
@@ -34,9 +34,11 @@ export function HealthMetrics({
   onRequestAuth,
   onRefresh,
 }: HealthMetricsProps) {
-  const cardBackgroundColor = useThemeColor({}, 'cardBackground')
-  const textColor = useThemeColor({}, 'text')
-  const subtextColor = useThemeColor({}, 'icon')
+  const {
+    cardBackground: cardBackgroundColor,
+    text: textColor,
+    icon: subtextColor,
+  } = useTheme()
 
   if (!isAvailable && !isDemoMode) {
     return (

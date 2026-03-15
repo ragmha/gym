@@ -1,0 +1,21 @@
+# Ralph Progress Log
+Started: 2026-03-10
+---
+
+## Codebase Patterns
+- Use `@/*` path alias for all imports (mapped to src/* in tsconfig)
+- Zustand stores follow pattern: create() with persist middleware, useShallow convenience hook, useEffect initialize
+- HealthKit functions in src/lib/healthkit.ts, consumed via src/hooks/useHealthKit.ts hook
+- Demo/mock data returned when Platform.OS !== 'ios' (non-iOS gets randomized values)
+- Supabase migrations in supabase/migrations/ with naming: YYYYMMDD000000_description.sql
+- RLS pattern: anon can SELECT/INSERT/UPDATE (no auth yet)
+- Zod v4: use top-level z.object/z.number/z.string — no deprecated chained methods
+- Post-task code review is MANDATORY: read .github/skills/post-task-code-review/SKILL.md and run full 5-pass review
+- Theme colors via useThemeColor() hook reading from src/constants/Colors.ts
+- File-based routing: screens in src/app/, components in src/components/
+- RecoveryGauge, SummaryTabs, DailyProgressRings exist but are NOT mounted — wire them up, don't recreate
+- WeightStore pattern: entries[], loading, error, initialized, persisted unit preference to AsyncStorage
+- Stack navigation in _layout.tsx, Tabs in (tabs)/_layout.tsx
+- Worktree at sibling directory (relative to main checkout)
+- Branch: ralph/health-dashboard-weight-tracker
+---

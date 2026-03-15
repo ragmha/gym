@@ -8,7 +8,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Circle, Line, Polyline } from 'react-native-svg'
 
-import { useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
@@ -26,9 +26,11 @@ const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2
 const RING_CIRC = 2 * Math.PI * RING_RADIUS
 
 function WalkCard({ steps, goal }: WalkCardProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const cardBg = useThemeColor({}, 'cardSurface')
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    cardSurface: cardBg,
+  } = useTheme()
 
   const progress = useSharedValue(0)
 
@@ -89,9 +91,11 @@ interface SleepCardProps {
 }
 
 function SleepCard({ hours }: SleepCardProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const cardBg = useThemeColor({}, 'cardSurface')
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    cardSurface: cardBg,
+  } = useTheme()
 
   const bars = [0.5, 0.7, 0.9, 1.0, 0.8, 0.6, 0.9]
   const barWidth = 8
@@ -133,9 +137,11 @@ interface WaterCardProps {
 }
 
 function WaterCard({ bottles }: WaterCardProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const cardBg = useThemeColor({}, 'cardSurface')
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    cardSurface: cardBg,
+  } = useTheme()
 
   const bars = [0.6, 0.8, 0.4]
   const barWidth = 12
@@ -191,9 +197,11 @@ interface HeartCardProps {
 }
 
 function HeartCard({ bpm }: HeartCardProps) {
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const cardBg = useThemeColor({}, 'cardSurface')
+  const {
+    text: textColor,
+    subtitleText: subtitleColor,
+    cardSurface: cardBg,
+  } = useTheme()
 
   const ecgPoints =
     '0,30 15,30 25,30 35,28 40,30 50,30 55,10 60,45 65,5 70,40 75,30 85,30 95,28 100,30 115,30 125,30 130,28 135,30 140,30'
@@ -238,7 +246,7 @@ export function ActivityCardGrid({
   waterBottles,
   heartRate,
 }: ActivityCardGridProps) {
-  const textColor = useThemeColor({}, 'text')
+  const { text: textColor } = useTheme()
 
   return (
     <View style={styles.section}>
