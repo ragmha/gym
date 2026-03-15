@@ -1,0 +1,48 @@
+name: PR Quality
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+jobs:
+  anti-slop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peakoss/anti-slop@v0
+        with:
+          max-failures: 4
+          require-conventional-title: true
+          require-conventional-commits: true
+          require-description: true
+          max-description-length: 2500
+          max-emoji-count: 2
+          max-code-references: 5
+          max-commit-message-length: 500
+          require-maintainer-can-modify: true
+          require-commit-author-match: true
+          blocked-source-branches: |
+            main
+            master
+          blocked-paths: |
+            README.md
+            SECURITY.md
+            LICENSE
+            CODE_OF_CONDUCT.md
+          require-final-newline: true
+          max-added-comments: 10
+          detect-spam-usernames: true
+          min-account-age: 30
+          max-daily-forks: 7
+          min-profile-completeness: 4
+          min-global-merge-ratio: 30
+          close-pr: true
+          lock-pr: false
+          failure-pr-message: >
+            This PR was automatically closed because it failed multiple quality
+            checks. If you believe this is a mistake, please open an issue or
+            contact a maintainer to have it reviewed.
