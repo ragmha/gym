@@ -12,9 +12,9 @@ import {
 
 import Header from '@/components/Header'
 import { useColorScheme } from '@/hooks/useColorScheme'
-import { useHealthKit } from '@/hooks/useHealthKit'
+import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
-import { isHealthKitAvailable } from '@/lib/healthkit'
+import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import { type ThemePreference, useThemeStore } from '@/stores/ThemeStore'
 import { StatusBar } from 'expo-status-bar'
 
@@ -43,11 +43,12 @@ export default function SettingsScreen() {
     selectedText,
     shadow: shadowColor,
   } = useTheme()
-  const { isAuthorized, requestAuthorization } = useHealthKit()
+  const { status, requestAuthorization } = useHealthSnapshot()
+  const isAuthorized = status === 'ready'
   const preference = useThemeStore((s) => s.preference)
   const setPreference = useThemeStore((s) => s.setPreference)
 
-  const showHealthKit = Platform.OS === 'ios' && isHealthKitAvailable()
+  const showHealthKit = Platform.OS === 'ios' && healthSnapshot.isAvailable()
 
   const handleToggle = async () => {
     if (!isAuthorized) {

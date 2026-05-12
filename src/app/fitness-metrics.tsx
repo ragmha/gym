@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { useHealthKit } from '@/hooks/useHealthKit'
+import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useThemeColor } from '@/hooks/useThemeColor'
 import { useTodayHydration } from '@/stores/HydrationStore'
 import { computeRecoveryScore } from '@/utils/recoveryScore'
@@ -182,15 +182,14 @@ export default function FitnessMetricsScreen() {
   const borderColor = useThemeColor({}, 'border')
   const backgroundColor = useThemeColor({}, 'background')
 
-  const {
-    steps,
-    calories,
-    sleepHours,
-    heartRate,
-    hrv,
-    restingHeartRate,
-    flightsClimbed,
-  } = useHealthKit()
+  const { snapshot } = useHealthSnapshot()
+  const steps = snapshot?.steps ?? 0
+  const calories = snapshot?.calories ?? 0
+  const sleepHours = snapshot?.sleepHours ?? 0
+  const heartRate = snapshot?.heartRate ?? 0
+  const hrv = snapshot?.hrv ?? 0
+  const restingHeartRate = snapshot?.restingHeartRate ?? 0
+  const flightsClimbed = snapshot?.flightsClimbed ?? 0
 
   const { totalMl: hydrationMl, goalMl: hydrationGoal } = useTodayHydration()
   const hydrationProgress = hydrationGoal > 0 ? hydrationMl / hydrationGoal : 0
