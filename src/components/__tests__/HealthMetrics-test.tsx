@@ -131,17 +131,17 @@ describe('HealthMetrics', () => {
         activityName: 'TraditionalStrengthTraining',
         calories: 280,
         distance: 0,
-        duration: 45,
-        start: now.toISOString(),
-        end: now.toISOString(),
+        durationMinutes: 45,
+        startISO: now.toISOString(),
+        endISO: now.toISOString(),
       },
       {
         activityName: 'Running',
         calories: 200,
         distance: 5000,
-        duration: 30,
-        start: now.toISOString(),
-        end: now.toISOString(),
+        durationMinutes: 30,
+        startISO: now.toISOString(),
+        endISO: now.toISOString(),
       },
     ]
 
@@ -169,9 +169,9 @@ describe('HealthMetrics', () => {
         activityName: 'Running',
         calories: 200,
         distance: 5000,
-        duration: 30,
-        start: yesterday.toISOString(),
-        end: yesterday.toISOString(),
+        durationMinutes: 30,
+        startISO: yesterday.toISOString(),
+        endISO: yesterday.toISOString(),
       },
     ]
 
