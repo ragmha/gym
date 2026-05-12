@@ -6,10 +6,10 @@ These instructions capture Expo team best practices from Expo docs, GitHub issue
 
 | Layer            | Technology                                       | Version    |
 | ---------------- | ------------------------------------------------ | ---------- |
-| Framework        | Expo SDK                                         | 54         |
-| Runtime          | React Native                                     | 0.81       |
-| UI Library       | React                                            | 19.1       |
-| Routing          | expo-router (file-based)                         | 6          |
+| Framework        | Expo SDK                                         | 55         |
+| Runtime          | React Native                                     | 0.83       |
+| UI Library       | React                                            | 19.2       |
+| Routing          | expo-router (file-based)                         | 55.x       |
 | Language         | TypeScript (strict)                              | 5.9        |
 | Package Manager  | Bun                                              | 1.2        |
 | Backend / DB     | Supabase (Postgres + Auth)                       | JS SDK 2.x |
