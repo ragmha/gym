@@ -85,6 +85,40 @@ export const exerciseClientSchema = z.object({
   synced: z.boolean(),
 })
 
+export const exerciseDetailTemplateSchema = exerciseDetailSchema.extend({
+  sets: z.number(),
+})
+
+export const workoutTemplateSchema = z.object({
+  id: z.string(),
+  day: z.string(),
+  week: z.string(),
+  title: z.string(),
+  videoURL: z.string().nullable(),
+  cardio: cardioSchema,
+  exercises: z.array(exerciseDetailTemplateSchema),
+  color: z.string(),
+})
+
+export const exerciseProgressSchema = z.object({
+  detailId: z.string(),
+  selectedSets: z.array(z.boolean()),
+  weightPerSet: z.array(z.number()),
+  setsOverride: z.number().optional(),
+  repsOverride: z.number().optional(),
+  variationOverride: z.string().nullable().optional(),
+})
+
+export const workoutSessionAggregateSchema = z.object({
+  id: z.string(),
+  templateId: z.string(),
+  startedAt: z.string(),
+  completedAt: z.string().nullable(),
+  exerciseProgress: z.record(z.string(), exerciseProgressSchema),
+  cardio: cardioSchema,
+  status: z.enum(['in-progress', 'complete']),
+})
+
 // ─── Inferred types ─────────────────────────────────────────────────
 
 /** A single exercise detail from the DB */
@@ -107,6 +141,15 @@ export type ExerciseDetailClient = z.infer<typeof exerciseDetailClientSchema>
 
 /** Client-side exercise model (with UI state) */
 export type ExerciseClient = z.infer<typeof exerciseClientSchema>
+
+export type ExerciseDetailTemplateSchema = z.infer<
+  typeof exerciseDetailTemplateSchema
+>
+export type WorkoutTemplateSchema = z.infer<typeof workoutTemplateSchema>
+export type ExerciseProgressSchema = z.infer<typeof exerciseProgressSchema>
+export type WorkoutSessionAggregateSchema = z.infer<
+  typeof workoutSessionAggregateSchema
+>
 
 // ─── Daily health snapshot schemas ──────────────────────────────────
 

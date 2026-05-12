@@ -1,8 +1,9 @@
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
+import { useWorkoutSessionStoreBase } from '@/stores/WorkoutSessionStore'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   ScrollView,
   StyleSheet,
@@ -17,14 +18,21 @@ const WEIGHT_STEP = 2.5
 
 export default function ExerciseEditScreen() {
   const router = useRouter()
-  const { exerciseLocalId, detailId } = useLocalSearchParams<{
-    exerciseLocalId: string
+  const { sessionId, detailId } = useLocalSearchParams<{
+    sessionId: string
     detailId: string
   }>()
 
-  const { exercises, updateExerciseDetail } = useExerciseStore()
-  const exercise = exerciseLocalId ? exercises[exerciseLocalId] : undefined
-  const detail = exercise?.exercises.find((d) => d.id === detailId)
+  const { exercises } = useExerciseStore()
+  const session = useWorkoutSessionStoreBase((state) =>
+    sessionId ? state.sessions[sessionId] : undefined,
+  )
+  const updateExerciseOverrides = useWorkoutSessionStoreBase(
+    (state) => state.updateExerciseOverrides,
+  )
+  const template = session ? exercises[session.templateId] : undefined
+  const detail = template?.exercises.find((d) => d.id === detailId)
+  const progress = detailId ? session?.exerciseProgress[detailId] : undefined
 
   const {
     text: textColor,
@@ -35,14 +43,24 @@ export default function ExerciseEditScreen() {
     border: borderColor,
   } = useTheme()
 
-  const [sets, setSets] = useState(detail?.sets ?? 3)
-  const [reps, setReps] = useState(detail?.reps ?? 10)
-  const [weight, setWeight] = useState(detail?.weightPerSet[0] ?? 0)
-  const [variation, setVariation] = useState(detail?.variation ?? '')
+  const [sets, setSets] = useState(progress?.setsOverride ?? detail?.sets ?? 3)
+  const [reps, setReps] = useState(progress?.repsOverride ?? detail?.reps ?? 10)
+  const [weight, setWeight] = useState(progress?.weightPerSet[0] ?? 0)
+  const [variation, setVariation] = useState(
+    progress?.variationOverride ?? detail?.variation ?? '',
+  )
+
+  useEffect(() => {
+    if (!detail) return
+    setSets(progress?.setsOverride ?? detail.sets)
+    setReps(progress?.repsOverride ?? detail.reps)
+    setWeight(progress?.weightPerSet[0] ?? 0)
+    setVariation(progress?.variationOverride ?? detail.variation ?? '')
+  }, [detail, progress])
 
   const handleSave = useCallback(() => {
-    if (!exerciseLocalId || !detailId) return
-    updateExerciseDetail(exerciseLocalId, detailId, {
+    if (!sessionId || !detailId) return
+    updateExerciseOverrides(sessionId, detailId, {
       sets,
       reps,
       defaultWeight: weight,
@@ -50,17 +68,17 @@ export default function ExerciseEditScreen() {
     })
     router.back()
   }, [
-    exerciseLocalId,
     detailId,
-    sets,
     reps,
-    weight,
-    variation,
-    updateExerciseDetail,
     router,
+    sessionId,
+    sets,
+    updateExerciseOverrides,
+    variation,
+    weight,
   ])
 
-  if (!detail || !exercise) {
+  if (!detail || !template || !session) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor }]}>
         <Text style={[styles.errorText, { color: textColor }]}>
@@ -184,7 +202,7 @@ export default function ExerciseEditScreen() {
                 keyboardType="numeric"
                 onChangeText={(t) => {
                   const parsed = parseFloat(t)
-                  setWeight(isNaN(parsed) ? 0 : Math.max(0, parsed))
+                  setWeight(Number.isNaN(parsed) ? 0 : Math.max(0, parsed))
                 }}
                 selectTextOnFocus
               />

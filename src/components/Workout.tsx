@@ -1,23 +1,29 @@
 import { useRouter } from 'expo-router'
-import React, { useMemo } from 'react'
+import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeIn } from 'react-native-reanimated'
 
 import { useTheme } from '@/hooks/useThemeColor'
-import type { Exercise } from '@/types/models'
-
-type WorkoutItem = Exercise
+import {
+  completedSetCount,
+  totalSetCount,
+  useWorkoutSessionStoreBase,
+} from '@/stores/WorkoutSessionStore'
+import type { WorkoutSession, WorkoutTemplate } from '@/types/models'
 
 const Workout = ({
   item,
+  session,
   index = 0,
 }: {
-  item: WorkoutItem
+  item: WorkoutTemplate
+  session?: WorkoutSession
   index?: number
   isFirst?: boolean
   isLast?: boolean
 }) => {
   const router = useRouter()
+  const startSession = useWorkoutSessionStoreBase((state) => state.startSession)
   const {
     text: textColor,
     subtitleText,
@@ -27,24 +33,22 @@ const Workout = ({
     border: borderColor,
   } = useTheme()
 
-  const completedSets = useMemo(
-    () => item.exercises.filter((e) => e.completed).length,
-    [item.exercises],
-  )
-  const totalSets = item.exercises.length
+  const completedSets = session ? completedSetCount(session) : 0
+  const totalSets = session ? totalSetCount(session) : 0
   const progress = totalSets > 0 ? completedSets / totalSets : 0
   const hasStarted = completedSets > 0
-  const allDone = item.completed
+  const allDone = session?.status === 'complete'
 
   return (
     <Animated.View entering={FadeIn.delay(index * 40).duration(300)}>
       <Pressable
-        onPress={() =>
+        onPress={() => {
+          const nextSession = session ?? startSession(item)
           router.push({
             pathname: '/details/[id]',
-            params: { id: item.localId, title: item.title },
+            params: { id: nextSession.id, title: item.title },
           })
-        }
+        }}
         style={({ pressed }) => [
           styles.card,
           { backgroundColor: pressed ? `${cardSurface}dd` : cardSurface },
@@ -81,7 +85,8 @@ const Workout = ({
               </Text>
               <View style={styles.metaRow}>
                 <Text style={[styles.metaText, { color: subtitleText }]}>
-                  {totalSets} exercise{totalSets !== 1 ? 's' : ''}
+                  {item.exercises.length} exercise
+                  {item.exercises.length !== 1 ? 's' : ''}
                 </Text>
                 {item.cardio && (
                   <>
