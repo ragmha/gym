@@ -1,9 +1,12 @@
-import { supabase } from '@/lib/supabase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useEffect, useMemo } from 'react'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
+import { z } from 'zod'
+
+import { offlineFirstQuery } from '@/lib/offlineFirstQuery/OfflineFirstQuery'
+import { supabase } from '@/lib/supabase'
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -12,6 +15,25 @@ export interface WeightEntry {
   date: string // YYYY-MM-DD
   weightKg: number
   note: string | null
+}
+
+const WeightEntryRowSchema = z.object({
+  id: z.string(),
+  date: z.iso.date(),
+  weight_kg: z.coerce.number(),
+  note: z.string().nullable().optional(),
+})
+
+function parseWeightEntries(rows: unknown[]): WeightEntry[] {
+  return z
+    .array(WeightEntryRowSchema)
+    .parse(rows)
+    .map((row) => ({
+      id: row.id,
+      date: row.date,
+      weightKg: row.weight_kg,
+      note: row.note ?? null,
+    }))
 }
 
 // ── Mock data for demo / offline ────────────────────────────────────
@@ -64,33 +86,31 @@ export const useWeightStoreBase = create<WeightState>()(
         set({ loading: true, error: null })
 
         try {
-          const { data, error } = await supabase
-            .from('weight_entries')
-            .select('*')
-            .order('date', { ascending: true })
-            .limit(90)
+          const result = await offlineFirstQuery({
+            query: async () =>
+              await supabase
+                .from('weight_entries')
+                .select('*')
+                .order('date', { ascending: true })
+                .limit(90),
+            fallback: generateMockEntries,
+            parse: parseWeightEntries,
+            fallbackOnEmpty: true,
+          })
 
-          if (error) {
-            // Table likely doesn't exist yet — use mock data
+          if (result.usedFallback && result.error) {
             console.warn(
               '[WeightStore] Supabase error, using mock data:',
-              error.message,
+              result.error.message,
             )
-            set({ entries: generateMockEntries(), initialized: true })
-          } else if (data && data.length > 0) {
-            const entries: WeightEntry[] = data.map((row) => ({
-              id: row.id as string,
-              date: row.date as string,
-              weightKg: Number(row.weight_kg),
-              note: (row.note as string) ?? null,
-            }))
-            set({ entries, initialized: true })
-          } else {
-            // Empty table — seed with mock data for first-time experience
-            set({ entries: generateMockEntries(), initialized: true })
           }
-        } catch {
-          console.warn('[WeightStore] Failed to initialize, using mock data')
+
+          set({ entries: result.data, initialized: true })
+        } catch (error) {
+          console.warn(
+            '[WeightStore] Failed to initialize, using mock data:',
+            error instanceof Error ? error.message : 'Unknown error',
+          )
           set({ entries: generateMockEntries(), initialized: true })
         } finally {
           set({ loading: false })
