@@ -1,7 +1,8 @@
 import { useTheme } from '@/hooks/useThemeColor'
-import { useExerciseStore } from '@/stores/ExerciseStore'
+import { useWorkoutSessionStoreBase } from '@/stores/WorkoutSessionStore'
+import type { ExerciseDetailTemplate } from '@/types/models'
 import { useRouter } from 'expo-router'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import {
   StyleSheet,
   Text,
@@ -16,20 +17,13 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
+import { useShallow } from 'zustand/react/shallow'
 
-const WEIGHT_STEP = 2.5 // kg increment/decrement
-
-type ExerciseDetailItem = {
-  id: string
-  title: string
-  sets: number | 'To Failure'
-  reps: number
-  variation: string | null
-}
+const WEIGHT_STEP = 2.5
 
 type WorkoutDetailProps = {
-  item: ExerciseDetailItem
-  exerciseId: string
+  item: ExerciseDetailTemplate
+  sessionId: string
   index: number
   onComplete?: (isComplete: boolean, selectedSets: boolean[]) => void
   onSetCompleted?: () => void
@@ -38,97 +32,72 @@ type WorkoutDetailProps = {
 
 export default function WorkoutDetail({
   item,
-  exerciseId,
+  sessionId,
   index,
   onComplete,
   onSetCompleted,
   onSetUncompleted,
 }: WorkoutDetailProps) {
   const router = useRouter()
-  const defaultSets =
-    typeof item.sets === 'string' || isNaN(item.sets) ? 1 : item.sets
-  const { getSelectedSets, getWeightPerSet, updateExerciseWeight } =
-    useExerciseStore()
-  const initialSelectedCircles = getSelectedSets(exerciseId, item.id)
-  const initialWeights = getWeightPerSet(exerciseId, item.id)
+  const { progress, toggleSet, setWeightForExercise } =
+    useWorkoutSessionStoreBase(
+      useShallow((state) => ({
+        progress: state.sessions[sessionId]?.exerciseProgress[item.id],
+        toggleSet: state.toggleSet,
+        setWeightForExercise: state.setWeightForExercise,
+      })),
+    )
 
-  const [selectedCircles, setSelectedCircles] = useState<boolean[]>(
-    initialSelectedCircles.length > 0
-      ? initialSelectedCircles
-      : Array.from({ length: defaultSets }, () => false),
-  )
-
-  const [weights, setWeights] = useState<number[]>(
-    initialWeights.length > 0
-      ? initialWeights
-      : Array.from({ length: defaultSets }, () => 0),
-  )
-
-  // Sync local state when the store is updated (e.g. from exercise-edit screen)
-  const storeWeights = getWeightPerSet(exerciseId, item.id)
-  const storeSelectedSets = getSelectedSets(exerciseId, item.id)
-  const weightsKey = storeWeights.join(',')
-  const selectedKey = storeSelectedSets.join(',')
-  useEffect(() => {
-    if (storeWeights.length > 0) {
-      setWeights(storeWeights)
-    }
-  }, [weightsKey]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (storeSelectedSets.length > 0) {
-      setSelectedCircles(storeSelectedSets)
-    }
-  }, [selectedKey]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  /** All sets share the same weight — use the first set's weight as display */
+  const defaultSets = progress?.setsOverride ?? item.sets
+  const effectiveReps = progress?.repsOverride ?? item.reps
+  const effectiveVariation =
+    progress?.variationOverride !== undefined
+      ? progress.variationOverride
+      : item.variation
+  const selectedCircles =
+    progress?.selectedSets ?? Array.from({ length: defaultSets }, () => false)
+  const weights =
+    progress?.weightPerSet ?? Array.from({ length: defaultSets }, () => 0)
   const displayWeight = weights[0] ?? 0
-
-  const adjustWeight = useCallback(
-    (delta: number) => {
-      const newWeight = Math.max(0, displayWeight + delta)
-      const newWeights = weights.map(() => newWeight)
-      setWeights(newWeights)
-      // Persist each set's weight to store
-      for (let i = 0; i < newWeights.length; i++) {
-        updateExerciseWeight(exerciseId, item.id, i, newWeight)
-      }
-    },
-    [displayWeight, weights, exerciseId, item.id, updateExerciseWeight],
-  )
-
-  const handleWeightInput = useCallback(
-    (text: string) => {
-      const parsed = parseFloat(text)
-      const newWeight = isNaN(parsed) ? 0 : Math.max(0, parsed)
-      const newWeights = weights.map(() => newWeight)
-      setWeights(newWeights)
-      for (let i = 0; i < newWeights.length; i++) {
-        updateExerciseWeight(exerciseId, item.id, i, newWeight)
-      }
-    },
-    [weights, exerciseId, item.id, updateExerciseWeight],
-  )
-
   const completedCount = selectedCircles.filter(Boolean).length
   const scale = useSharedValue(1)
   const progressAnim = useSharedValue(
     defaultSets > 0 ? completedCount / defaultSets : 0,
   )
 
+  useEffect(() => {
+    progressAnim.value = withTiming(
+      defaultSets > 0 ? completedCount / defaultSets : 0,
+      { duration: 300 },
+    )
+  }, [completedCount, defaultSets, progressAnim])
+
+  const adjustWeight = useCallback(
+    (delta: number) => {
+      const newWeight = Math.max(0, displayWeight + delta)
+      setWeightForExercise(sessionId, item.id, newWeight)
+    },
+    [displayWeight, item.id, sessionId, setWeightForExercise],
+  )
+
+  const handleWeightInput = useCallback(
+    (text: string) => {
+      const parsed = parseFloat(text)
+      setWeightForExercise(
+        sessionId,
+        item.id,
+        Number.isNaN(parsed) ? 0 : Math.max(0, parsed),
+      )
+    },
+    [item.id, sessionId, setWeightForExercise],
+  )
+
   const toggleCircle = (idx: number) => {
     const next = [...selectedCircles]
     const wasCompleted = next[idx]
     next[idx] = !next[idx]
-    setSelectedCircles(next)
+    toggleSet(sessionId, item.id, idx)
 
-    const newCompletedCount = next.filter(Boolean).length
-    progressAnim.value = withTiming(
-      defaultSets > 0 ? newCompletedCount / defaultSets : 0,
-      { duration: 300 },
-    )
-
-    // Micro-bounce feedback
     scale.value = withSpring(0.95, { damping: 15 }, () => {
       scale.value = withSpring(1)
     })
@@ -201,7 +170,7 @@ export default function WorkoutDetail({
           onPress={() =>
             router.push({
               pathname: '/exercise-edit',
-              params: { exerciseLocalId: exerciseId, detailId: item.id },
+              params: { sessionId, detailId: item.id },
             })
           }
           activeOpacity={0.6}
@@ -217,13 +186,13 @@ export default function WorkoutDetail({
             {item.title}
           </Text>
           <View style={styles.detailRow}>
-            {item.variation ? (
+            {effectiveVariation ? (
               <Text style={[styles.variation, { color: subtitleText }]}>
-                {item.variation}
+                {effectiveVariation}
               </Text>
             ) : null}
             <Text style={[styles.repsInfo, { color: subtitleText }]}>
-              {defaultSets} × {item.reps} reps
+              {defaultSets} × {effectiveReps} reps
             </Text>
             {displayWeight > 0 && (
               <Text style={[styles.repsInfo, { color: subtitleText }]}>
@@ -313,7 +282,7 @@ export default function WorkoutDetail({
                     S{i + 1}
                   </Text>
                   <Text style={[styles.pillText, { color: textColor }]}>
-                    {item.reps}
+                    {effectiveReps}
                   </Text>
                 </View>
               )}
