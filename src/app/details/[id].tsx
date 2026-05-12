@@ -5,9 +5,16 @@ import { WorkoutCompleteModal } from '@/components/WorkoutCompleteModal'
 import WorkoutDetail from '@/components/WorkoutDetail'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
+import {
+  cardioMinutes,
+  completedSetCount,
+  isComplete,
+  totalSetCount,
+  useWorkoutSessionStoreBase,
+} from '@/stores/WorkoutSessionStore'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useLocalSearchParams, useNavigation } from 'expo-router'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ScrollView,
   StyleSheet,
@@ -22,6 +29,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
+import { useShallow } from 'zustand/react/shallow'
 
 /** Default rest time between sets in seconds (3 min) */
 const REST_SECONDS = 180
@@ -33,15 +41,16 @@ function DetailsScreen() {
     title: string
   }>()
   const id = Array.isArray(rawId) ? rawId[0] : rawId
-  const title = Array.isArray(rawTitle) ? rawTitle[0] : rawTitle
-  const {
-    exercises,
-    completeExerciseDetail,
-    completeExercise,
-    saveWorkoutSession,
-    updateCardio,
-  } = useExerciseStore()
-  const exercise = id ? exercises[id] : undefined
+  const routeTitle = Array.isArray(rawTitle) ? rawTitle[0] : rawTitle
+  const { exercises } = useExerciseStore()
+  const { session, updateCardio, complete } = useWorkoutSessionStoreBase(
+    useShallow((state) => ({
+      session: id ? state.sessions[id] : undefined,
+      updateCardio: state.updateCardio,
+      complete: state.complete,
+    })),
+  )
+  const template = session ? exercises[session.templateId] : undefined
 
   const {
     text: textColor,
@@ -57,63 +66,39 @@ function DetailsScreen() {
   const [showCompleteModal, setShowCompleteModal] = useState(false)
   const [hasShownComplete, setHasShownComplete] = useState(false)
   const [showCardioEditor, setShowCardioEditor] = useState(false)
-  const hasSavedSession = useRef(false)
 
   // Animated progress
   const progressWidth = useSharedValue(0)
 
   useEffect(() => {
-    navigation.setOptions({ title })
-  }, [navigation, title])
+    navigation.setOptions({ title: template?.title ?? routeTitle })
+  }, [navigation, routeTitle, template?.title])
 
-  const handleExerciseComplete = useCallback(
-    (detailId: string, isComplete: boolean, selectedSets: boolean[]) => {
-      if (!exercise) return
-      completeExerciseDetail(
-        exercise.localId,
-        detailId,
-        isComplete,
-        selectedSets,
-      )
-
-      const allCompleted = exercise.exercises.every((e) =>
-        e.id === detailId ? isComplete : e.completed,
-      )
-
-      if (allCompleted !== exercise.completed) {
-        completeExercise(exercise.localId)
-      }
-    },
-    [exercise, completeExerciseDetail, completeExercise],
-  )
-
-  const handleSetCompleted = useCallback(() => {
+  const handleSetCompleted = () => {
     setShowTimer(true)
-  }, [])
+  }
 
-  const handleSetUncompleted = useCallback(() => {
+  const handleSetUncompleted = () => {
     setShowTimer(false)
-  }, [])
+  }
 
-  const completedExerciseCount = exercise
-    ? exercise.exercises.filter((e) => e.completed).length
-    : 0
-  const totalExerciseCount = exercise ? exercise.exercises.length : 0
+  const completedSetsCount = session ? completedSetCount(session) : 0
+  const totalSetsCount = session ? totalSetCount(session) : 0
   const progressFraction =
-    totalExerciseCount > 0 ? completedExerciseCount / totalExerciseCount : 0
+    totalSetsCount > 0 ? completedSetsCount / totalSetsCount : 0
 
-  // Compute total sets across all exercises
-  const { completedSetsCount, totalSetsCount } = useMemo(() => {
-    if (!exercise) return { completedSetsCount: 0, totalSetsCount: 0 }
-    let completed = 0
-    let total = 0
-    for (const ex of exercise.exercises) {
-      const sets = ex.selectedSets ?? []
-      total += sets.length
-      completed += sets.filter(Boolean).length
-    }
-    return { completedSetsCount: completed, totalSetsCount: total }
-  }, [exercise])
+  const completedExerciseCount = useMemo(() => {
+    if (!session || !template) return 0
+    return template.exercises.filter((detail) => {
+      const progress = session.exerciseProgress[detail.id]
+      return (
+        progress?.selectedSets.length > 0 &&
+        progress.selectedSets.every(Boolean)
+      )
+    }).length
+  }, [session, template])
+
+  const totalExerciseCount = template ? template.exercises.length : 0
 
   useEffect(() => {
     progressWidth.value = withTiming(progressFraction, { duration: 500 })
@@ -124,26 +109,28 @@ function DetailsScreen() {
   }))
 
   const allWorkoutsDone =
-    completedExerciseCount === totalExerciseCount && totalExerciseCount > 0
+    Boolean(session && template && isComplete(session, template)) ||
+    session?.status === 'complete'
 
   // Show congratulations modal once when all exercises become complete
   useEffect(() => {
-    if (allWorkoutsDone && !hasShownComplete) {
+    if (
+      allWorkoutsDone &&
+      !hasShownComplete &&
+      session &&
+      session.status !== 'complete'
+    ) {
       setShowCompleteModal(true)
       setHasShownComplete(true)
-      // Save workout session to Supabase
-      if (exercise && !hasSavedSession.current) {
-        hasSavedSession.current = true
-        saveWorkoutSession(exercise.localId)
-      }
+      complete(session.id)
     }
-  }, [allWorkoutsDone, hasShownComplete, exercise, saveWorkoutSession])
+  }, [allWorkoutsDone, complete, hasShownComplete, session])
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
       {/* Fixed video */}
       <View style={styles.videoFixed}>
-        {exercise && <VideoPlayer uri={exercise.videoURL} />}
+        {template && <VideoPlayer uri={template.videoURL ?? ''} />}
       </View>
 
       {/* Scrollable content */}
@@ -152,7 +139,7 @@ function DetailsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {exercise && (
+        {template && session && (
           <>
             {/* ── Summary card ── */}
             <Animated.View
@@ -218,30 +205,24 @@ function DetailsScreen() {
                       Sets
                     </Text>
                   </View>
-                  {exercise.cardio && (
-                    <>
-                      <View
-                        style={[
-                          styles.statDivider,
-                          { backgroundColor: borderColor },
-                        ]}
-                      />
-                      <TouchableOpacity
-                        style={styles.statItem}
-                        onPress={() => setShowCardioEditor((v) => !v)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.statValue, { color: textColor }]}>
-                          {exercise.cardio.morning + exercise.cardio.evening}m
-                        </Text>
-                        <Text
-                          style={[styles.statLabel, { color: subtitleText }]}
-                        >
-                          Cardio
-                        </Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
+                  <View
+                    style={[
+                      styles.statDivider,
+                      { backgroundColor: borderColor },
+                    ]}
+                  />
+                  <TouchableOpacity
+                    style={styles.statItem}
+                    onPress={() => setShowCardioEditor((v) => !v)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.statValue, { color: textColor }]}>
+                      {cardioMinutes(session)}m
+                    </Text>
+                    <Text style={[styles.statLabel, { color: subtitleText }]}>
+                      Cardio
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -286,7 +267,7 @@ function DetailsScreen() {
             </Animated.View>
 
             {/* ── Cardio editor ── */}
-            {showCardioEditor && exercise.cardio && (
+            {showCardioEditor && (
               <Animated.View
                 entering={FadeInDown.duration(300)}
                 style={[styles.cardioEditor, { backgroundColor: cardSurface }]}
@@ -310,9 +291,9 @@ function DetailsScreen() {
                   <View style={styles.cardioStepperRow}>
                     <TouchableOpacity
                       onPress={() =>
-                        updateCardio(exercise.localId, {
-                          morning: exercise.cardio.morning - 5,
-                          evening: exercise.cardio.evening,
+                        updateCardio(session.id, {
+                          morning: session.cardio.morning - 5,
+                          evening: session.cardio.evening,
                         })
                       }
                       style={[
@@ -320,14 +301,14 @@ function DetailsScreen() {
                         { borderColor: borderColor },
                       ]}
                       activeOpacity={0.6}
-                      disabled={exercise.cardio.morning <= 0}
+                      disabled={session.cardio.morning <= 0}
                     >
                       <Text
                         style={[
                           styles.cardioStepperText,
                           {
                             color:
-                              exercise.cardio.morning > 0
+                              session.cardio.morning > 0
                                 ? textColor
                                 : subtitleText,
                           },
@@ -339,13 +320,13 @@ function DetailsScreen() {
                     <Text
                       style={[styles.cardioStepperValue, { color: textColor }]}
                     >
-                      {exercise.cardio.morning}m
+                      {session.cardio.morning}m
                     </Text>
                     <TouchableOpacity
                       onPress={() =>
-                        updateCardio(exercise.localId, {
-                          morning: exercise.cardio.morning + 5,
-                          evening: exercise.cardio.evening,
+                        updateCardio(session.id, {
+                          morning: session.cardio.morning + 5,
+                          evening: session.cardio.evening,
                         })
                       }
                       style={[
@@ -378,9 +359,9 @@ function DetailsScreen() {
                   <View style={styles.cardioStepperRow}>
                     <TouchableOpacity
                       onPress={() =>
-                        updateCardio(exercise.localId, {
-                          morning: exercise.cardio.morning,
-                          evening: exercise.cardio.evening - 5,
+                        updateCardio(session.id, {
+                          morning: session.cardio.morning,
+                          evening: session.cardio.evening - 5,
                         })
                       }
                       style={[
@@ -388,14 +369,14 @@ function DetailsScreen() {
                         { borderColor: borderColor },
                       ]}
                       activeOpacity={0.6}
-                      disabled={exercise.cardio.evening <= 0}
+                      disabled={session.cardio.evening <= 0}
                     >
                       <Text
                         style={[
                           styles.cardioStepperText,
                           {
                             color:
-                              exercise.cardio.evening > 0
+                              session.cardio.evening > 0
                                 ? textColor
                                 : subtitleText,
                           },
@@ -407,13 +388,13 @@ function DetailsScreen() {
                     <Text
                       style={[styles.cardioStepperValue, { color: textColor }]}
                     >
-                      {exercise.cardio.evening}m
+                      {session.cardio.evening}m
                     </Text>
                     <TouchableOpacity
                       onPress={() =>
-                        updateCardio(exercise.localId, {
-                          morning: exercise.cardio.morning,
-                          evening: exercise.cardio.evening + 5,
+                        updateCardio(session.id, {
+                          morning: session.cardio.morning,
+                          evening: session.cardio.evening + 5,
                         })
                       }
                       style={[
@@ -443,15 +424,12 @@ function DetailsScreen() {
               </Text>
             </View>
 
-            {exercise.exercises.map((detail, idx) => (
+            {template.exercises.map((detail, idx) => (
               <WorkoutDetail
                 key={detail.id}
                 item={detail}
                 index={idx}
-                exerciseId={exercise.localId}
-                onComplete={(isComplete, selectedSets) =>
-                  handleExerciseComplete(detail.id, isComplete, selectedSets)
-                }
+                sessionId={session.id}
                 onSetCompleted={handleSetCompleted}
                 onSetUncompleted={handleSetUncompleted}
               />
@@ -472,19 +450,15 @@ function DetailsScreen() {
       )}
 
       {/* Workout complete modal */}
-      {exercise && (
+      {template && session && (
         <WorkoutCompleteModal
           visible={showCompleteModal}
           onDismiss={() => setShowCompleteModal(false)}
-          workoutTitle={exercise.title}
+          workoutTitle={template.title}
           exerciseCount={totalExerciseCount}
           setsCompleted={completedSetsCount}
           totalSets={totalSetsCount}
-          cardioMinutes={
-            exercise.cardio
-              ? exercise.cardio.morning + exercise.cardio.evening
-              : undefined
-          }
+          cardioMinutes={cardioMinutes(session)}
         />
       )}
     </View>

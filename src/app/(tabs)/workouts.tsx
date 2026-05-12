@@ -3,6 +3,12 @@ import { SegmentedTabs } from '@/components/ui/SegmentedTabs'
 import Workout from '@/components/Workout'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
+import {
+  completedSetCount,
+  totalSetCount,
+  useWorkoutSessionStoreBase,
+} from '@/stores/WorkoutSessionStore'
+import type { WorkoutTemplate } from '@/types/models'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { StatusBar } from 'expo-status-bar'
 import React, { useCallback, useMemo, useState } from 'react'
@@ -11,8 +17,8 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function WorkoutsScreen() {
-  const { activeExercises, completedExercises, completedCount, exercises } =
-    useExerciseStore()
+  const { exercises } = useExerciseStore()
+  const sessions = useWorkoutSessionStoreBase((state) => state.sessions)
   const insets = useSafeAreaInsets()
 
   const [tab, setTab] = useState<'active' | 'completed'>('active')
@@ -27,41 +33,85 @@ export default function WorkoutsScreen() {
     border: borderColor,
   } = useTheme()
 
-  const totalCount = Object.keys(exercises).length
+  const templates = useMemo(() => Object.values(exercises), [exercises])
+  const sessionList = useMemo(() => Object.values(sessions), [sessions])
+  const sessionForTemplate = useCallback(
+    (templateId: string) =>
+      sessionList.find(
+        (session) =>
+          session.templateId === templateId && session.status === 'in-progress',
+      ) ??
+      sessionList
+        .filter((session) => session.templateId === templateId)
+        .sort(
+          (left, right) =>
+            new Date(right.startedAt).getTime() -
+            new Date(left.startedAt).getTime(),
+        )[0],
+    [sessionList],
+  )
+
+  const completedTemplateIds = useMemo(
+    () =>
+      new Set(
+        templates
+          .filter((template) => {
+            const session = sessionForTemplate(template.id)
+            return session?.status === 'complete'
+          })
+          .map((template) => template.id),
+      ),
+    [sessionForTemplate, templates],
+  )
+  const activeExercises = useMemo(
+    () =>
+      templates.filter((template) => !completedTemplateIds.has(template.id)),
+    [completedTemplateIds, templates],
+  )
+  const completedExercises = useMemo(
+    () => templates.filter((template) => completedTemplateIds.has(template.id)),
+    [completedTemplateIds, templates],
+  )
+
+  const totalCount = templates.length
   const data = tab === 'active' ? activeExercises : completedExercises
+  const completedCount = completedExercises.length
   const progress = totalCount > 0 ? completedCount / totalCount : 0
   const allDone = completedCount === totalCount && totalCount > 0
+  const currentSessions = useMemo(
+    () =>
+      templates
+        .map((template) => sessionForTemplate(template.id))
+        .filter(Boolean),
+    [sessionForTemplate, templates],
+  )
 
-  // Total sets completed across all workouts
-  const totalSetsInfo = useMemo(() => {
-    let completed = 0
-    let total = 0
-    for (const ex of Object.values(exercises)) {
-      for (const detail of ex.exercises) {
-        const sets = detail.selectedSets ?? []
-        total += sets.length
-        completed += sets.filter(Boolean).length
-      }
-    }
-    return { completed, total }
-  }, [exercises])
+  const totalSetsInfo = useMemo(
+    () =>
+      currentSessions.reduce(
+        (counts, session) => ({
+          completed: counts.completed + completedSetCount(session),
+          total: counts.total + totalSetCount(session),
+        }),
+        { completed: 0, total: 0 },
+      ),
+    [currentSessions],
+  )
 
   const renderItem = useCallback(
-    ({ item, index }: { item: (typeof data)[number]; index: number }) => (
+    ({ item, index }: { item: WorkoutTemplate; index: number }) => (
       <Workout
         item={item}
+        session={sessionForTemplate(item.id)}
         index={index}
         isFirst={index === 0}
         isLast={index === data.length - 1}
       />
     ),
-    [data],
+    [data.length, sessionForTemplate],
   )
 
-  const keyExtractor = useCallback(
-    (item: (typeof data)[number]) => item.localId,
-    [],
-  )
+  const keyExtractor = useCallback((item: WorkoutTemplate) => item.id, [])
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
