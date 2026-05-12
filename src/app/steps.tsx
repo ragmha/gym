@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ActivityRings } from '@/components/ActivityRings'
-import { useHealthKit } from '@/hooks/useHealthKit'
+import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -43,7 +43,9 @@ const MINUTES_TARGET = 60 // min reference for ring
 
 export default function StepsScreen() {
   const router = useRouter()
-  const { steps, calories } = useHealthKit()
+  const { snapshot } = useHealthSnapshot()
+  const steps = snapshot?.steps ?? 0
+  const calories = snapshot?.calories ?? 0
   const [stepsGoal, setStepsGoal] = useState(DEFAULT_STEPS_GOAL)
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [goalInput, setGoalInput] = useState('')

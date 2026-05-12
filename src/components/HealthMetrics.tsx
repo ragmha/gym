@@ -9,7 +9,7 @@ import {
 
 import { ProgressCard } from '@/components/ProgressCard'
 import { useTheme } from '@/hooks/useThemeColor'
-import type { HealthKitWorkout } from '@/lib/healthkit'
+import type { HealthWorkout } from '@/lib/healthSnapshot/types'
 
 interface HealthMetricsProps {
   isAvailable: boolean
@@ -17,7 +17,7 @@ interface HealthMetricsProps {
   isDemoMode: boolean
   isLoading: boolean
   calories: number
-  workouts: HealthKitWorkout[]
+  workouts: HealthWorkout[]
   onRequestAuth: () => void
   onRefresh: () => void
 }
@@ -100,13 +100,13 @@ export function HealthMetrics({
   }
 
   const todayWorkouts = workouts.filter((w) => {
-    const workoutDate = new Date(w.start)
+    const workoutDate = new Date(w.startISO)
     const today = new Date()
     return workoutDate.toDateString() === today.toDateString()
   })
 
   const totalWorkoutMinutes = Math.round(
-    todayWorkouts.reduce((sum, w) => sum + (w.duration ?? 0), 0),
+    todayWorkouts.reduce((sum, w) => sum + (w.durationMinutes ?? 0), 0),
   )
 
   return (

@@ -1,14 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { useTheme } from '@/hooks/useThemeColor'
-import { getActivityIntensity, isHealthKitAvailable } from '@/lib/healthkit'
+import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 
 const WEEKS = 15
 const DAYS_IN_WEEK = 7
@@ -93,21 +87,6 @@ function buildMonthHeaders(
   return headers
 }
 
-function generateMockIntensity(): Map<string, number> {
-  const map = new Map<string, number>()
-  const today = new Date()
-  for (let i = 0; i < WEEKS * 7; i++) {
-    if (Math.random() < 0.45) {
-      const d = new Date(today)
-      d.setDate(today.getDate() - i)
-      // random step count weighted toward moderate activity
-      const steps = Math.round(Math.random() * 14_000)
-      map.set(d.toISOString().slice(0, 10), steps)
-    }
-  }
-  return map
-}
-
 export function ActivityHeatmap({ title = 'Activity' }: ActivityHeatmapProps) {
   const { width } = useWindowDimensions()
   const {
@@ -132,14 +111,10 @@ export function ActivityHeatmap({ title = 'Activity' }: ActivityHeatmapProps) {
 
   useEffect(() => {
     ;(async () => {
-      if (Platform.OS === 'ios' && isHealthKitAvailable()) {
-        try {
-          setIntensity(await getActivityIntensity(WEEKS * 7))
-        } catch {
-          setIntensity(generateMockIntensity())
-        }
-      } else {
-        setIntensity(generateMockIntensity())
+      try {
+        setIntensity(await healthSnapshot.getRangeIntensity(WEEKS * 7))
+      } catch {
+        setIntensity(new Map())
       }
     })()
   }, [])

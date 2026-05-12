@@ -17,7 +17,7 @@ import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { CalendarStrip } from '@/components/CalendarStrip'
 import type { MetricRing } from '@/components/WorkoutXPCard'
 import { FitnessRingsCard } from '@/components/WorkoutXPCard'
-import { useHealthKit } from '@/hooks/useHealthKit'
+import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useTodayHydration } from '@/stores/HydrationStore'
 import { useWeightStore } from '@/stores/WeightStore'
@@ -71,15 +71,13 @@ export default function HomeScreen() {
     setFocusDate(date)
   }, [])
 
-  const {
-    sleepHours,
-    steps,
-    calories,
-    workouts,
-    hrv,
-    restingHeartRate,
-    refresh,
-  } = useHealthKit(selectedDate)
+  const { snapshot, refresh } = useHealthSnapshot(selectedDate)
+  const sleepHours = snapshot?.sleepHours ?? 0
+  const steps = snapshot?.steps ?? 0
+  const calories = snapshot?.calories ?? 0
+  const workouts = snapshot?.workouts ?? []
+  const hrv = snapshot?.hrv ?? 0
+  const restingHeartRate = snapshot?.restingHeartRate ?? 0
 
   const { latestEntry, distanceToGoal, goalKg, unit, trendDelta } =
     useWeightStore()
@@ -165,7 +163,7 @@ export default function HomeScreen() {
 
   // ── Fitness ring metrics ──────────────────────────────────────
   const cardioMinutes = Math.round(
-    workouts.reduce((sum, w) => sum + (w.duration ?? 0), 0),
+    workouts.reduce((sum, w) => sum + (w.durationMinutes ?? 0), 0),
   )
 
   const weightLostKg =
