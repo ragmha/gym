@@ -4,7 +4,7 @@ import type { ExerciseRow } from '@/lib/validators'
 import { parseExerciseRows } from '@/lib/validators'
 import { useWorkoutSessionStoreBase } from '@/stores/WorkoutSessionStore'
 import type { ExerciseDetailTemplate, WorkoutTemplate } from '@/types/models'
-import { getRandomPastelColor } from '@/utils/getRandomPastelColor'
+import { pastelColorForSeed } from '@/utils/getRandomPastelColor'
 import { useEffect, useMemo } from 'react'
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
@@ -417,7 +417,7 @@ function normalizeTemplate(row: ExerciseRow): WorkoutTemplate {
     title: row.title,
     videoURL: row.videoURL,
     cardio: row.cardio,
-    color: getRandomPastelColor(),
+    color: pastelColorForSeed(row.id),
     exercises: row.exercises.map((detail) => ({
       id: detail.id,
       title: detail.title,
