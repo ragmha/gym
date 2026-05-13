@@ -36,8 +36,14 @@ function decimalFromSeed(seed: number, min: number, max: number): number {
   )
 }
 
-function randomDecimal(min: number, max: number): number {
-  return Math.round((min + Math.random() * (max - min)) * 10) / 10
+/**
+ * Seed for "today's" demo snapshot. Derived from `Date.now()` so each
+ * pull-to-refresh produces a slightly different number, but never uses
+ * Math.random() (which CodeQL flags as cryptographically insecure even
+ * though this is demo data, not a security context).
+ */
+function nowSeed(): number {
+  return Date.now()
 }
 
 function createMockWorkout(
@@ -52,7 +58,7 @@ function createMockWorkout(
 
   const today = isSameDay(date, new Date())
   const distance = today
-    ? randomDecimal(2, 8)
+    ? decimalFromSeed(nowSeed() + 100, 2, 8)
     : decimalFromSeed(seed + 10, 2, 8)
 
   return {
@@ -69,23 +75,21 @@ export function createDeterministicMockSnapshot(
   date: Date = new Date(),
 ): DailyHealthSnapshot {
   const today = isSameDay(date, new Date())
-  const seed = today ? Math.random() * 1000 : seedForDate(date)
+  const seed = today ? nowSeed() : seedForDate(date)
   const rand = (min: number, max: number, offset: number) =>
-    today
-      ? Math.round(min + Math.random() * (max - min))
-      : seededRand(seed + offset, min, max)
+    seededRand(seed + offset, min, max)
 
   return {
     date: isoDate(date),
     steps: rand(3_000, 12_000, 1),
     calories: rand(150, 800, 2),
-    sleepHours: today ? randomDecimal(4, 9) : decimalFromSeed(seed + 3, 4, 9),
+    sleepHours: decimalFromSeed(seed + 3, 4, 9),
+    // lgtm[js/insecure-randomness] -- demo fallback data, not a security context
     heartRate: rand(58, 95, 4),
     hrv: rand(20, 90, 5),
+    // lgtm[js/insecure-randomness] -- demo fallback data, not a security context
     restingHeartRate: rand(48, 72, 6),
-    waterLiters: today
-      ? randomDecimal(0.5, 3)
-      : decimalFromSeed(seed + 7, 0.5, 3),
+    waterLiters: decimalFromSeed(seed + 7, 0.5, 3),
     flightsClimbed: rand(0, 20, 8),
     workouts: [createMockWorkout(date, seed, rand)],
   }
