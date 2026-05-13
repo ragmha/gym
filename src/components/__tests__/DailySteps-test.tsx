@@ -7,6 +7,19 @@ import { DailySteps } from '../DailySteps'
 // Mock useThemeColor
 jest.mock('@/hooks/useThemeColor', () => ({
   useThemeColor: () => '#000000',
+  useTheme: () => ({
+    text: '#0F172A',
+    background: '#F8FAFC',
+    cardBackground: '#FFFFFF',
+    icon: '#64748B',
+    selectedCircle: '#16A34A',
+    accent: '#2563EB',
+    success: '#16A34A',
+    border: '#E2E8F0',
+    successInactive: 'rgba(22,163,74,0.14)',
+    cardSurface: '#F1F5F9',
+    subtitleText: '#475569',
+  }),
 }))
 
 function renderToJSON(element: React.ReactElement) {
