@@ -118,10 +118,9 @@ describe('HealthSnapshotSource adapters', () => {
     consoleWarnSpy.mockRestore()
   })
 
-  it('deterministicMockAdapter.getDailySnapshot is seeded by non-today dates and random for today', async () => {
+  it('deterministicMockAdapter.getDailySnapshot is stable for past dates and refreshes for today as the clock advances', async () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-02-20T10:00:00.000Z'))
-    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5)
 
     const first = await deterministicMockAdapter.getDailySnapshot(
       new Date('2026-02-15T12:00:00.000Z'),
@@ -132,16 +131,24 @@ describe('HealthSnapshotSource adapters', () => {
     const different = await deterministicMockAdapter.getDailySnapshot(
       new Date('2026-02-16T12:00:00.000Z'),
     )
-    const today = await deterministicMockAdapter.getDailySnapshot(
-      new Date('2026-02-20T08:00:00.000Z'),
-    )
 
+    // Past dates are seeded by the date itself -- deterministic.
     expect(second).toEqual(first)
     expect(different).not.toEqual(first)
-    expect(today.date).toBe('2026-02-20')
-    expect(randomSpy).toHaveBeenCalled()
 
-    randomSpy.mockRestore()
+    // "Today" is seeded by Date.now() so two snapshots taken at different
+    // moments on the same calendar day differ -- the user-visible
+    // pull-to-refresh behaviour. No Math.random() involved.
+    const todayAtTen = await deterministicMockAdapter.getDailySnapshot(
+      new Date('2026-02-20T08:00:00.000Z'),
+    )
+    jest.setSystemTime(new Date('2026-02-20T10:01:00.000Z'))
+    const todayAtTenOhOne = await deterministicMockAdapter.getDailySnapshot(
+      new Date('2026-02-20T08:00:00.000Z'),
+    )
+    expect(todayAtTen.date).toBe('2026-02-20')
+    expect(todayAtTenOhOne).not.toEqual(todayAtTen)
+
     jest.useRealTimers()
   })
 

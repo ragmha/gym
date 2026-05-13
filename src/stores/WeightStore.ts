@@ -44,7 +44,10 @@ function generateMockEntries(): WeightEntry[] {
     const d = new Date(today)
     d.setDate(d.getDate() - (13 - i))
     const dateStr = d.toISOString().slice(0, 10)
-    const weight = 82.0 - i * 0.15 + (Math.random() - 0.5) * 0.4
+    // Seeded jitter (Math.sin against day index) so the demo curve is
+    // stable across renders. Avoids Math.random() flagged by CodeQL.
+    const jitter = (Math.sin(i * 12.9898) * 43758.5453) % 1
+    const weight = 82.0 - i * 0.15 + (jitter - 0.5) * 0.4
     return {
       id: `mock-${dateStr}`,
       date: dateStr,
