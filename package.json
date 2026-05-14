@@ -20,6 +20,8 @@
     "test:visual:web": "bunx playwright test e2e/visual.spec.ts --project=chromium",
     "test:visual:maestro:ios": "maestro test .maestro/flows/ios",
     "test:visual:maestro:android": "maestro test .maestro/flows/android",
+    "build:web": "bunx expo export --platform web --output-dir dist",
+    "start:web:static": "bash scripts/serve-web-static.sh",
     "test:watch": "bunx jest --watch",
     "lint": "bunx eslint .",
     "typecheck": "tsc --noEmit",
