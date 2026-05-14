@@ -194,5 +194,3 @@ If no glossary update is needed, exit without creating a PR.
 - Analyze at most 20 commits and at most 10 pull requests per run.
 - Do not search other repositories.
 - Keep pull requests small and terminology-focused.
-
-{{#runtime-import shared/noop-reminder.md}}

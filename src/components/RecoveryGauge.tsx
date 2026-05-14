@@ -8,11 +8,12 @@ import Animated, {
 import Svg, { Circle } from 'react-native-svg'
 
 import { useTheme } from '@/hooks/useThemeColor'
+import type { RecoveryPresentation } from '@/lib/recovery'
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
 interface RecoveryGaugeProps {
-  recovery: number
+  recovery: RecoveryPresentation
   strain: number
   heartRate: number
   sleepPercent: number
@@ -35,20 +36,20 @@ export function RecoveryGauge({
     subtitleText: subtitleColor,
     cardBackground: cardBg,
     border: borderColor,
+    [recovery.accentColorToken]: gaugeColor,
   } = useTheme()
 
   const progress = useSharedValue(0)
 
   useEffect(() => {
-    progress.value = withTiming(Math.min(recovery / 100, 1), { duration: 1200 })
-  }, [recovery, progress])
+    progress.value = withTiming(Math.min(recovery.score / 100, 1), {
+      duration: 1200,
+    })
+  }, [recovery.score, progress])
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: CIRCUMFERENCE * (1 - progress.value),
   }))
-
-  const gaugeColor =
-    recovery >= 67 ? '#30D158' : recovery >= 34 ? '#E8C558' : '#E8707A'
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
@@ -78,7 +79,7 @@ export function RecoveryGauge({
           </Svg>
           <View style={styles.gaugeLabel}>
             <Text style={[styles.gaugeBigText, { color: textColor }]}>
-              {recovery}%
+              {recovery.score}%
             </Text>
           </View>
         </View>
@@ -89,7 +90,7 @@ export function RecoveryGauge({
               Recovery
             </Text>
             <Text style={[styles.statValue, { color: gaugeColor }]}>
-              {recovery}%
+              {recovery.score}%
             </Text>
           </View>
           <View style={styles.statItem}>
