@@ -28,6 +28,22 @@ const requiredSkills: RequiredSkill[] = [
     name: 'supabase-migration',
     requiredTerms: ['RLS', 'generate-types', 'validators'],
   },
+  {
+    name: 'eas-release',
+    requiredTerms: ['eas update --auto', 'build.yml', 'runtimeVersion'],
+  },
+  {
+    name: 'new-screen-route',
+    requiredTerms: ['(tabs)', '_layout.tsx', 'typed routes'],
+  },
+  {
+    name: 'platform-gate',
+    requiredTerms: [
+      "Platform.OS === 'ios'",
+      'Platform.select',
+      'generateMockData',
+    ],
+  },
 ]
 
 const requiredAgents: RequiredAgent[] = []
