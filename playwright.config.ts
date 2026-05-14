@@ -6,11 +6,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: process.env.CI
+    ? [['github'], ['list'], ['html', { open: 'never' }]]
+    : 'html',
+  outputDir: 'test-results',
   use: {
     /* Expo web dev server */
     baseURL: 'http://localhost:8081',
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
   },
   projects: [
     {
@@ -27,6 +31,6 @@ export default defineConfig({
     command: 'bunx expo start --web --port 8081',
     url: 'http://localhost:8081',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: process.env.CI ? 300_000 : 120_000,
   },
 })
