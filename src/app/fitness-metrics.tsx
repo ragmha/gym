@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useMemo } from 'react'
+import React from 'react'
 import {
   ScrollView,
   StyleSheet,
@@ -13,8 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { useHealthKit } from '@/hooks/useHealthKit'
 import { useThemeColor } from '@/hooks/useThemeColor'
-import { useTodayHydration } from '@/stores/HydrationStore'
-import { computeRecoveryScore } from '@/utils/recoveryScore'
+import { useRecoveryPresentation } from '@/lib/recovery'
+import { useDailyHydration } from '@/stores/HydrationStore'
 
 const SLEEP_GOAL_HOURS = 8
 const STEPS_GOAL = 10_000
@@ -192,28 +192,17 @@ export default function FitnessMetricsScreen() {
     flightsClimbed,
   } = useHealthKit()
 
-  const { totalMl: hydrationMl, goalMl: hydrationGoal } = useTodayHydration()
-  const hydrationProgress = hydrationGoal > 0 ? hydrationMl / hydrationGoal : 0
+  const hydration = useDailyHydration()
 
-  const recovery = useMemo(
-    () =>
-      computeRecoveryScore({
-        hrv,
-        restingHR: restingHeartRate,
-        sleepHours,
-        hrvBaseline: null,
-        rhrBaseline: null,
-        sleepGoalHours: SLEEP_GOAL_HOURS,
-      }),
-    [hrv, restingHeartRate, sleepHours],
-  )
-
-  const recoveryColor =
-    recovery.score >= 67
-      ? '#30D158'
-      : recovery.score >= 34
-        ? '#E8C558'
-        : '#E8707A'
+  const recovery = useRecoveryPresentation({
+    hrv,
+    restingHR: restingHeartRate,
+    sleepHours,
+    hrvBaseline: null,
+    rhrBaseline: null,
+    sleepGoalHours: SLEEP_GOAL_HOURS,
+  })
+  const recoveryColor = useThemeColor({}, recovery.accentColorToken)
 
   const metrics: MetricCardProps[] = [
     {
@@ -270,12 +259,12 @@ export default function FitnessMetricsScreen() {
     },
     {
       label: 'Hydration',
-      value: hydrationMl > 0 ? hydrationMl.toLocaleString() : '--',
+      value: hydration.totalMl > 0 ? hydration.formattedTotal : '--',
       unit: 'ml',
-      subtitle: `Goal: ${hydrationGoal} ml`,
+      subtitle: `Goal: ${hydration.goalMl} ml`,
       icon: 'water',
       iconColor: '#0EA5E9',
-      progress: hydrationProgress,
+      progress: hydration.progress,
       onPress: () => router.push('/hydration'),
       cardBg,
       textColor,

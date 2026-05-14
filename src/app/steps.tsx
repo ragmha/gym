@@ -37,7 +37,6 @@ const TEXT_SECONDARY = '#8A8E96'
 
 const CALORIES_TARGET = 600 // kcal reference for ring
 const DISTANCE_TARGET = 8 // km reference for ring
-const MINUTES_TARGET = 60 // min reference for ring
 
 // ── Component ───────────────────────────────────────────────────────
 

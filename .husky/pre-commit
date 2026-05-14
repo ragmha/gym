@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
+# Ensure bun is on PATH when invoked from GUIs (VS Code, etc.)
+# Works on macOS, Linux, and Windows (Git Bash). Missing dirs are harmless.
+export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
+export PATH="$BUN_INSTALL/bin:/opt/homebrew/bin:/usr/local/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
+
 # Run lint-staged (ESLint --fix on staged files)
 bunx lint-staged
 

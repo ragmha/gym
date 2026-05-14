@@ -13,9 +13,11 @@ import {
 } from 'react-native'
 
 import { useTheme } from '@/hooks/useThemeColor'
-import { useWeightStore } from '@/stores/WeightStore'
-
-const KG_TO_LBS = 2.20462
+import {
+  formatWeightValue,
+  useWeightStore,
+  validateWeightInput,
+} from '@/stores/WeightStore'
 
 interface WeightGoalSheetProps {
   visible: boolean
@@ -26,11 +28,7 @@ export function WeightGoalSheet({ visible, onClose }: WeightGoalSheetProps) {
   const { goalKg, unit, setGoal } = useWeightStore()
 
   const currentGoalDisplay =
-    goalKg !== null
-      ? unit === 'lbs'
-        ? (goalKg * KG_TO_LBS).toFixed(1)
-        : goalKg.toFixed(1)
-      : ''
+    goalKg !== null ? formatWeightValue(goalKg, unit) : ''
 
   const [inputValue, setInputValue] = useState(currentGoalDisplay)
 
@@ -51,8 +49,8 @@ export function WeightGoalSheet({ visible, onClose }: WeightGoalSheetProps) {
       return
     }
 
-    const parsed = parseFloat(trimmed)
-    if (Number.isNaN(parsed) || parsed <= 0 || parsed > 500) {
+    const result = validateWeightInput(trimmed, unit)
+    if (!result.ok) {
       if (Platform.OS === 'web') {
         alert('Please enter a valid weight goal.')
       } else {
@@ -64,8 +62,7 @@ export function WeightGoalSheet({ visible, onClose }: WeightGoalSheetProps) {
       return
     }
 
-    const kg = unit === 'lbs' ? parsed / KG_TO_LBS : parsed
-    setGoal(kg)
+    setGoal(result.weightKg)
     Keyboard.dismiss()
     onClose()
   }, [inputValue, unit, setGoal, onClose])
@@ -78,12 +75,7 @@ export function WeightGoalSheet({ visible, onClose }: WeightGoalSheetProps) {
 
   // Reset input when sheet opens
   const handleShow = useCallback(() => {
-    const display =
-      goalKg !== null
-        ? unit === 'lbs'
-          ? (goalKg * KG_TO_LBS).toFixed(1)
-          : goalKg.toFixed(1)
-        : ''
+    const display = goalKg !== null ? formatWeightValue(goalKg, unit) : ''
     setInputValue(display)
   }, [goalKg, unit])
 

@@ -6,6 +6,12 @@ import { HealthMetrics } from '../HealthMetrics'
 
 // Mock dependencies
 jest.mock('@/hooks/useThemeColor', () => ({
+  useTheme: () => ({
+    accent: '#000000',
+    cardBackground: '#FFFFFF',
+    icon: '#000000',
+    text: '#000000',
+  }),
   useThemeColor: () => '#000000',
 }))
 

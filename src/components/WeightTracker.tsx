@@ -12,21 +12,13 @@ import {
 import Svg, { Line, Polyline, Circle as SvgCircle } from 'react-native-svg'
 
 import { useTheme } from '@/hooks/useThemeColor'
-import { useWeightStore, type WeightEntry } from '@/stores/WeightStore'
-
-// ── Helpers ─────────────────────────────────────────────────────────
-
-const KG_TO_LBS = 2.20462
-
-function formatWeight(kg: number, unit: 'kg' | 'lbs'): string {
-  const val = unit === 'lbs' ? kg * KG_TO_LBS : kg
-  return `${val.toFixed(1)}`
-}
-
-function formatDateShort(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
+import {
+  formatWeightValue,
+  useWeightStore,
+  useWeightTimeline,
+  validateWeightInput,
+  type WeightTimeline,
+} from '@/stores/WeightStore'
 
 // ── Chart constants ─────────────────────────────────────────────────
 
@@ -42,21 +34,21 @@ const PLOT_HEIGHT = CHART_HEIGHT - PADDING_TOP - PADDING_BOTTOM
 // ── Mini line chart ─────────────────────────────────────────────────
 
 interface WeightChartProps {
-  entries: WeightEntry[]
-  unit: 'kg' | 'lbs'
+  timeline: WeightTimeline
   accentColor: string
   gridColor: string
   textColor: string
 }
 
 function WeightChart({
-  entries,
-  unit,
+  timeline,
   accentColor,
   gridColor,
   textColor,
 }: WeightChartProps) {
-  if (entries.length < 2) {
+  const actualPoints = timeline.points.filter((point) => point.weightKg > 0)
+
+  if (actualPoints.length < 2) {
     return (
       <View style={[styles.chartPlaceholder, { height: CHART_HEIGHT }]}>
         <Text style={[styles.chartPlaceholderText, { color: textColor }]}>
@@ -66,17 +58,16 @@ function WeightChart({
     )
   }
 
-  const weights = entries.map((e) =>
-    unit === 'lbs' ? e.weightKg * KG_TO_LBS : e.weightKg,
-  )
-  const minW = Math.min(...weights)
-  const maxW = Math.max(...weights)
+  const minW = timeline.axisRange.lo
+  const maxW = timeline.axisRange.hi
   const range = maxW - minW || 1
 
-  const points = entries.map((_, i) => {
-    const x = PADDING_LEFT + (i / (entries.length - 1)) * PLOT_WIDTH
+  const points = actualPoints.map((point, i) => {
+    const x = PADDING_LEFT + (i / (actualPoints.length - 1)) * PLOT_WIDTH
     const y =
-      PADDING_TOP + PLOT_HEIGHT - ((weights[i] - minW) / range) * PLOT_HEIGHT
+      PADDING_TOP +
+      PLOT_HEIGHT -
+      ((point.weightKg - minW) / range) * PLOT_HEIGHT
     return { x, y }
   })
 
@@ -116,7 +107,7 @@ function WeightChart({
       />
       {points.map((p, i) => (
         <SvgCircle
-          key={entries[i].date}
+          key={actualPoints[i].dateKey}
           cx={p.x}
           cy={p.y}
           r={3.5}
@@ -130,8 +121,9 @@ function WeightChart({
 // ── Main component ──────────────────────────────────────────────────
 
 export function WeightTracker() {
-  const { recentEntries, latestEntry, trendDelta, unit, addEntry, setUnit } =
-    useWeightStore()
+  const { latestEntry, trendDelta, unit, addEntry, setUnit } = useWeightStore()
+  const timeline = useWeightTimeline({ rangeDays: 30 })
+  const timelineEntries = timeline.points.filter((point) => point.weightKg > 0)
 
   const {
     cardBackground: cardBg,
@@ -149,8 +141,8 @@ export function WeightTracker() {
     const trimmed = inputValue.trim()
     if (!trimmed) return
 
-    const parsed = parseFloat(trimmed)
-    if (Number.isNaN(parsed) || parsed <= 0 || parsed > 500) {
+    const result = validateWeightInput(trimmed, unit)
+    if (!result.ok) {
       if (Platform.OS === 'web') {
         alert('Please enter a valid weight.')
       } else {
@@ -159,8 +151,7 @@ export function WeightTracker() {
       return
     }
 
-    const kg = unit === 'lbs' ? parsed / KG_TO_LBS : parsed
-    await addEntry(kg)
+    await addEntry(result.weightKg)
     setInputValue('')
     setShowInput(false)
     Keyboard.dismiss()
@@ -172,7 +163,7 @@ export function WeightTracker() {
 
   const trendText =
     trendDelta !== null
-      ? `${trendDelta > 0 ? '+' : ''}${formatWeight(Math.abs(trendDelta), unit)} ${unit} this week`
+      ? `${trendDelta > 0 ? '+' : ''}${formatWeightValue(Math.abs(trendDelta), unit)} ${unit} this week`
       : 'Not enough data for trend'
 
   const trendColor =
@@ -199,7 +190,9 @@ export function WeightTracker() {
         <View style={styles.currentRow}>
           <View>
             <Text style={[styles.currentWeight, { color: textColor }]}>
-              {latestEntry ? formatWeight(latestEntry.weightKg, unit) : '--'}
+              {latestEntry
+                ? formatWeightValue(latestEntry.weightKg, unit)
+                : '--'}
               <Text style={[styles.unitLabel, { color: subtextColor }]}>
                 {' '}
                 {unit}
@@ -244,21 +237,20 @@ export function WeightTracker() {
 
         <View style={styles.chartContainer}>
           <WeightChart
-            entries={recentEntries}
-            unit={unit}
+            timeline={timeline}
             accentColor={accentColor}
             gridColor={gridColor}
             textColor={subtextColor}
           />
         </View>
 
-        {recentEntries.length >= 2 && (
+        {timelineEntries.length >= 2 && (
           <View style={styles.xLabels}>
             <Text style={[styles.xLabel, { color: subtextColor }]}>
-              {formatDateShort(recentEntries[0].date)}
+              {timelineEntries[0]?.displayDate}
             </Text>
             <Text style={[styles.xLabel, { color: subtextColor }]}>
-              {formatDateShort(recentEntries[recentEntries.length - 1].date)}
+              {timelineEntries[timelineEntries.length - 1]?.displayDate}
             </Text>
           </View>
         )}

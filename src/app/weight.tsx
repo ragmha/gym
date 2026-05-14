@@ -18,14 +18,12 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { WeightBarChart, type ChartMode } from '@/components/WeightBarChart'
 import { WeightGoalSheet } from '@/components/WeightGoalSheet'
-import { useWeightStore } from '@/stores/WeightStore'
-
-const KG_TO_LBS = 2.20462
-
-function formatWeight(kg: number, unit: 'kg' | 'lbs'): string {
-  const val = unit === 'lbs' ? kg * KG_TO_LBS : kg
-  return val.toFixed(1)
-}
+import {
+  formatWeightValue,
+  useWeightGoalProgress,
+  useWeightStore,
+  validateWeightInput,
+} from '@/stores/WeightStore'
 
 function formatLastTrackDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -49,15 +47,9 @@ function formatLastTrackDate(dateStr: string): string {
 
 export default function WeightScreen() {
   const router = useRouter()
-  const {
-    recentEntries,
-    latestEntry,
-    distanceToGoal,
-    goalKg,
-    unit,
-    addEntry,
-    deleteEntry,
-  } = useWeightStore()
+  const { recentEntries, latestEntry, unit, addEntry, deleteEntry } =
+    useWeightStore()
+  const goalProgress = useWeightGoalProgress()
 
   // Entries sorted newest first for the list
   const sortedEntries = useMemo(
@@ -83,15 +75,15 @@ export default function WeightScreen() {
   )
 
   const heroWeight = latestEntry
-    ? formatWeight(latestEntry.weightKg, unit)
+    ? formatWeightValue(latestEntry.weightKg, unit)
     : '--'
   const lastTrackText = latestEntry
     ? `Last track: ${formatLastTrackDate(latestEntry.date)}`
     : 'No entries yet'
 
   const goalDistanceText =
-    distanceToGoal !== null
-      ? `${Math.abs(unit === 'lbs' ? distanceToGoal * KG_TO_LBS : distanceToGoal).toFixed(1)} ${unit} TO GOAL`
+    goalProgress.formattedDelta !== null
+      ? `${goalProgress.formattedDelta} TO GOAL`
       : null
 
   const handleAddEntry = useCallback(async () => {
@@ -101,8 +93,8 @@ export default function WeightScreen() {
       return
     }
 
-    const parsed = parseFloat(trimmed)
-    if (Number.isNaN(parsed) || parsed <= 0 || parsed > 500) {
+    const result = validateWeightInput(trimmed, unit)
+    if (!result.ok) {
       if (Platform.OS === 'web') {
         alert('Please enter a valid weight.')
       } else {
@@ -111,8 +103,7 @@ export default function WeightScreen() {
       return
     }
 
-    const kg = unit === 'lbs' ? parsed / KG_TO_LBS : parsed
-    await addEntry(kg)
+    await addEntry(result.weightKg)
     setInputValue('')
     setIsEditing(false)
     Keyboard.dismiss()
@@ -213,13 +204,7 @@ export default function WeightScreen() {
           </View>
 
           <View style={styles.chartContainer}>
-            <WeightBarChart
-              entries={recentEntries}
-              goalKg={goalKg}
-              unit={unit}
-              height={180}
-              mode={chartMode}
-            />
+            <WeightBarChart height={180} mode={chartMode} />
           </View>
 
           {/* Weight history list */}
@@ -230,11 +215,11 @@ export default function WeightScreen() {
               const delta = prevEntry
                 ? entry.weightKg - prevEntry.weightKg
                 : null
-              const displayWeight = formatWeight(entry.weightKg, unit)
+              const displayWeight = formatWeightValue(entry.weightKg, unit)
               const dateLabel = formatLastTrackDate(entry.date)
               const deltaDisplay =
                 delta !== null
-                  ? `${delta > 0 ? '+' : ''}${formatWeight(Math.abs(delta), unit)}`
+                  ? `${delta > 0 ? '+' : ''}${formatWeightValue(Math.abs(delta), unit)}`
                   : null
               const deltaColor =
                 delta !== null

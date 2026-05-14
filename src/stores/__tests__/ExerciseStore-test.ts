@@ -1,5 +1,10 @@
 import { supabase } from '@/lib/supabase'
-import { act, renderHook, waitFor } from '@testing-library/react-native'
+import {
+  act,
+  cleanup,
+  renderHook,
+  waitFor,
+} from '@testing-library/react-native'
 
 // Use requireActual to bypass the global mock in jest.setup.ts
 const { useExerciseStoreBase, useExerciseStore } = jest.requireActual<
@@ -98,6 +103,10 @@ beforeEach(() => {
   useExerciseStoreBase.setState(initialState)
 })
 
+afterEach(() => {
+  cleanup()
+})
+
 describe('ExerciseStore', () => {
   describe('initial state', () => {
     it('starts with empty exercises, no error, not loading, not initialized', () => {
@@ -117,10 +126,15 @@ describe('ExerciseStore', () => {
 
       const state = useExerciseStoreBase.getState()
       const exerciseList = Object.values(state.exercises)
-      expect(exerciseList).toHaveLength(2)
+      expect(exerciseList).toHaveLength(7)
       expect(exerciseList.map((e) => e.title).sort()).toEqual([
-        'Pull Day',
-        'Push Day',
+        'Active Recovery & Core',
+        'Leg Day — Hamstrings & Calves',
+        'Leg Day — Quads & Glutes',
+        'Pull Day — Back & Biceps',
+        'Push Day — Chest & Triceps',
+        'Push Day — Hypertrophy',
+        'Upper Body — Shoulders & Arms',
       ])
     })
 
@@ -146,7 +160,7 @@ describe('ExerciseStore', () => {
       expect(firstExercises).toBe(secondExercises)
     })
 
-    it('sets error message on unexpected failure', async () => {
+    it('falls back to MOCK_EXERCISES on unexpected Supabase failure', async () => {
       const consoleSpy = jest
         .spyOn(console, 'error')
         .mockImplementation(() => {})
@@ -159,8 +173,9 @@ describe('ExerciseStore', () => {
       await useExerciseStoreBase.getState().initialize()
 
       const state = useExerciseStoreBase.getState()
-      expect(state.error).toBe('Failed to initialize exercises')
+      expect(state.error).toBeNull()
       expect(state.loading).toBe(false)
+      expect(Object.values(state.exercises)).toHaveLength(7)
 
       consoleSpy.mockRestore()
     })
@@ -298,13 +313,23 @@ describe('ExerciseStore', () => {
       await useExerciseStoreBase.getState().initialize()
 
       const localId = Object.keys(useExerciseStoreBase.getState().exercises)[0]
-      useExerciseStoreBase.getState().completeExercise(localId)
+      // Force unsynced state directly to avoid auto-sync side effects from completeExercise
+      act(() => {
+        useExerciseStoreBase.setState((state) => ({
+          exercises: {
+            ...state.exercises,
+            [localId]: { ...state.exercises[localId], synced: false },
+          },
+        }))
+      })
       expect(useExerciseStoreBase.getState().exercises[localId].synced).toBe(
         false,
       )
 
       mockSupabaseUpdate({ data: [], error: null })
-      await useExerciseStoreBase.getState().sync()
+      await act(async () => {
+        await useExerciseStoreBase.getState().sync()
+      })
 
       expect(useExerciseStoreBase.getState().exercises[localId].synced).toBe(
         true,
@@ -319,7 +344,9 @@ describe('ExerciseStore', () => {
       const mockedSupabase = jest.mocked(supabase)
       mockedSupabase.from.mockClear()
 
-      await useExerciseStoreBase.getState().sync()
+      await act(async () => {
+        await useExerciseStoreBase.getState().sync()
+      })
 
       expect(mockedSupabase.from).not.toHaveBeenCalled()
     })

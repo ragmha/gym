@@ -35,6 +35,11 @@ jest.mock('expo-router', () => ({
 }))
 
 jest.mock('@/hooks/useThemeColor', () => ({
+  useTheme: jest.fn().mockImplementation(() => ({
+    cardBackground: '#FFFFFF',
+    text: '#000000',
+    selectedCircle: '#007AFF',
+  })),
   useThemeColor: jest.fn().mockImplementation((_, colorName: string) => {
     // Simple mock that returns different colors based on the requested color name
     const colors: ThemeColors = {

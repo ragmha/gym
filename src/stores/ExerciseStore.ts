@@ -471,14 +471,21 @@ export const useExerciseStoreBase = create<ExerciseState>((set, get) => ({
           .select('*')
           .order('day')
 
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Supabase timeout')), 3000),
-        )
+        let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(
+            () => reject(new Error('Supabase timeout')),
+            3000,
+          )
+        })
 
-        const { data, error } = await Promise.race([
+        const result = await Promise.race([
           supabasePromise,
           timeoutPromise,
-        ])
+        ]).finally(() => {
+          if (timeoutHandle !== undefined) clearTimeout(timeoutHandle)
+        })
+        const { data, error } = result
 
         const rows = error ? [] : parseExerciseRows(data ?? [])
         exercisesData =

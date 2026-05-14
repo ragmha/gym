@@ -6,15 +6,14 @@ import {
   useFont,
   vec,
 } from '@shopify/react-native-skia'
-import React, { useCallback, useMemo, useRef } from 'react'
+import React, { useCallback, useRef } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Bar, CartesianChart, Line } from 'victory-native'
 
-import type { WeightEntry } from '@/stores/WeightStore'
+import { useWeightChartModel } from '@/stores/WeightStore'
 
 // ── Constants ───────────────────────────────────────────────────────
 
-const KG_TO_LBS = 2.20462
 const BAR_COLORS_PAST = ['#FFB800', '#FF8C00', '#FF5500'] as const
 const BAR_COLOR_FUTURE = '#2A2A2A'
 const BAR_WIDTH = 18 // pixels per bar slot
@@ -23,34 +22,11 @@ const LINE_COLOR = '#FFFFFF'
 
 const GOAL_LINE_COLOR = '#FFB800'
 
-// ── Helpers ─────────────────────────────────────────────────────────
-
-function formatDateShort(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function getTodayStr(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 // ── Types ───────────────────────────────────────────────────────────
-
-interface ChartDatum {
-  [key: string]: unknown
-  index: number
-  weight: number
-  isFuture: boolean
-  isToday: boolean
-  dateLabel: string
-}
 
 export type ChartMode = 'bar' | 'line'
 
 interface WeightBarChartProps {
-  entries: WeightEntry[]
-  goalKg: number | null
-  unit: 'kg' | 'lbs'
   height?: number
   mode?: ChartMode
 }
@@ -58,88 +34,23 @@ interface WeightBarChartProps {
 // ── Component ───────────────────────────────────────────────────────
 
 export function WeightBarChart({
-  entries,
-  goalKg,
-  unit,
   height = 220,
   mode = 'bar',
 }: WeightBarChartProps) {
   const font = useFont(require('../assets/fonts/SpaceMono-Regular.ttf'), 10)
-
-  const { chartData, lineData, goalValue, yDomain } = useMemo(() => {
-    const today = getTodayStr()
-    const totalDays = 37 // ~5 weeks: 30 past + 7 future
-    const pastDays = 30
-
-    // Build date slots (for bar mode)
-    const todayDate = new Date()
-    const slots: { date: string; isFuture: boolean; isToday: boolean }[] = []
-    for (let i = pastDays - 1; i >= 0; i--) {
-      const d = new Date(todayDate)
-      d.setDate(d.getDate() - i)
-      const ds = d.toISOString().slice(0, 10)
-      slots.push({ date: ds, isFuture: false, isToday: ds === today })
-    }
-    for (let i = 1; i <= totalDays - pastDays; i++) {
-      const d = new Date(todayDate)
-      d.setDate(d.getDate() + i)
-      const ds = d.toISOString().slice(0, 10)
-      slots.push({ date: ds, isFuture: true, isToday: false })
-    }
-
-    // Map entries by date
-    const entryMap = new Map(entries.map((e) => [e.date, e]))
-
-    // Build bar chart data (all day slots, zeros for missing)
-    const barData: ChartDatum[] = slots.map((slot, i) => {
-      const entry = entryMap.get(slot.date)
-      const rawWeight = entry?.weightKg ?? 0
-      const weight =
-        rawWeight > 0 ? (unit === 'lbs' ? rawWeight * KG_TO_LBS : rawWeight) : 0
-      return {
-        index: i,
-        weight,
-        isFuture: slot.isFuture,
-        isToday: slot.isToday,
-        dateLabel: formatDateShort(slot.date),
-      }
-    })
-
-    // Build line chart data (only actual entries, no zeros)
-    const lineEntries: ChartDatum[] = entries
-      .filter((e) => e.weightKg > 0)
-      .map((e, i) => ({
-        index: i,
-        weight: unit === 'lbs' ? e.weightKg * KG_TO_LBS : e.weightKg,
-        isFuture: false,
-        isToday: e.date === today,
-        dateLabel: formatDateShort(e.date),
-      }))
-
-    // Goal in display unit
-    const gv =
-      goalKg !== null ? (unit === 'lbs' ? goalKg * KG_TO_LBS : goalKg) : null
-
-    // Y domain — from actual weights only
-    const weights = entries
-      .filter((e) => e.weightKg > 0)
-      .map((e) => (unit === 'lbs' ? e.weightKg * KG_TO_LBS : e.weightKg))
-    const allValues = gv !== null ? [...weights, gv] : weights
-    const minVal = allValues.length > 0 ? Math.min(...allValues) : 0
-    const maxVal = allValues.length > 0 ? Math.max(...allValues) : 100
-    const padding = (maxVal - minVal) * 0.15 || 5
-    const domain: [number, number] = [
-      Math.max(0, minVal - padding),
-      maxVal + padding,
-    ]
-
-    return {
-      chartData: barData,
-      lineData: lineEntries,
-      goalValue: gv,
-      yDomain: domain,
-    }
-  }, [entries, goalKg, unit])
+  const {
+    chartData,
+    lineData,
+    goalValue,
+    yDomain,
+    todayIndex,
+    firstLabel,
+    todayLabel,
+    lastLabel,
+    lineFirstLabel,
+    lineLastLabel,
+    hasEnoughData,
+  } = useWeightChartModel()
 
   // Chart width based on number of days — wider than screen so it scrolls
   const pointWidth = mode === 'line' ? LINE_POINT_WIDTH : BAR_WIDTH
@@ -147,7 +58,6 @@ export function WeightBarChart({
 
   // Auto-scroll to today on layout
   const scrollRef = useRef<ScrollView>(null)
-  const todayIndex = chartData.findIndex((d) => d.isToday)
   const handleLayout = useCallback(() => {
     if (todayIndex >= 0 && scrollRef.current) {
       const offset = Math.max(0, todayIndex * pointWidth - 160)
@@ -155,7 +65,7 @@ export function WeightBarChart({
     }
   }, [todayIndex, pointWidth])
 
-  if (entries.length < 2) {
+  if (!hasEnoughData) {
     return (
       <View style={[styles.placeholder, { height }]}>
         <Text style={styles.placeholderText}>
@@ -164,16 +74,6 @@ export function WeightBarChart({
       </View>
     )
   }
-
-  // Find x-axis label positions
-  const firstLabel = chartData[0]?.dateLabel ?? ''
-  const todayItem = chartData.find((d) => d.isToday)
-  const todayLabel = todayItem?.dateLabel ?? ''
-  const lastLabel = chartData[chartData.length - 1]?.dateLabel ?? ''
-
-  // Line mode x-axis labels
-  const lineFirstLabel = lineData[0]?.dateLabel ?? ''
-  const lineLastLabel = lineData[lineData.length - 1]?.dateLabel ?? ''
 
   // ── Line mode: fits to screen, only actual data points ────────
   if (mode === 'line') {
