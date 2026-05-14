@@ -164,6 +164,7 @@ describe('fitness metric presenters', () => {
       'recovery',
       'steps',
       'calories',
+      'nutrition-intake',
       'sleep',
       'hydration',
       'heart-rate',
