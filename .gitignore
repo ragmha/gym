@@ -32,3 +32,5 @@ test-results/
 
 # Env files
 .env
+# Local scratch / analysis notes
+/analysis.txt
