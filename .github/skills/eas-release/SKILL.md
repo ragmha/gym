@@ -44,4 +44,4 @@ Verify the release path matches the change type and that required workflow secre
 - Never ship native dependency or config-plugin changes with OTA only.
 - Do not push directly to `main`; releases must come from reviewed PRs.
 - Do not commit EAS, Apple, Google, or Supabase secrets.
-- Keep release automation aligned with Bun, Expo SDK 54, and the existing GitHub workflow files.
+- Keep release automation aligned with Bun, Expo SDK 55, and the existing GitHub workflow files.
