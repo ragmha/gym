@@ -15,6 +15,10 @@
       "command": "gh",
       "args": ["copilot", "mcp", "serve"]
     },
+    "figma": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    },
     "supabase": {
       "type": "stdio",
       "command": "npx",
