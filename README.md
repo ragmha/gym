@@ -44,25 +44,28 @@ bun run web            # Web browser (Metro bundler)
 
 ## 2) Day-to-Day Commands
 
-| Command                  | Description                              |
-| ------------------------ | ---------------------------------------- |
-| `bun run quality:pr`     | PR gate: Expo checks, lint, typecheck, unit tests |
-| `bun run expo:check`     | Verify Expo SDK dependency alignment     |
-| `bun run expo:doctor`    | Run Expo Doctor diagnostics              |
-| `bun run lint`           | ESLint (flat config + Prettier)          |
-| `bun run typecheck`      | TypeScript `--noEmit`                    |
-| `bun run test`           | Jest via jest-expo                       |
-| `bun run test:unit`      | Explicit Jest unit/component Interface   |
-| `bun run test:e2e:web`   | Playwright Expo web smoke test           |
-| `bun run test:e2e:maestro:ios` | Maestro iOS native smoke flows     |
-| `bun run test:e2e:maestro:android` | Maestro Android native smoke flows |
-| `bun run test:watch`     | Jest in watch mode                       |
-| `bun run db:debug`       | Verify Supabase connectivity             |
-| `bun run generate-types` | Regenerate Supabase DB types             |
-| `bun run db:migrate`     | Push Supabase migrations                 |
-| `bun run db:reset`       | Reset Supabase DB                        |
-| `bun run prebuild:clean` | Regenerate native projects (CNG)         |
-| `bun run native:reset`   | Full native reset (rm + prebuild)        |
+| Command                               | Description                                          |
+| ------------------------------------- | ---------------------------------------------------- |
+| `bun run quality:pr`                  | PR gate: Expo checks, lint, typecheck, unit tests    |
+| `bun run expo:check`                  | Verify Expo SDK dependency alignment                 |
+| `bun run expo:doctor`                 | Run Expo Doctor diagnostics                          |
+| `bun run lint`                        | ESLint (flat config + Prettier)                      |
+| `bun run typecheck`                   | TypeScript `--noEmit`                                |
+| `bun run test`                        | Jest via jest-expo                                   |
+| `bun run test:unit`                   | Explicit Jest unit/component Interface               |
+| `bun run test:e2e:web`                | Playwright Expo web smoke test                       |
+| `bun run test:visual:web`             | Capture Expo Web screenshot artifacts                |
+| `bun run test:visual:maestro:ios`     | Run iOS Maestro screenshot flows                     |
+| `bun run test:visual:maestro:android` | Run Android Maestro screenshot flows                 |
+| `bun run test:e2e:maestro:ios`        | Maestro iOS native smoke flows                       |
+| `bun run test:e2e:maestro:android`    | Maestro Android native smoke flows                   |
+| `bun run test:watch`                  | Jest in watch mode                                   |
+| `bun run db:debug`                    | Verify Supabase connectivity                         |
+| `bun run generate-types`              | Regenerate Supabase DB types                         |
+| `bun run db:migrate`                  | Push Supabase migrations                             |
+| `bun run db:reset`                    | Reset Supabase DB                                    |
+| `bun run prebuild:clean`              | Regenerate native projects (CNG)                     |
+| `bun run native:reset`                | Full native reset (rm + prebuild)                    |
 
 ## 3) Project Structure
 
@@ -189,11 +192,12 @@ TypeScript types (`ExerciseRow`, `ExerciseDetail`, `Cardio`) are derived from th
 
 GitHub Actions workflows in `.github/workflows/`:
 
-| Workflow    | Trigger         | Description                                            |
-| ----------- | --------------- | ------------------------------------------------------ |
-| **preview** | Pull request    | Expo compatibility, lint, typecheck, unit tests, EAS preview |
-| **update**  | Push to `main`  | EAS Update production (aborts on native changes)       |
-| **build**   | Manual dispatch | EAS Build (iOS/Android, any profile)                   |
+| Workflow               | Trigger         | Description                                                  |
+| ---------------------- | --------------- | ------------------------------------------------------------ |
+| **preview**            | Pull request    | Expo compatibility, lint, typecheck, unit tests, EAS preview |
+| **visual screenshots** | Frontend PRs    | Expo Web screenshots, artifacts, and PR summary              |
+| **update**             | Push to `main`  | EAS Update production (aborts on native changes)             |
+| **build**              | Manual dispatch | EAS Build (iOS/Android, any profile)                         |
 
 The **preview** workflow runs on every PR and gates merges on `bun run expo:check`,
 `bun run expo:doctor`, `bun run lint`, `bun run typecheck`, and `bun run test:unit`.
@@ -267,6 +271,19 @@ small: it protects the browser Adapter Seam without duplicating Jest coverage.
 If the local browser binary is missing, install the script's browser with
 `bunx playwright install chromium`.
 
+### Web Visual Screenshots (Playwright)
+
+Playwright tests live in `e2e/` and start Expo Web through
+`playwright.config.ts`.
+
+```bash
+bun run test:visual:web
+```
+
+Screenshots are written under `test-results/` and are uploaded by the
+**visual screenshots** PR workflow when frontend-relevant paths change. The
+script uses Chromium for a reliable GitHub-hosted PR gate.
+
 ### Native E2E Smoke (Maestro)
 
 Maestro flows live in `.maestro/flows/` with platform-specific directories:
@@ -285,6 +302,30 @@ bun run test:e2e:maestro:android
 Maestro is intentionally not mandatory PR CI unless the runner has reliable
 native simulator/device support. These scripts require the Maestro CLI to be
 installed locally or on the dedicated native runner.
+
+Each flow also uses `takeScreenshot` steps for native visual evidence:
+
+```bash
+bun run test:visual:maestro:ios
+bun run test:visual:maestro:android
+```
+
+Native screenshot artifacts are intended for local, release, or manual runner
+validation. They are not a required GitHub-hosted PR gate because they require a
+booted simulator/emulator, an installed app build, and platform-specific
+permissions such as HealthKit.
+
+### Figma MCP in Copilot
+
+Workspace MCP config includes Figma's preferred remote endpoint:
+`https://mcp.figma.com/mcp`. In VS Code, run
+**MCP: Open Workspace Folder MCP Configuration**, select **Start** above the
+`figma` server, and complete Figma OAuth in the browser. No Figma tokens are
+committed or prompted in this repo.
+
+To use it, copy a Figma frame or layer URL and paste it into Copilot with your
+implementation request. The MCP client extracts the file and node ID from the
+link and asks Figma for design context.
 
 ## 11) Branching & Workflow
 

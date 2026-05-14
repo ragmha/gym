@@ -1,0 +1,131 @@
+name: visual screenshots
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/app/**'
+      - 'src/components/**'
+      - 'src/constants/**'
+      - 'src/hooks/**'
+      - 'src/stores/**'
+      - 'src/types/**'
+      - 'src/utils/**'
+      - 'src/assets/**'
+      - 'app.json'
+      - 'babel.config.js'
+      - 'metro.config.js'
+      - 'package.json'
+      - 'bun.lock'
+      - 'playwright.config.ts'
+      - 'e2e/**'
+      - '.github/workflows/visual-screenshots.yml'
+
+concurrency:
+  group: visual-screenshots-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web-screenshots:
+    name: Expo Web screenshots
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bunx playwright install chromium
+
+      - name: Capture web screenshots
+        id: web_visual_tests
+        run: bun run test:visual:web
+        env:
+          CI: true
+          EXPO_NO_TELEMETRY: 1
+
+      - name: Upload screenshot artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-visual-screenshots
+          path: |
+            test-results/**/*.png
+            test-results/**/trace.zip
+            playwright-report/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Write visual summary
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.web_visual_tests.outcome }}
+          ARTIFACT_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
+        run: |
+          {
+            echo "## Web visual screenshots"
+            echo
+            echo "- Playwright result: \`${TEST_OUTCOME}\`"
+            echo "- Artifact: [web-visual-screenshots](${ARTIFACT_URL})"
+            echo
+            echo "Screenshots cover Expo Web home, workouts, and settings routes."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  pr-summary:
+    name: PR screenshot summary
+    needs: web-screenshots
+    runs-on: ubuntu-latest
+    if: ${{ always() && github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Comment artifact link
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TEST_RESULT: ${{ needs.web-screenshots.result }}
+          ARTIFACT_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
+        run: |
+          cat > visual-screenshots-pr-comment.md <<EOF
+          ## Visual screenshot artifacts
+
+          Expo Web screenshot result: \`${TEST_RESULT}\`
+
+          Download the **web-visual-screenshots** artifact from:
+          ${ARTIFACT_URL}
+
+          Native screenshots are captured by the Maestro scripts documented in README.md.
+          EOF
+
+          marker="<!-- visual-screenshots -->"
+          body="$(printf '%s\n\n%s' "$marker" "$(cat visual-screenshots-pr-comment.md)")"
+          comment_id="$(
+            gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+              --jq ".[] | select(.user.type == \"Bot\" and (.body | contains(\"${marker}\"))) | .id" \
+              | tail -n 1
+          )"
+
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="$body"
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body"
+          fi
