@@ -59,6 +59,12 @@ jobs:
         env:
           CI: true
           EXPO_NO_TELEMETRY: 1
+          # Build-time placeholders so module-top-level Supabase init doesn't
+          # throw during static export. Visual tests don't make real network
+          # calls; the placeholders are never used at runtime.
+          EXPO_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder_publishable_key_for_build_only
+          EXPO_PUBLIC_SUPABASE_PROJECT_ID: placeholder
 
       - name: Capture web screenshots
         id: web_visual_tests
@@ -66,6 +72,9 @@ jobs:
         env:
           CI: true
           EXPO_NO_TELEMETRY: 1
+          EXPO_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder_publishable_key_for_build_only
+          EXPO_PUBLIC_SUPABASE_PROJECT_ID: placeholder
 
       - name: Upload screenshot artifacts
         if: always()
