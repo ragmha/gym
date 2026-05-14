@@ -26,11 +26,13 @@ export default defineConfig({
       use: { ...devices['iPhone 14'] },
     },
   ],
-  /* Start Expo web server before running tests */
+  /* Serve the pre-built Expo Web static bundle. Building dist once and serving
+     statically is dramatically faster (and more deterministic) than running the
+     full Metro dev server for every test run. */
   webServer: {
-    command: 'bunx expo start --web --port 8081',
+    command: 'bun run start:web:static',
     url: 'http://localhost:8081',
     reuseExistingServer: !process.env.CI,
-    timeout: process.env.CI ? 300_000 : 120_000,
+    timeout: 120_000,
   },
 })
