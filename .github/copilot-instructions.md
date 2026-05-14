@@ -130,10 +130,15 @@ This project targets **iOS and Web as primary platforms**, with **minimal Androi
 ## Build and Testing Expectations
 
 - Use development builds for production-grade app workflows; do not rely solely on Expo Go.
-- Run lint and type checks before merge:
-  - `bunx eslint .`
-  - `bun run typecheck`
-- Keep tests passing (`bunx jest`) for changed areas.
+- Treat testing tools as explicit Modules with CLI Interfaces:
+  - PR quality gate: `bun run quality:pr`
+  - Expo compatibility: `bun run expo:check` and `bun run expo:doctor`
+  - Unit/component Implementation: `bun run test:unit`
+  - Web smoke Adapter: `bun run test:e2e:web`
+  - Native smoke Adapter: `bun run test:e2e:maestro:ios` / `bun run test:e2e:maestro:android`
+- Keep PR CI focused on high-Leverage, high-Locality checks: Expo compatibility, lint, typecheck, and unit/component tests.
+- Keep Playwright web smoke tests small and focused on the browser Seam; do not duplicate Jest assertions.
+- Keep Maestro as a native simulator/device Adapter for local, release, or dedicated native CI. Do not make it mandatory PR CI unless the runner support is reliable.
 - Pre-commit hooks (Husky + lint-staged) auto-run ESLint `--fix` on staged `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs` files.
 
 ## Issue and Debugging Hygiene

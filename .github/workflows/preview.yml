@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   test:
-    name: Lint, Typecheck & Test
+    name: PR Quality Gates
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -32,14 +32,20 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Check Expo dependency alignment
+        run: bun run expo:check
+
+      - name: Run Expo Doctor
+        run: bun run expo:doctor
+
       - name: Run linter
         run: bun run lint
 
       - name: Run typecheck
         run: bun run typecheck
 
-      - name: Run tests
-        run: bunx jest --no-watchman
+      - name: Run unit tests
+        run: bun run test:unit -- --runInBand --no-watchman
 
   preview:
     name: EAS Update (Preview)

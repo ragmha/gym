@@ -13,10 +13,17 @@
     "ios": "bunx expo run:ios",
     "web": "bunx expo start --web",
     "test": "bunx jest",
+    "test:unit": "bunx jest",
+    "test:e2e:web": "bunx playwright test --project=chromium",
+    "test:e2e:maestro:ios": "maestro test .maestro/flows/ios",
+    "test:e2e:maestro:android": "maestro test .maestro/flows/android",
     "test:watch": "bunx jest --watch",
     "lint": "bunx eslint .",
     "typecheck": "tsc --noEmit",
     "validate:ai-artifacts": "bun run scripts/validate-ai-artifacts.ts",
+    "expo:check": "bunx expo install --check",
+    "expo:doctor": "bunx expo-doctor@latest",
+    "quality:pr": "bun run expo:check && bun run expo:doctor && bun run lint && bun run typecheck && bun run test:unit -- --runInBand --no-watchman",
     "db:debug": "bun run scripts/debug-db.ts",
     "generate-types": "supabase gen types typescript --project-id \"$EXPO_PUBLIC_SUPABASE_PROJECT_ID\" --schema public > src/lib/database.types.ts",
     "db:migrate": "supabase db push",
@@ -31,6 +38,10 @@
     ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-tab-view|react-native-pager-view|uuid)"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/e2e/"
     ]
   },
   "dependencies": {
