@@ -26,7 +26,7 @@ import { Chip } from '@/components/ui/Chip'
 import { Radii, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useTheme } from '@/hooks/useThemeColor'
-import { useHydrationStore, useTodayHydration } from '@/stores/HydrationStore'
+import { useDailyHydration, useHydrationStore } from '@/stores/HydrationStore'
 
 // ── Design tokens ────────────────────────────────────────────────────
 
@@ -156,7 +156,7 @@ const wlStyles = StyleSheet.create({
 export default function HydrationScreen() {
   const router = useRouter()
   const colorScheme = useColorScheme()
-  const { todayEntries, totalMl, goalMl, progress } = useTodayHydration()
+  const { todayEntries, totalMl, goalMl, progress } = useDailyHydration()
   const { quickAddMl, addEntry, removeEntry, setGoal, setQuickAdd } =
     useHydrationStore()
   const {
