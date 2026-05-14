@@ -71,23 +71,6 @@ jest.mock('react-native-worklets', () => ({
   scheduleOnRN: jest.fn((fn: any, ...args: any[]) => fn(...args)),
 }))
 
-// Mock react-native-tab-view
-jest.mock('react-native-tab-view', () => ({
-  TabView: ({ renderScene, navigationState }: any) => {
-    const scene = renderScene({
-      route: navigationState.routes[navigationState.index],
-    })
-    return scene
-  },
-  TabBar: () => null,
-  SceneMap: (scenes: Record<string, any>) => {
-    return ({ route }: { route: { key: string } }) => {
-      const Scene = scenes[route.key]
-      return Scene ? Scene() : null
-    }
-  },
-}))
-
 // Mock Supabase client
 jest.mock('@/lib/supabase', () => ({
   supabase: {
