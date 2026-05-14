@@ -16,6 +16,7 @@
     "test:watch": "bunx jest --watch",
     "lint": "bunx eslint .",
     "typecheck": "tsc --noEmit",
+    "validate:ai-artifacts": "bun run scripts/validate-ai-artifacts.ts",
     "db:debug": "bun run scripts/debug-db.ts",
     "generate-types": "supabase gen types typescript --project-id \"$EXPO_PUBLIC_SUPABASE_PROJECT_ID\" --schema public > src/lib/database.types.ts",
     "db:migrate": "supabase db push",
