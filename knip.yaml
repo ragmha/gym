@@ -1,0 +1,24 @@
+# knip — find unused files / deps / exports
+# Tells the team about dead weight without enforcing it for now.
+#
+# Treat as a hint until we agree on the rules; flip blocking via PR if desired.
+$schema: https://unpkg.com/knip@5/schema.json
+
+ignore:
+  # Tests can re-import a symbol from its module just to make jest module
+  # registration deterministic.
+  - 'src/**/__tests__/**'
+  # Skill scripts are invoked by GitHub Actions or the agent, not the bundler.
+  - '.github/skills/**'
+  # ws shim is wired through metro.config.js resolveRequest hook (knip can't see it).
+  - 'src/shims/ws.js'
+
+ignoreDependencies:
+  # Required at runtime by the Expo plugin system / app.json, not imported in JS:
+  - expo-dev-client       # peer for `eas build --profile development`
+  - expo-system-ui        # required for userInterfaceStyle: 'automatic' on iOS
+  - expo-updates          # implied by runtimeVersion in app.json (re-evaluate)
+  - babel-preset-expo     # used in babel.config.js, ships with `expo`
+
+ignoreBinaries:
+  - maestro               # installed separately on dev machines + native runners
