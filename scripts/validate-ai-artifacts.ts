@@ -46,7 +46,30 @@ const requiredSkills: RequiredSkill[] = [
   },
 ]
 
-const requiredAgents: RequiredAgent[] = []
+const requiredAgents: RequiredAgent[] = [
+  {
+    file: 'healthkit-data-pipeline-auditor.agent.md',
+    name: 'HealthKit Data Pipeline Auditor',
+    readOnly: true,
+    requiredTerms: [
+      'daily_health_snapshots',
+      'generateMockData',
+      'READ_PERMISSIONS',
+    ],
+  },
+  {
+    file: 'supabase-schema-reviewer.agent.md',
+    name: 'Supabase Schema Reviewer',
+    readOnly: true,
+    requiredTerms: ['RLS', 'database.types.ts', 'validators.ts'],
+  },
+  {
+    file: 'expo-dependency-auditor.agent.md',
+    name: 'Expo Dependency Auditor',
+    readOnly: true,
+    requiredTerms: ['expo-doctor', 'expo install --check', '@expo/fingerprint'],
+  },
+]
 
 const deprecatedToolNames = new Set([
   'codebase',
