@@ -54,6 +54,12 @@ jobs:
       - name: Install Playwright Chromium
         run: bunx playwright install chromium
 
+      - name: Build Expo Web static bundle
+        run: bun run build:web
+        env:
+          CI: true
+          EXPO_NO_TELEMETRY: 1
+
       - name: Capture web screenshots
         id: web_visual_tests
         run: bun run test:visual:web
@@ -98,7 +104,6 @@ jobs:
       pull-requests: write
     steps:
       - name: Comment artifact link
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
