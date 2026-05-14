@@ -46,9 +46,16 @@ bun run web            # Web browser (Metro bundler)
 
 | Command                  | Description                              |
 | ------------------------ | ---------------------------------------- |
+| `bun run quality:pr`     | PR gate: Expo checks, lint, typecheck, unit tests |
+| `bun run expo:check`     | Verify Expo SDK dependency alignment     |
+| `bun run expo:doctor`    | Run Expo Doctor diagnostics              |
 | `bun run lint`           | ESLint (flat config + Prettier)          |
 | `bun run typecheck`      | TypeScript `--noEmit`                    |
 | `bun run test`           | Jest via jest-expo                       |
+| `bun run test:unit`      | Explicit Jest unit/component Interface   |
+| `bun run test:e2e:web`   | Playwright Expo web smoke test           |
+| `bun run test:e2e:maestro:ios` | Maestro iOS native smoke flows     |
+| `bun run test:e2e:maestro:android` | Maestro Android native smoke flows |
 | `bun run test:watch`     | Jest in watch mode                       |
 | `bun run db:debug`       | Verify Supabase connectivity             |
 | `bun run generate-types` | Regenerate Supabase DB types             |
@@ -182,13 +189,16 @@ TypeScript types (`ExerciseRow`, `ExerciseDetail`, `Cardio`) are derived from th
 
 GitHub Actions workflows in `.github/workflows/`:
 
-| Workflow    | Trigger         | Description                                      |
-| ----------- | --------------- | ------------------------------------------------ |
-| **preview** | Pull request    | Lint + typecheck + test, then EAS Update preview |
-| **update**  | Push to `main`  | EAS Update production (aborts on native changes) |
-| **build**   | Manual dispatch | EAS Build (iOS/Android, any profile)             |
+| Workflow    | Trigger         | Description                                            |
+| ----------- | --------------- | ------------------------------------------------------ |
+| **preview** | Pull request    | Expo compatibility, lint, typecheck, unit tests, EAS preview |
+| **update**  | Push to `main`  | EAS Update production (aborts on native changes)       |
+| **build**   | Manual dispatch | EAS Build (iOS/Android, any profile)                   |
 
-The **preview** workflow runs on every PR and gates merges on passing lint, typecheck, and tests.
+The **preview** workflow runs on every PR and gates merges on `bun run expo:check`,
+`bun run expo:doctor`, `bun run lint`, `bun run typecheck`, and `bun run test:unit`.
+This keeps the PR Interface aligned with Expo SDK compatibility without forcing
+device/simulator-only Adapters into GitHub-hosted runners.
 
 ## 8) Native Workflow (CNG)
 
@@ -215,24 +225,66 @@ bun run native:reset      # rm -rf ios android && prebuild --clean
 
 HealthKit features (`DailySteps`, `HealthMetrics`) are gated with `Platform.OS === 'ios'` and return `null` on other platforms.
 
-## 10) Testing
+## 10) Testing & Quality Gates
+
+The testing stack is split into explicit Modules with clear Interfaces. Each
+Implementation is chosen for the Depth where it has the most Leverage, while
+keeping Locality high so failures point at the smallest useful Seam.
+
+| Module | Interface | Implementation | Depth / Seam |
+| ------ | --------- | -------------- | ------------ |
+| Expo compatibility | `bun run expo:check`, `bun run expo:doctor` | Expo CLI / Expo Doctor | SDK dependency and config Seam; mandatory PR Leverage |
+| Unit & component | `bun run test:unit` | Jest + jest-expo + Testing Library | Stores, hooks, utilities, and component Seams close to source |
+| Web smoke | `bun run test:e2e:web` | Playwright + Expo web dev server | Browser Adapter for the app shell; optional local/CI smoke |
+| Native smoke | `bun run test:e2e:maestro:ios`, `bun run test:e2e:maestro:android` | Maestro flows | Simulator/device Adapter for release and native checks |
+
+Run the PR gate locally before opening a pull request:
+
+```bash
+bun run quality:pr
+```
 
 ### Unit & Component Tests (Jest)
 
 ```bash
 bun run test             # run all tests
+bun run test:unit        # explicit unit/component gate
 bun run test:watch       # watch mode
 ```
 
 Test files live alongside source code in `__tests__/` directories.
+Jest ignores `e2e/`; that directory is owned by the Playwright Interface.
 
-### E2E Tests (Maestro)
+### Web E2E Smoke (Playwright)
+
+```bash
+bun run test:e2e:web
+```
+
+The Playwright smoke test starts Expo web through `playwright.config.ts` and
+asserts that the app shell renders at the configured `baseURL`. Keep this Module
+small: it protects the browser Adapter Seam without duplicating Jest coverage.
+If the local browser binary is missing, install the script's browser with
+`bunx playwright install chromium`.
+
+### Native E2E Smoke (Maestro)
 
 Maestro flows live in `.maestro/flows/` with platform-specific directories:
 
 - `ios/` — HealthKit home, settings HealthKit
 - `android/` — workouts, app navigation
 - `common/` — startup flow
+
+Run them against a prepared development build on a simulator/device:
+
+```bash
+bun run test:e2e:maestro:ios
+bun run test:e2e:maestro:android
+```
+
+Maestro is intentionally not mandatory PR CI unless the runner has reliable
+native simulator/device support. These scripts require the Maestro CLI to be
+installed locally or on the dedicated native runner.
 
 ## 11) Branching & Workflow
 
