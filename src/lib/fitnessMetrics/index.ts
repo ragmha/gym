@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useRecoveryPresentation } from '@/lib/recovery'
 import { useDailyHydration } from '@/stores/HydrationStore'
+import { useDailyNutrition } from '@/stores/MealStore'
 
 import {
   DASHBOARD_GOALS,
@@ -35,6 +36,7 @@ export function useFitnessMetricsDashboard(): MetricPresentation[] {
     sleepGoalHours: DASHBOARD_GOALS.sleepGoalHours,
   })
   const hydration = useDailyHydration()
+  const nutrition = useDailyNutrition()
 
   return useMemo(
     () => [
@@ -56,6 +58,29 @@ export function useFitnessMetricsDashboard(): MetricPresentation[] {
       },
       presentSteps(snapshot),
       presentCalories(snapshot),
+      {
+        id: 'nutrition-intake',
+        label: 'Calories Eaten',
+        value:
+          nutrition.totals.caloriesKcal > 0
+            ? Math.round(nutrition.totals.caloriesKcal).toLocaleString()
+            : '--',
+        unit: 'kcal',
+        subtitle: `Goal: ${nutrition.targets.caloriesKcal.toLocaleString()} kcal`,
+        iconName: 'restaurant',
+        accentColorToken: 'metricNutrition',
+        progress: Math.min(Math.max(nutrition.progress.calories, 0), 1),
+        route: '/nutrition',
+        status:
+          nutrition.totals.caloriesKcal === 0
+            ? 'empty'
+            : nutrition.totals.caloriesKcal >= nutrition.targets.caloriesKcal
+              ? nutrition.totals.caloriesKcal >
+                nutrition.targets.caloriesKcal * 1.05
+                ? 'over'
+                : 'reached'
+              : 'progress',
+      },
       presentSleep(snapshot),
       {
         id: 'hydration',
@@ -74,6 +99,6 @@ export function useFitnessMetricsDashboard(): MetricPresentation[] {
       presentRestingHr(snapshot),
       presentFlightsClimbed(snapshot),
     ],
-    [snapshot, recovery, hydration],
+    [snapshot, recovery, hydration, nutrition],
   )
 }
