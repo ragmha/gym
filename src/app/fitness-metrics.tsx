@@ -11,20 +11,15 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
-import { useRecoveryPresentation } from '@/lib/recovery'
-import { useThemeColor } from '@/hooks/useThemeColor'
-import { useDailyHydration } from '@/stores/HydrationStore'
+import { useTheme, useThemeColor } from '@/hooks/useThemeColor'
+import {
+  useFitnessMetricsDashboard,
+  type MetricPresentation,
+  type MetricRoute,
+} from '@/lib/fitnessMetrics'
 
-const SLEEP_GOAL_HOURS = 8
-const STEPS_GOAL = 10_000
-const CALORIES_GOAL = 600
-const HRV_OPTIMAL = 80
-const HR_MIN = 50
-const HR_MAX = 200
-
-function clamp(val: number, min: number, max: number) {
-  return Math.min(Math.max(val, min), max)
+function clamp(value: number) {
+  return Math.min(Math.max(value, 0), 1)
 }
 
 // ── Mini bar chart ───────────────────────────────────────────────────
@@ -78,13 +73,8 @@ const miniBarStyles = StyleSheet.create({
 // ── Metric card ──────────────────────────────────────────────────────
 
 interface MetricCardProps {
-  label: string
-  value: string
-  unit?: string
-  subtitle?: string
-  icon: React.ComponentProps<typeof Ionicons>['name']
+  metric: MetricPresentation
   iconColor: string
-  progress: number // 0–1
   onPress?: () => void
   cardBg: string
   textColor: string
@@ -93,13 +83,8 @@ interface MetricCardProps {
 }
 
 function MetricCard({
-  label,
-  value,
-  unit,
-  subtitle,
-  icon,
+  metric,
   iconColor,
-  progress,
   onPress,
   cardBg,
   textColor,
@@ -116,10 +101,10 @@ function MetricCard({
     >
       <View style={styles.cardHeader}>
         <View style={[styles.iconBadge, { backgroundColor: `${iconColor}1A` }]}>
-          <Ionicons name={icon} size={16} color={iconColor} />
+          <Ionicons name={metric.iconName} size={16} color={iconColor} />
         </View>
         <Text style={[styles.cardLabel, { color: subtitleColor }]}>
-          {label}
+          {metric.label}
         </Text>
         {onPress && (
           <Ionicons
@@ -131,26 +116,24 @@ function MetricCard({
         )}
       </View>
 
-      <MiniBars progress={clamp(progress, 0, 1)} color={iconColor} />
+      <MiniBars progress={metric.progress} color={iconColor} />
 
       <View style={styles.cardFooter}>
         <Text style={[styles.cardValue, { color: textColor }]}>
-          {value}
-          {unit ? (
+          {metric.value}
+          {metric.unit ? (
             <Text style={[styles.cardUnit, { color: subtitleColor }]}>
               {' '}
-              {unit}
+              {metric.unit}
             </Text>
           ) : null}
         </Text>
-        {subtitle ? (
-          <Text
-            style={[styles.cardSubtitle, { color: subtitleColor }]}
-            numberOfLines={1}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
+        <Text
+          style={[styles.cardSubtitle, { color: subtitleColor }]}
+          numberOfLines={1}
+        >
+          {metric.subtitle}
+        </Text>
       </View>
 
       {/* Progress bar */}
@@ -162,7 +145,7 @@ function MetricCard({
             styles.progressFill,
             {
               backgroundColor: iconColor,
-              width: `${Math.round(clamp(progress, 0, 1) * 100)}%`,
+              width: `${Math.round(clamp(metric.progress) * 100)}%`,
             },
           ]}
         />
@@ -176,154 +159,21 @@ function MetricCard({
 export default function FitnessMetricsScreen() {
   const router = useRouter()
 
+  const theme = useTheme()
   const cardBg = useThemeColor({}, 'cardBackground')
   const textColor = useThemeColor({}, 'text')
   const subtitleColor = useThemeColor({}, 'subtitleText')
   const borderColor = useThemeColor({}, 'border')
   const backgroundColor = useThemeColor({}, 'background')
+  const metrics = useFitnessMetricsDashboard()
 
-  const { snapshot } = useHealthSnapshot()
-  const steps = snapshot?.steps ?? 0
-  const calories = snapshot?.calories ?? 0
-  const sleepHours = snapshot?.sleepHours ?? 0
-  const heartRate = snapshot?.heartRate ?? 0
-  const hrv = snapshot?.hrv ?? 0
-  const restingHeartRate = snapshot?.restingHeartRate ?? 0
-  const flightsClimbed = snapshot?.flightsClimbed ?? 0
+  const createMetricPressHandler = (route?: MetricRoute) => {
+    if (!route) {
+      return undefined
+    }
 
-  const hydration = useDailyHydration()
-
-  const recovery = useRecoveryPresentation({
-    hrv,
-    restingHR: restingHeartRate,
-    sleepHours,
-    hrvBaseline: null,
-    rhrBaseline: null,
-    sleepGoalHours: SLEEP_GOAL_HOURS,
-  })
-  const recoveryColor = useThemeColor({}, recovery.accentColorToken)
-
-  const metrics: MetricCardProps[] = [
-    {
-      label: 'Recovery Score',
-      value: `${recovery.score}`,
-      unit: '%',
-      subtitle: recovery.label,
-      icon: 'shield-checkmark',
-      iconColor: recoveryColor,
-      progress: recovery.score / 100,
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-    {
-      label: 'Steps',
-      value: steps > 0 ? steps.toLocaleString() : '--',
-      subtitle: `Goal: ${STEPS_GOAL.toLocaleString()}`,
-      icon: 'footsteps',
-      iconColor: '#2563EB',
-      progress: steps / STEPS_GOAL,
-      onPress: () => router.push('/steps'),
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-    {
-      label: 'Calories',
-      value: calories > 0 ? calories.toLocaleString() : '--',
-      unit: 'kcal',
-      subtitle: `Goal: ${CALORIES_GOAL} kcal`,
-      icon: 'flame',
-      iconColor: '#F97316',
-      progress: calories / CALORIES_GOAL,
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-    {
-      label: 'Sleep',
-      value: sleepHours > 0 ? sleepHours.toFixed(1) : '--',
-      unit: 'hrs',
-      subtitle: `Goal: ${SLEEP_GOAL_HOURS} hrs`,
-      icon: 'moon',
-      iconColor: '#8B5CF6',
-      progress: sleepHours / SLEEP_GOAL_HOURS,
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-    {
-      label: 'Hydration',
-      value: hydration.totalMl > 0 ? hydration.formattedTotal : '--',
-      unit: 'ml',
-      subtitle: `Goal: ${hydration.goalMl} ml`,
-      icon: 'water',
-      iconColor: '#0EA5E9',
-      progress: hydration.progress,
-      onPress: () => router.push('/hydration'),
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-    {
-      label: 'Heart Rate',
-      value: heartRate > 0 ? `${heartRate}` : '--',
-      unit: 'bpm',
-      subtitle: 'Latest reading',
-      icon: 'heart',
-      iconColor: '#EF4444',
-      progress:
-        heartRate > 0 ? 1 - (heartRate - HR_MIN) / (HR_MAX - HR_MIN) : 0,
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-    {
-      label: 'HRV',
-      value: hrv > 0 ? `${hrv}` : '--',
-      unit: 'ms',
-      subtitle: 'Heart rate variability',
-      icon: 'pulse',
-      iconColor: '#10B981',
-      progress: hrv > 0 ? hrv / HRV_OPTIMAL : 0,
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-    {
-      label: 'Resting HR',
-      value: restingHeartRate > 0 ? `${restingHeartRate}` : '--',
-      unit: 'bpm',
-      subtitle: 'Resting heart rate',
-      icon: 'heart-half',
-      iconColor: '#F59E0B',
-      progress:
-        restingHeartRate > 0 ? 1 - (restingHeartRate - 40) / (100 - 40) : 0,
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-    {
-      label: 'Flights Climbed',
-      value: flightsClimbed > 0 ? `${flightsClimbed}` : '--',
-      subtitle: 'Floors climbed today',
-      icon: 'trending-up',
-      iconColor: '#6366F1',
-      progress: flightsClimbed / 20,
-      cardBg,
-      textColor,
-      subtitleColor,
-      borderColor,
-    },
-  ]
+    return () => router.push(route)
+  }
 
   return (
     <SafeAreaView
@@ -351,8 +201,17 @@ export default function FitnessMetricsScreen() {
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
       >
-        {metrics.map((m) => (
-          <MetricCard key={m.label} {...m} />
+        {metrics.map((metric) => (
+          <MetricCard
+            key={metric.id}
+            metric={metric}
+            iconColor={theme[metric.accentColorToken]}
+            onPress={createMetricPressHandler(metric.route)}
+            cardBg={cardBg}
+            textColor={textColor}
+            subtitleColor={subtitleColor}
+            borderColor={borderColor}
+          />
         ))}
       </ScrollView>
     </SafeAreaView>
