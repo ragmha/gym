@@ -109,6 +109,11 @@ export const exerciseProgressSchema = z.object({
   variationOverride: z.string().nullable().optional(),
 })
 
+export const cardioCompletedSchema = z.object({
+  morning: z.boolean(),
+  evening: z.boolean(),
+})
+
 export const workoutSessionAggregateSchema = z.object({
   id: z.string(),
   templateId: z.string(),
@@ -116,6 +121,7 @@ export const workoutSessionAggregateSchema = z.object({
   completedAt: z.string().nullable(),
   exerciseProgress: z.record(z.string(), exerciseProgressSchema),
   cardio: cardioSchema,
+  cardioCompleted: cardioCompletedSchema,
   status: z.enum(['in-progress', 'complete']),
 })
 
