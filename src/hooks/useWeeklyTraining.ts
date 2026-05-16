@@ -23,7 +23,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import type { HealthWorkout } from '@/lib/healthSnapshot/types'
-import { supabase } from '@/lib/supabase'
+import {
+  type WorkoutHistoryEntry,
+  fetchRecentWorkouts,
+} from '@/lib/workoutHistory'
 import {
   type ACWR,
   type CalibratedTargets,
@@ -39,11 +42,6 @@ import { activityToPillar } from '@/lib/training/pillars'
 
 const WINDOW_DAYS = 28
 const DAILY_BARS_DAYS = 14
-
-interface SupabaseWorkoutRow {
-  started_at: string
-  duration_seconds: number
-}
 
 export type WeeklyTrainingStatus = 'loading' | 'ready' | 'error'
 
@@ -79,12 +77,12 @@ function hkWorkoutToSession(workout: HealthWorkout): TrainingSession | null {
   }
 }
 
-function supabaseRowToSession(row: SupabaseWorkoutRow): TrainingSession {
+function historyToSession(entry: WorkoutHistoryEntry): TrainingSession {
   return {
     source: 'gym-log',
     pillar: 'strength',
-    startISO: row.started_at,
-    durationMinutes: Math.round(row.duration_seconds / 60),
+    startISO: entry.startedAt,
+    durationMinutes: Math.round(entry.durationSeconds / 60),
   }
 }
 
@@ -96,21 +94,8 @@ async function fetchHealthKitSessions(): Promise<TrainingSession[]> {
 }
 
 async function fetchGymStrengthSessions(): Promise<TrainingSession[]> {
-  const since = new Date()
-  since.setDate(since.getDate() - WINDOW_DAYS)
-  since.setHours(0, 0, 0, 0)
-
-  const { data, error } = await supabase
-    .from('workout_sessions')
-    .select('started_at, duration_seconds')
-    .gte('completed_at', since.toISOString())
-    .order('started_at', { ascending: false })
-
-  if (error) throw error
-  const rows = (data ?? []) as SupabaseWorkoutRow[]
-  return rows
-    .filter((r) => r.duration_seconds > 0 && typeof r.started_at === 'string')
-    .map(supabaseRowToSession)
+  const entries = await fetchRecentWorkouts(WINDOW_DAYS)
+  return entries.map(historyToSession)
 }
 
 async function loadSessions(): Promise<TrainingSession[]> {

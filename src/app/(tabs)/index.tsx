@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
   RefreshControl,
   ScrollView,
@@ -16,46 +16,20 @@ import { LoadChart } from '@/components/dashboard/LoadChart'
 import { PillarTriplet } from '@/components/dashboard/PillarTriplet'
 import { ReadinessStrip } from '@/components/dashboard/ReadinessStrip'
 import { TodayHeader } from '@/components/dashboard/TodayHeader'
-import { useReadiness } from '@/hooks/useReadiness'
 import { useTheme } from '@/hooks/useThemeColor'
-import { useTodaySuggestion } from '@/hooks/useTodaySuggestion'
-import { useWeeklyTraining } from '@/hooks/useWeeklyTraining'
-import { computeRecoveryScore } from '@/lib/recovery'
-
-const SLEEP_GOAL_HOURS = 8
+import { useTodaySnapshot } from '@/hooks/useTodaySnapshot'
 
 export default function HomeScreen() {
   const router = useRouter()
   const theme = useTheme()
-  const today = useMemo(() => new Date(), [])
-
-  const readiness = useReadiness()
-  const training = useWeeklyTraining()
-  const suggestion = useTodaySuggestion(readiness, training.sessions)
-
-  const recoveryScore = useMemo(() => {
-    if (
-      readiness.hrv.value == null ||
-      readiness.restingHeartRate.value == null
-    ) {
-      return null
-    }
-    return computeRecoveryScore({
-      hrv: readiness.hrv.value,
-      restingHR: readiness.restingHeartRate.value,
-      sleepHours: readiness.sleepHours.value ?? 0,
-      hrvBaseline: readiness.hrv.baseline,
-      rhrBaseline: readiness.restingHeartRate.baseline,
-      sleepGoalHours: SLEEP_GOAL_HOURS,
-    }).score
-  }, [readiness])
+  const snapshot = useTodaySnapshot()
 
   const [refreshing, setRefreshing] = useState(false)
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await Promise.allSettled([readiness.refresh(), training.refresh()])
+    await snapshot.refresh()
     setRefreshing(false)
-  }, [readiness, training])
+  }, [snapshot])
 
   return (
     <ScrollView
@@ -79,16 +53,22 @@ export default function HomeScreen() {
       </View>
 
       <TodayHeader
-        date={today}
-        recoveryScore={recoveryScore}
-        suggestion={suggestion}
+        date={snapshot.date}
+        recoveryScore={snapshot.recoveryScore}
+        suggestion={snapshot.suggestion}
       />
 
-      <ReadinessStrip readiness={readiness} />
+      <ReadinessStrip readiness={snapshot.readiness} />
 
-      <PillarTriplet weekly={training.weekly} targets={training.targets} />
+      <PillarTriplet
+        weekly={snapshot.training.weekly}
+        targets={snapshot.training.targets}
+      />
 
-      <LoadChart dailyBars={training.dailyBars} acwr={training.acwr} />
+      <LoadChart
+        dailyBars={snapshot.training.dailyBars}
+        acwr={snapshot.training.acwr}
+      />
 
       <HyroxBenchmarkCard />
 

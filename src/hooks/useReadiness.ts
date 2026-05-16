@@ -18,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
+import { computeRecoveryScore, DEFAULT_SLEEP_GOAL_HOURS } from '@/lib/recovery'
 
 import { useHealthSnapshot } from './useHealthSnapshot'
 
@@ -36,6 +37,10 @@ export interface ReadinessSummary {
   hrv: ReadinessMetric
   restingHeartRate: ReadinessMetric
   sleepHours: ReadinessMetric
+  /** 0-100 derived from today's HRV/RHR/Sleep + 7-day baselines using
+   *  computeRecoveryScore. null while loading, when status is 'error',
+   *  or when both HRV and RHR readings are missing. */
+  recoveryScore: number | null
   refresh: () => Promise<void>
 }
 
@@ -184,6 +189,22 @@ export function useReadiness(): ReadinessSummary {
     return 'ready'
   })()
 
+  const recoveryScore = useMemo((): number | null => {
+    if (status !== 'ready') return null
+    const hrv = snapshot?.hrv ?? 0
+    const rhr = snapshot?.restingHeartRate ?? 0
+    // Treat value > 0 as a real reading; skip if both are missing/zero
+    if (!(hrv > 0) && !(rhr > 0)) return null
+    return computeRecoveryScore({
+      hrv,
+      restingHR: rhr,
+      sleepHours: snapshot?.sleepHours ?? 0,
+      hrvBaseline: baseline?.hrv ?? null,
+      rhrBaseline: baseline?.restingHeartRate ?? null,
+      sleepGoalHours: DEFAULT_SLEEP_GOAL_HOURS,
+    }).score
+  }, [status, snapshot, baseline])
+
   return {
     status,
     isDemoMode,
@@ -202,6 +223,7 @@ export function useReadiness(): ReadinessSummary {
       baseline?.sleepHours ?? null,
       sleepDirection,
     ),
+    recoveryScore,
     refresh,
   }
 }

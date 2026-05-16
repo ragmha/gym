@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
-import { useRecoveryPresentation } from '@/lib/recovery'
+import { useReadiness } from '@/hooks/useReadiness'
+import { presentRecoveryScore } from '@/lib/recovery'
 import { useDailyHydration } from '@/stores/HydrationStore'
 import { useDailyNutrition } from '@/stores/MealStore'
 
 import {
-  DASHBOARD_GOALS,
   presentCalories,
   presentFlightsClimbed,
   presentHeartRate,
@@ -22,39 +22,26 @@ export * from './types'
 
 export function useFitnessMetricsDashboard(): MetricPresentation[] {
   const { snapshot } = useHealthSnapshot()
+  const { recoveryScore } = useReadiness()
 
-  const sleepHours = snapshot?.sleepHours ?? 0
-  const hrv = snapshot?.hrv ?? 0
-  const restingHeartRate = snapshot?.restingHeartRate ?? 0
-
-  const recovery = useRecoveryPresentation({
-    hrv,
-    restingHR: restingHeartRate,
-    sleepHours,
-    hrvBaseline: null,
-    rhrBaseline: null,
-    sleepGoalHours: DASHBOARD_GOALS.sleepGoalHours,
-  })
   const hydration = useDailyHydration()
   const nutrition = useDailyNutrition()
 
-  return useMemo(
-    () => [
+  return useMemo(() => {
+    const score = recoveryScore ?? 0
+    const recovery = presentRecoveryScore({ score, label: '', description: '' })
+
+    return [
       {
         id: 'recovery',
         label: 'Recovery Score',
-        value: `${recovery.score}`,
+        value: `${score}`,
         unit: '%',
         subtitle: recovery.label,
         iconName: 'shield-checkmark',
         accentColorToken: recovery.accentColorToken,
-        progress: Math.min(Math.max(recovery.score / 100, 0), 1),
-        status:
-          recovery.score <= 0
-            ? 'empty'
-            : recovery.score >= 100
-              ? 'reached'
-              : 'progress',
+        progress: Math.min(Math.max(score / 100, 0), 1),
+        status: score <= 0 ? 'empty' : score >= 100 ? 'reached' : 'progress',
       },
       presentSteps(snapshot),
       presentCalories(snapshot),
@@ -98,7 +85,6 @@ export function useFitnessMetricsDashboard(): MetricPresentation[] {
       presentHrv(snapshot),
       presentRestingHr(snapshot),
       presentFlightsClimbed(snapshot),
-    ],
-    [snapshot, recovery, hydration, nutrition],
-  )
+    ]
+  }, [snapshot, recoveryScore, hydration, nutrition])
 }
