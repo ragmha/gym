@@ -52,8 +52,6 @@ interface SuggestionInput {
   now?: Date
 }
 
-const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000
-
 function lastSessionPillar(
   sessions: readonly TrainingSession[],
   now: Date,

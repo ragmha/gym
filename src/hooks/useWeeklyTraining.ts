@@ -50,6 +50,7 @@ export type WeeklyTrainingStatus = 'loading' | 'ready' | 'error'
 export interface WeeklyTrainingResult {
   status: WeeklyTrainingStatus
   error: string | null
+  sessions: TrainingSession[]
   weekly: WeeklyVolume[]
   dailyBars: DailyBar[]
   targets: CalibratedTargets
@@ -167,7 +168,9 @@ export function useWeeklyTraining(): WeeklyTrainingResult {
     }
   }, [load])
 
-  // Derived data — kept stable across renders unless sessions change.
+  // Freeze `now` to when sessions last loaded so aggregates don't recompute
+  // every render. `sessions` is intentionally the trigger.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const now = useMemo(() => new Date(), [sessions])
   const weekly = useMemo(() => aggregateWeekly(sessions, now), [sessions, now])
   const dailyBars = useMemo(
@@ -183,6 +186,7 @@ export function useWeeklyTraining(): WeeklyTrainingResult {
   return {
     status,
     error,
+    sessions,
     weekly,
     dailyBars,
     targets,
