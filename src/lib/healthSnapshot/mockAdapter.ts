@@ -1,3 +1,5 @@
+import type { NormalizedActivityType } from '@/lib/training/pillars'
+
 import type {
   DailyHealthSnapshot,
   HealthSnapshotSource,
@@ -57,14 +59,15 @@ function createMockWorkout(
   end.setHours(8, 15, 0, 0)
 
   const today = isSameDay(date, new Date())
-  const distance = today
+  const distanceKm = today
     ? decimalFromSeed(nowSeed() + 100, 2, 8)
     : decimalFromSeed(seed + 10, 2, 8)
 
   return {
     activityName: 'Running',
+    activityType: 'running',
     calories: rand(180, 400, 9),
-    distance,
+    distanceMeters: Math.round(distanceKm * 1000),
     durationMinutes: rand(20, 60, 11),
     startISO: start.toISOString(),
     endISO: end.toISOString(),
@@ -95,6 +98,146 @@ export function createDeterministicMockSnapshot(
   }
 }
 
+/**
+ * Seven-day hybrid + Hyrox training template. Repeats across the requested
+ * window. Lets the load chart and weekly aggregates look like real training
+ * data in demo mode, not a flat one-workout-a-day pattern.
+ *
+ * Strength is intentionally INCLUDED so the dashboard hook's
+ * "exclude HK strength to avoid double-count with WorkoutSessionStore"
+ * filter gets exercised in tests.
+ */
+interface MockRangeTemplate {
+  dayOffsetMod7: number
+  activityName: string
+  activityType: NormalizedActivityType
+  startHour: number
+  startMinute: number
+  baseDurationMinutes: number
+  baseDistanceMeters: number
+  baseCalories: number
+}
+
+const RANGE_WORKOUT_TEMPLATE: readonly MockRangeTemplate[] = [
+  {
+    dayOffsetMod7: 0,
+    activityName: 'Easy Run',
+    activityType: 'running',
+    startHour: 7,
+    startMinute: 0,
+    baseDurationMinutes: 35,
+    baseDistanceMeters: 6_000,
+    baseCalories: 320,
+  },
+  {
+    dayOffsetMod7: 1,
+    activityName: 'Rowing',
+    activityType: 'rowing',
+    startHour: 18,
+    startMinute: 0,
+    baseDurationMinutes: 25,
+    baseDistanceMeters: 5_000,
+    baseCalories: 240,
+  },
+  {
+    dayOffsetMod7: 2,
+    activityName: 'Strength',
+    activityType: 'strength',
+    startHour: 18,
+    startMinute: 30,
+    baseDurationMinutes: 50,
+    baseDistanceMeters: 0,
+    baseCalories: 280,
+  },
+  {
+    dayOffsetMod7: 3,
+    activityName: 'Tempo Run',
+    activityType: 'running',
+    startHour: 7,
+    startMinute: 0,
+    baseDurationMinutes: 40,
+    baseDistanceMeters: 8_000,
+    baseCalories: 420,
+  },
+  {
+    dayOffsetMod7: 4,
+    activityName: 'HIIT',
+    activityType: 'hiit',
+    startHour: 17,
+    startMinute: 30,
+    baseDurationMinutes: 35,
+    baseDistanceMeters: 0,
+    baseCalories: 380,
+  },
+  {
+    dayOffsetMod7: 5,
+    activityName: 'Long Run',
+    activityType: 'running',
+    startHour: 7,
+    startMinute: 0,
+    baseDurationMinutes: 70,
+    baseDistanceMeters: 12_000,
+    baseCalories: 720,
+  },
+  {
+    dayOffsetMod7: 6,
+    activityName: 'Cycling',
+    activityType: 'cycling',
+    startHour: 9,
+    startMinute: 0,
+    baseDurationMinutes: 75,
+    baseDistanceMeters: 25_000,
+    baseCalories: 520,
+  },
+]
+
+function jitterPercent(seed: number, range: number): number {
+  // returns a value in [1 - range, 1 + range], deterministic from seed
+  const factor = (seededRand(seed, 0, 200) - 100) / 100 // -1..1
+  return 1 + factor * range
+}
+
+export function createMockRangeWorkouts(daysBack: number): HealthWorkout[] {
+  const today = new Date()
+  const workouts: HealthWorkout[] = []
+
+  for (let i = 0; i < daysBack; i++) {
+    const date = new Date(today)
+    date.setDate(today.getDate() - i)
+    const template = RANGE_WORKOUT_TEMPLATE[i % 7]
+    if (!template) continue
+
+    const seed = seedForDate(date)
+    const start = new Date(date)
+    start.setHours(template.startHour, template.startMinute, 0, 0)
+    const durationMinutes = Math.round(
+      template.baseDurationMinutes * jitterPercent(seed + 1, 0.1),
+    )
+    const end = new Date(start.getTime() + durationMinutes * 60_000)
+    const distanceMeters =
+      template.baseDistanceMeters > 0
+        ? Math.round(
+            template.baseDistanceMeters * jitterPercent(seed + 2, 0.08),
+          )
+        : 0
+    const calories = Math.round(
+      template.baseCalories * jitterPercent(seed + 3, 0.1),
+    )
+
+    workouts.push({
+      activityName: template.activityName,
+      activityType: template.activityType,
+      calories,
+      distanceMeters,
+      durationMinutes,
+      startISO: start.toISOString(),
+      endISO: end.toISOString(),
+    })
+  }
+
+  return workouts
+}
+
 export const deterministicMockAdapter: HealthSnapshotSource = {
   async getDailySnapshot(date: Date): Promise<DailyHealthSnapshot> {
     return createDeterministicMockSnapshot(date)
@@ -113,6 +256,10 @@ export const deterministicMockAdapter: HealthSnapshotSource = {
     }
 
     return intensity
+  },
+
+  async getRangeWorkouts(daysBack: number): Promise<HealthWorkout[]> {
+    return createMockRangeWorkouts(daysBack)
   },
 
   async saveCardioWorkout(params: SaveCardioWorkoutParams): Promise<boolean> {

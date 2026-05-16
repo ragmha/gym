@@ -12,6 +12,8 @@ jest.mock('@/lib/healthSnapshot/HealthSnapshotSource', () => ({
     getDailySnapshot: (date: Date) => mockHealthSnapshot.getDailySnapshot(date),
     getRangeIntensity: (daysBack: number) =>
       mockHealthSnapshot.getRangeIntensity(daysBack),
+    getRangeWorkouts: (daysBack: number) =>
+      mockHealthSnapshot.getRangeWorkouts(daysBack),
     saveCardioWorkout: (
       params: Parameters<HealthSnapshotSource['saveCardioWorkout']>[0],
     ) => mockHealthSnapshot.saveCardioWorkout(params),
@@ -28,6 +30,7 @@ function createSource(
       createDeterministicMockSnapshot(date),
     ),
     getRangeIntensity: jest.fn(async (_daysBack: number) => new Map()),
+    getRangeWorkouts: jest.fn(async (_daysBack: number) => []),
     saveCardioWorkout: jest.fn(async (_params) => true),
     requestAuthorization: jest.fn(async () => true),
     isAvailable: jest.fn(() => false),

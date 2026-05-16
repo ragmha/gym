@@ -1,3 +1,5 @@
+import type { NormalizedActivityType } from '@/lib/training/pillars'
+
 export interface DailyHealthSnapshot {
   date: string
   steps: number | null
@@ -13,8 +15,14 @@ export interface DailyHealthSnapshot {
 
 export interface HealthWorkout {
   activityName: string
+  /**
+   * Normalised activity type, stable across HealthKit enum updates.
+   * Falls back to 'other' for unknown values.
+   */
+  activityType: NormalizedActivityType
   calories: number
-  distance: number
+  /** Distance in METERS — canonical unit. UI converts to km/yds as needed. */
+  distanceMeters: number
   durationMinutes: number
   startISO: string
   endISO: string
@@ -34,6 +42,11 @@ export interface HealthSnapshotSource {
   getDailySnapshot(date: Date): Promise<DailyHealthSnapshot>
   /** Heatmap input — one bulk query, not N daily ones. */
   getRangeIntensity(daysBack: number): Promise<IntensityMap>
+  /**
+   * Bulk fetch of workouts over a window. Used by the hybrid dashboard to
+   * compute weekly volume + ACWR without N daily round-trips.
+   */
+  getRangeWorkouts(daysBack: number): Promise<HealthWorkout[]>
   /** Save a cardio workout back to the source (no-op for mock). */
   saveCardioWorkout(params: SaveCardioWorkoutParams): Promise<boolean>
   /** Idempotent. Returns true once permission is granted. Mock returns true immediately. */

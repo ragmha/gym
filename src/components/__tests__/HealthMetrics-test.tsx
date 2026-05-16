@@ -142,16 +142,18 @@ describe('HealthMetrics', () => {
     const workouts = [
       {
         activityName: 'TraditionalStrengthTraining',
+        activityType: 'strength' as const,
         calories: 280,
-        distance: 0,
+        distanceMeters: 0,
         durationMinutes: 45,
         startISO: now.toISOString(),
         endISO: now.toISOString(),
       },
       {
         activityName: 'Running',
+        activityType: 'running' as const,
         calories: 200,
-        distance: 5000,
+        distanceMeters: 5000,
         durationMinutes: 30,
         startISO: now.toISOString(),
         endISO: now.toISOString(),
@@ -180,8 +182,9 @@ describe('HealthMetrics', () => {
     const workouts = [
       {
         activityName: 'Running',
+        activityType: 'running' as const,
         calories: 200,
-        distance: 5000,
+        distanceMeters: 5000,
         durationMinutes: 30,
         startISO: yesterday.toISOString(),
         endISO: yesterday.toISOString(),

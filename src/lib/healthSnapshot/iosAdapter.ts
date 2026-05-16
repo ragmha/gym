@@ -10,6 +10,8 @@ import {
 import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
 
+import { classifyHealthKitActivity } from '@/lib/training/pillars'
+
 import type {
   DailyHealthSnapshot,
   HealthSnapshotSource,
@@ -110,11 +112,15 @@ function toDate(value: Date | string): Date {
 function mapWorkout(workout: WorkoutLike): HealthWorkout {
   const start = toDate(workout.startDate)
   const end = toDate(workout.endDate)
+  const rawType = workout.workoutActivityType
+  const rawForClassifier =
+    typeof rawType === 'number' || typeof rawType === 'string' ? rawType : null
 
   return {
-    activityName: String(workout.workoutActivityType ?? 'Unknown'),
+    activityName: String(rawType ?? 'Unknown'),
+    activityType: classifyHealthKitActivity(rawForClassifier),
     calories: roundInt(workout.totalEnergyBurned?.quantity ?? 0),
-    distance: workout.totalDistance?.quantity ?? 0,
+    distanceMeters: workout.totalDistance?.quantity ?? 0,
     durationMinutes: roundInt((end.getTime() - start.getTime()) / 60_000),
     startISO: start.toISOString(),
     endISO: end.toISOString(),
@@ -263,6 +269,21 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       waterLiters,
       flightsClimbed,
       workouts: workouts ?? [],
+    }
+  },
+
+  async getRangeWorkouts(daysBack: number): Promise<HealthWorkout[]> {
+    if (!this.isAvailable()) return []
+
+    try {
+      const workouts = await queryWorkoutSamples({
+        limit: 0,
+        filter: { date: rangeWindow(daysBack) },
+      })
+      return workouts.map((workout) => mapWorkout(workout))
+    } catch (err) {
+      warnHealthSnapshotFailure('range workouts read', err)
+      return []
     }
   },
 

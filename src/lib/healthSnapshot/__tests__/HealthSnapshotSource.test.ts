@@ -84,8 +84,9 @@ describe('HealthSnapshotSource adapters', () => {
       workouts: [
         {
           activityName: 'Running',
+          activityType: 'running',
           calories: 250,
-          distance: 5.25,
+          distanceMeters: 5.25,
           durationMinutes: 45,
           startISO: '2026-02-15T08:00:00.000Z',
           endISO: '2026-02-15T08:45:00.000Z',
@@ -148,6 +149,87 @@ describe('HealthSnapshotSource adapters', () => {
     )
     expect(todayAtTen.date).toBe('2026-02-20')
     expect(todayAtTenOhOne).not.toEqual(todayAtTen)
+
+    jest.useRealTimers()
+  })
+
+  it('iosHealthKitAdapter.getRangeWorkouts normalises numeric activity types into stable kinds in one bulk query', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-02-20T10:00:00.000Z'))
+
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 37, // running
+        totalEnergyBurned: { quantity: 420 },
+        totalDistance: { quantity: 8000 },
+        startDate: '2026-02-19T07:00:00.000Z',
+        endDate: '2026-02-19T07:40:00.000Z',
+      },
+      {
+        workoutActivityType: 50, // traditionalStrengthTraining
+        totalEnergyBurned: { quantity: 280 },
+        totalDistance: { quantity: 0 },
+        startDate: '2026-02-18T18:00:00.000Z',
+        endDate: '2026-02-18T18:50:00.000Z',
+      },
+      {
+        workoutActivityType: 82, // swimBikeRun (multisport)
+        totalEnergyBurned: { quantity: 900 },
+        totalDistance: { quantity: 51500 },
+        startDate: '2026-02-17T07:00:00.000Z',
+        endDate: '2026-02-17T10:00:00.000Z',
+      },
+    ])
+
+    const workouts = await iosHealthKitAdapter.getRangeWorkouts(7)
+
+    expect(hk.queryWorkoutSamples).toHaveBeenCalledTimes(1)
+    expect(hk.queryWorkoutSamples).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: 0 }),
+    )
+    expect(workouts.map((w) => w.activityType)).toEqual([
+      'running',
+      'strength',
+      'multisport',
+    ])
+    expect(workouts[0].distanceMeters).toBe(8000)
+    expect(workouts[0].durationMinutes).toBe(40)
+
+    jest.useRealTimers()
+  })
+
+  it('iosHealthKitAdapter.getRangeWorkouts returns an empty array and warns when the underlying query fails', async () => {
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
+    hk.queryWorkoutSamples.mockRejectedValueOnce(new Error('hk denied'))
+
+    await expect(iosHealthKitAdapter.getRangeWorkouts(7)).resolves.toEqual([])
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('range workouts read failed'),
+    )
+
+    consoleWarnSpy.mockRestore()
+  })
+
+  it('deterministicMockAdapter.getRangeWorkouts produces a varied 7-day hybrid pattern across the window, deterministic per date', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-02-20T10:00:00.000Z'))
+
+    const first = await deterministicMockAdapter.getRangeWorkouts(14)
+    const second = await deterministicMockAdapter.getRangeWorkouts(14)
+
+    expect(first).toEqual(second)
+    expect(first).toHaveLength(14)
+    // 7-day template => every activity type appears at least once across 14 days
+    const types = new Set(first.map((w) => w.activityType))
+    expect(types).toEqual(
+      new Set(['running', 'rowing', 'strength', 'hiit', 'cycling']),
+    )
+    // distance-bearing activities have non-zero meters
+    const aRun = first.find((w) => w.activityType === 'running')
+    expect(aRun?.distanceMeters).toBeGreaterThan(0)
+    // a HIIT session has zero distance
+    const aHiit = first.find((w) => w.activityType === 'hiit')
+    expect(aHiit?.distanceMeters).toBe(0)
 
     jest.useRealTimers()
   })

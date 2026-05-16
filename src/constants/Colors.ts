@@ -1,6 +1,11 @@
 const lightAccent = '#007AFF'
 const darkAccent = '#FF6B35'
 
+// Dashboard hero accent (lime) — used only by the new triathlon/hybrid
+// dashboard surface. Leaves the existing `accent` token unchanged so the rest
+// of the app keeps its current visual identity.
+const heroAccent = '#C8FF00'
+
 export const Colors = {
   light: {
     text: '#0F172A',
@@ -14,6 +19,9 @@ export const Colors = {
     shadow: '#0F172A',
     selectedCircle: '#16A34A',
     accent: lightAccent,
+    hero: '#65A30D',
+    heroSoft: 'rgba(101,163,13,0.12)',
+    cardElevated: '#FFFFFF',
     info: '#0EA5E9',
     success: '#16A34A',
     warning: '#D97706',
@@ -58,6 +66,9 @@ export const Colors = {
     shadow: '#000000',
     selectedCircle: darkAccent,
     accent: darkAccent,
+    hero: heroAccent,
+    heroSoft: 'rgba(200,255,0,0.14)',
+    cardElevated: '#0B1424',
     info: '#38BDF8',
     success: '#22C55E',
     warning: '#F59E0B',
