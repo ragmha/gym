@@ -140,9 +140,7 @@ describe('calibrateTargets', () => {
   })
 
   it('blends real average with fallback for 1–3 weeks of history', () => {
-    // 2 weeks of consistent strength (90 min/wk avg) → blend(90/4, 180)
-    // Note: pillarSums looks at last 4 weeks total; only 2 of them have data.
-    // So real avg = (180 + 0 + 0 + 0) / 4 = 45 across the 4-week window.
+    // 2 weeks of consistent strength (90 min/wk avg) blends real avg with fallback.
     const sessions: TrainingSession[] = [
       session('strength', '2026-05-04T07:00:00', 90), // last week
       session('strength', '2026-04-27T07:00:00', 90), // 2 weeks ago
@@ -150,8 +148,8 @@ describe('calibrateTargets', () => {
     const result = calibrateTargets(sessions, NOW)
     expect(result.source).toBe('partial')
     expect(result.weeksObserved).toBe(2)
-    // 45 × 0.5 + 180 × 0.5 = 112.5 → rounded to 113
-    expect(result.strengthMinutes).toBeCloseTo(113, 0)
+    // 90 × 0.5 + 180 × 0.5 = 135
+    expect(result.strengthMinutes).toBe(135)
   })
 
   it('uses trailing 4-week average + 10% progression once calibrated', () => {

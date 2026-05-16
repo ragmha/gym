@@ -215,15 +215,23 @@ export function calibrateTargets(
   }
 
   if (weeksObserved < 4) {
+    const partialWindowWeeks = Math.max(weeksObserved, 1)
+    const partialAvg = {
+      strength: completeWeeksWindow.strength.minutes / partialWindowWeeks,
+      run: completeWeeksWindow.run.minutes / partialWindowWeeks,
+      conditioning:
+        completeWeeksWindow.conditioning.minutes / partialWindowWeeks,
+    }
     return {
       strengthMinutes: Math.round(
-        avg.strength * 0.5 + FALLBACK_WEEKLY_TARGETS.strengthMinutes * 0.5,
+        partialAvg.strength * 0.5 +
+          FALLBACK_WEEKLY_TARGETS.strengthMinutes * 0.5,
       ),
       runMinutes: Math.round(
-        avg.run * 0.5 + FALLBACK_WEEKLY_TARGETS.runMinutes * 0.5,
+        partialAvg.run * 0.5 + FALLBACK_WEEKLY_TARGETS.runMinutes * 0.5,
       ),
       conditioningMinutes: Math.round(
-        avg.conditioning * 0.5 +
+        partialAvg.conditioning * 0.5 +
           FALLBACK_WEEKLY_TARGETS.conditioningMinutes * 0.5,
       ),
       source: 'partial',

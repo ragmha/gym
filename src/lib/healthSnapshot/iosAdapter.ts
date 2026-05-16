@@ -56,7 +56,7 @@ interface CategoryLike extends DateRangeLike {
 interface WorkoutLike extends DateRangeLike {
   workoutActivityType?: unknown
   totalEnergyBurned?: { quantity?: number }
-  totalDistance?: { quantity?: number }
+  totalDistance?: { quantity?: number; unit?: string }
 }
 
 function isoDate(date: Date): string {
@@ -109,6 +109,26 @@ function toDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value)
 }
 
+function toMeters(distance?: { quantity?: number; unit?: string }): number {
+  const quantity = distance?.quantity ?? 0
+  if (!Number.isFinite(quantity)) return 0
+
+  switch (distance?.unit) {
+    case 'km':
+      return quantity * 1_000
+    case 'mi':
+      return quantity * 1_609.344
+    case 'yd':
+      return quantity * 0.9144
+    case 'ft':
+      return quantity * 0.3048
+    case 'cm':
+      return quantity / 100
+    default:
+      return quantity
+  }
+}
+
 function mapWorkout(workout: WorkoutLike): HealthWorkout {
   const start = toDate(workout.startDate)
   const end = toDate(workout.endDate)
@@ -120,7 +140,7 @@ function mapWorkout(workout: WorkoutLike): HealthWorkout {
     activityName: String(rawType ?? 'Unknown'),
     activityType: classifyHealthKitActivity(rawForClassifier),
     calories: roundInt(workout.totalEnergyBurned?.quantity ?? 0),
-    distanceMeters: workout.totalDistance?.quantity ?? 0,
+    distanceMeters: toMeters(workout.totalDistance),
     durationMinutes: roundInt((end.getTime() - start.getTime()) / 60_000),
     startISO: start.toISOString(),
     endISO: end.toISOString(),

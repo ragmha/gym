@@ -161,7 +161,7 @@ describe('HealthSnapshotSource adapters', () => {
       {
         workoutActivityType: 37, // running
         totalEnergyBurned: { quantity: 420 },
-        totalDistance: { quantity: 8000 },
+        totalDistance: { quantity: 8, unit: 'km' },
         startDate: '2026-02-19T07:00:00.000Z',
         endDate: '2026-02-19T07:40:00.000Z',
       },

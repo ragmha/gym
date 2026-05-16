@@ -26,6 +26,7 @@ import {
   useHyroxBenchmarkStoreBase,
   useHyroxStationSummary,
 } from '@/stores/HyroxBenchmarkStore'
+import { useShallow } from 'zustand/react/shallow'
 
 export default function HyroxLogScreen() {
   const router = useRouter()
@@ -48,8 +49,10 @@ export default function HyroxLogScreen() {
 
   const station = getStation(stationId)
   const summary = useHyroxStationSummary(stationId)
-  const recentAttempts = useHyroxBenchmarkStoreBase((s) =>
-    s.benchmarks.filter((b) => b.station === stationId).slice(0, 8),
+  const recentAttempts = useHyroxBenchmarkStoreBase(
+    useShallow((s) =>
+      s.benchmarks.filter((b) => b.station === stationId).slice(0, 8),
+    ),
   )
 
   const handleSave = () => {
