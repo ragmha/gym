@@ -114,6 +114,9 @@ function toMeters(distance?: { quantity?: number; unit?: string }): number {
   if (!Number.isFinite(quantity)) return 0
 
   switch (distance?.unit) {
+    case 'm':
+    case 'meter':
+      return quantity
     case 'km':
       return quantity * 1_000
     case 'mi':
@@ -125,6 +128,7 @@ function toMeters(distance?: { quantity?: number; unit?: string }): number {
     case 'cm':
       return quantity / 100
     default:
+      // HealthKit may omit a unit for workouts; treat that as meters.
       return quantity
   }
 }
