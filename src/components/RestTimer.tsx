@@ -35,6 +35,7 @@ export function RestTimer({
 }: RestTimerProps) {
   const [remaining, setRemaining] = useState(restSeconds)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null)
+  const onCompleteRef = useRef(onComplete)
   const [barWidth, setBarWidth] = useState(0)
 
   const progress = useSharedValue(1)
@@ -48,11 +49,15 @@ export function RestTimer({
   } = useTheme()
 
   useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  useEffect(() => {
     intervalRef.current = setInterval(() => {
       setRemaining((prev) => {
         if (prev <= 1) {
           if (intervalRef.current) clearInterval(intervalRef.current)
-          onComplete?.()
+          onCompleteRef.current?.()
           return 0
         }
         return prev - 1
@@ -62,7 +67,7 @@ export function RestTimer({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [onComplete])
+  }, [])
 
   useEffect(() => {
     progress.value = withTiming(remaining / restSeconds, { duration: 300 })

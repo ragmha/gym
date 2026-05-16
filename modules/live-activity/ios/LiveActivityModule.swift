@@ -70,14 +70,24 @@ private enum LiveActivityModuleError: LocalizedError {
   }
 }
 
+private let fractionalISO8601Formatter: ISO8601DateFormatter = {
+  let formatter = ISO8601DateFormatter()
+  formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+  return formatter
+}()
+
 private let iso8601Formatter = ISO8601DateFormatter()
+
+private func parseISO8601(_ value: String) -> Date? {
+  fractionalISO8601Formatter.date(from: value) ?? iso8601Formatter.date(from: value)
+}
 
 @available(iOS 16.2, *)
 private func makeAttributes(from attrs: [String: Any]) throws -> WorkoutActivityAttributes {
   guard
     let workoutName = attrs["workoutName"] as? String,
     let startedAtRaw = attrs["startedAt"] as? String,
-    let startedAt = iso8601Formatter.date(from: startedAtRaw)
+    let startedAt = parseISO8601(startedAtRaw)
   else {
     throw LiveActivityModuleError.invalidAttributes
   }
@@ -97,7 +107,7 @@ private func makeState(from state: [String: Any]) throws -> WorkoutActivityAttri
 
   let restEndsAt: Date?
   if let raw = state["restEndsAt"] as? String {
-    restEndsAt = iso8601Formatter.date(from: raw)
+    restEndsAt = parseISO8601(raw)
   } else {
     restEndsAt = nil
   }

@@ -63,10 +63,6 @@ export default function StepsScreen() {
     })
   }, [])
 
-  useEffect(() => {
-    useStepsStoreBase.getState().setSteps(steps)
-  }, [steps])
-
   const saveGoal = useCallback(() => {
     const trimmed = goalInput.trim()
     if (!trimmed) {

@@ -3,6 +3,7 @@ import { Platform } from 'react-native'
 const APP_GROUP = 'group.io.raghib.gym'
 const SNAPSHOT_KEY = 'todaySnapshot'
 const WIDGET_KIND = 'GymTodayWidget'
+let lastSerializedSnapshot: string | null = null
 
 export interface TodaySnapshot {
   date: string
@@ -59,6 +60,11 @@ export function pushTodaySnapshot(snapshot: TodaySnapshot): void {
   }
 
   const storage = new ExtensionStorage(APP_GROUP)
-  storage.set(SNAPSHOT_KEY, JSON.stringify(snapshot))
+  const serialized = JSON.stringify(snapshot)
+  if (serialized === lastSerializedSnapshot) {
+    return
+  }
+  storage.set(SNAPSHOT_KEY, serialized)
+  lastSerializedSnapshot = serialized
   ExtensionStorage.reloadWidget(WIDGET_KIND)
 }

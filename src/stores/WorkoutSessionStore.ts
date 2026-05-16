@@ -98,7 +98,7 @@ function syncLiveActivity(
   const template = templateBySessionId.get(sessionId)
   if (!session || !template || session.status !== 'in-progress') return
 
-  void updateWorkoutActivity(getLiveActivityState(session, template))
+  void updateWorkoutActivity(sessionId, getLiveActivityState(session, template))
 }
 
 function createProgress(
@@ -205,6 +205,7 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
 
     restEndsAtBySessionId.set(session.id, null)
     void startWorkoutActivity(
+      session.id,
       template.title,
       getLiveActivityState(session, template),
     )
@@ -502,7 +503,7 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
     })
     restEndsAtBySessionId.delete(sessionId)
     templateBySessionId.delete(sessionId)
-    void endWorkoutActivity()
+    void endWorkoutActivity(sessionId)
   },
 
   setRestEndsAt: (sessionId, restEndsAt) => {

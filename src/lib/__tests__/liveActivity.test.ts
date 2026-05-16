@@ -15,12 +15,14 @@ jest.mock('../../../modules/live-activity', () => ({
 
 describe('liveActivity wrapper', () => {
   beforeEach(async () => {
-    await endWorkoutActivity()
+    await endWorkoutActivity('session-0')
+    await endWorkoutActivity('session-1')
+    await endWorkoutActivity('session-2')
     jest.clearAllMocks()
   })
 
   it('starts an activity with the expected payload shape', async () => {
-    await startWorkoutActivity('Push Day', {
+    await startWorkoutActivity('session-1', 'Push Day', {
       exerciseName: 'Bench Press',
       currentSet: 2,
       totalSets: 4,
@@ -43,7 +45,7 @@ describe('liveActivity wrapper', () => {
   })
 
   it('updates and ends only when a live activity has started', async () => {
-    await updateWorkoutActivity({
+    await updateWorkoutActivity('session-1', {
       exerciseName: 'Incline Press',
       currentSet: 3,
       totalSets: 4,
@@ -52,14 +54,14 @@ describe('liveActivity wrapper', () => {
 
     expect(nativeLiveActivity.updateActivity).not.toHaveBeenCalled()
 
-    await startWorkoutActivity('Push Day', {
+    await startWorkoutActivity('session-1', 'Push Day', {
       exerciseName: 'Bench Press',
       currentSet: 1,
       totalSets: 4,
       restEndsAt: null,
     })
 
-    await updateWorkoutActivity({
+    await updateWorkoutActivity('session-1', {
       exerciseName: 'Incline Press',
       currentSet: 3,
       totalSets: 4,
@@ -76,7 +78,7 @@ describe('liveActivity wrapper', () => {
       },
     )
 
-    await endWorkoutActivity()
+    await endWorkoutActivity('session-1')
     expect(nativeLiveActivity.endActivity).toHaveBeenCalledWith('activity-id-1')
   })
 
@@ -85,7 +87,7 @@ describe('liveActivity wrapper', () => {
       nativeLiveActivity.areActivitiesEnabled as jest.Mock
     ).mockResolvedValueOnce(false)
 
-    await startWorkoutActivity('Pull Day', {
+    await startWorkoutActivity('session-2', 'Pull Day', {
       exerciseName: 'Rows',
       currentSet: 1,
       totalSets: 3,
