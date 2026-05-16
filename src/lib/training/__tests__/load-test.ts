@@ -140,7 +140,8 @@ describe('calibrateTargets', () => {
   })
 
   it('blends real average with fallback for 1–3 weeks of history', () => {
-    // 2 weeks of consistent strength (90 min/wk avg) blends real avg with fallback.
+    // 2 weeks of consistent strength (90 min/wk avg) blends real avg with
+    // fallback: 90 × 0.5 + 180 × 0.5 = 135.
     const sessions: TrainingSession[] = [
       session('strength', '2026-05-04T07:00:00', 90), // last week
       session('strength', '2026-04-27T07:00:00', 90), // 2 weeks ago
@@ -148,7 +149,6 @@ describe('calibrateTargets', () => {
     const result = calibrateTargets(sessions, NOW)
     expect(result.source).toBe('partial')
     expect(result.weeksObserved).toBe(2)
-    // 90 × 0.5 + 180 × 0.5 = 135
     expect(result.strengthMinutes).toBe(135)
   })
 

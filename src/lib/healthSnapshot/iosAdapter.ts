@@ -110,8 +110,9 @@ function toDate(value: Date | string): Date {
 }
 
 function toMeters(distance?: { quantity?: number; unit?: string }): number {
-  const quantity = distance?.quantity ?? 0
-  if (!Number.isFinite(quantity)) return 0
+  const rawQuantity = distance?.quantity
+  if (rawQuantity == null || !Number.isFinite(rawQuantity)) return 0
+  const quantity = rawQuantity
 
   switch (distance?.unit) {
     case 'm':
@@ -128,7 +129,8 @@ function toMeters(distance?: { quantity?: number; unit?: string }): number {
     case 'cm':
       return quantity / 100
     default:
-      // HealthKit may omit a unit for workouts; treat that as meters.
+      // HealthKit may omit a unit for workouts; treat that as meters since
+      // the returned base distance quantity is meter-based.
       return quantity
   }
 }
