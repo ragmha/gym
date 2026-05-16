@@ -14,7 +14,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { parseMeal } from '@/lib/aiParser'
+import { mockParser } from '@/lib/aiParser/mockParser'
 import { getActiveBarcodeLookup } from '@/lib/foodDatabase'
 import { useThemeColor } from '@/hooks/useThemeColor'
 import { useMealStore } from '@/stores/MealStore'
@@ -55,7 +55,10 @@ export default function ScanScreen() {
         setBusy(false)
         return
       }
-      const parsed = await parseMeal({ photoUri, hint: hint || undefined })
+      const parsed = await mockParser.parse({
+        photoUri,
+        hint: hint || undefined,
+      })
       if (!parsed.ok) {
         setError(`Could not parse meal (${parsed.error.kind}).`)
         setBusy(false)
