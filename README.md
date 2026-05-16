@@ -117,7 +117,7 @@ src/
     supabaseEnv.ts              #   Zod-validated Supabase env
     supabase.ts                 #   Supabase client (typed via Database)
     database.types.ts           #   types derived from Zod schemas
-    validators.ts               #   Zod schemas for all Supabase rows + payloads
+    validators/                 #   Zod schemas for all Supabase rows + payloads (one file per domain)
     aiParser/                   #   meal photo → ParsedMeal (mock today, pluggable)
     foodDatabase/               #   barcode lookup (mock today, pluggable)
     healthSnapshot/             #   DailyHealthSnapshot source w/ iOS + mock adapters
@@ -218,8 +218,9 @@ sources share one interface.
 Other building blocks worth knowing:
 
 - **`lib/aiParser`** — pluggable meal-photo parser; `mockParser` is the only
-  implementation today, but `index.ts` is the single seam to swap in a real AI
-  backend.
+  implementation today. `index.ts` is the single seam: callers import
+  `activeParser` from `@/lib/aiParser` and swap backends by editing that one
+  file.
 - **`lib/foodDatabase`** — pluggable barcode lookup; same shape as `aiParser`.
 - **`utils/recovery`** — pure recovery-score math + `useRecoveryPresentation`
   hook. Used by the dashboard and `lib/fitnessMetrics`.
@@ -284,7 +285,7 @@ rolling out.
 ## 6) Data Validation
 
 All database I/O is validated with [Zod](https://zod.dev/) schemas in
-`src/lib/validators.ts` — it is the **single source of truth** for row shapes.
+`src/lib/validators/` (barrel `index.ts`) — it is the **single source of truth** for row shapes.
 `src/lib/database.types.ts` derives `Database['public']` from those schemas, so
 the Supabase client is statically typed against the same definitions used at
 runtime.
