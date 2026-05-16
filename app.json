@@ -17,7 +17,13 @@
       "bundleIdentifier": "io.raghib.gym",
       "buildNumber": "2",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSSupportsLiveActivities": true
+      },
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.io.raghib.gym"
+        ]
       }
     },
     "android": {
@@ -35,6 +41,7 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      "@bacons/apple-targets",
       [
         "expo-image-picker",
         {

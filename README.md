@@ -204,7 +204,7 @@ This project uses Expo Continuous Native Generation (CNG).
 
 - `ios/` and `android/` are generated artifacts and git-ignored.
 - Native configuration lives in `app.json` and config plugins.
-- Plugins: `expo-router`, `expo-font`, `expo-web-browser`, `react-native-health`
+- Plugins: `expo-router`, `expo-font`, `@bacons/apple-targets`, `expo-camera`, `expo-image-picker`, `@kingstinct/react-native-healthkit`
 
 Regenerate native projects:
 
@@ -212,6 +212,40 @@ Regenerate native projects:
 bun run prebuild:clean    # regenerate ios/ and android/
 bun run native:reset      # rm -rf ios android && prebuild --clean
 ```
+
+### iOS Widget & Live Activity
+
+The app ships one Apple widget target (`targets/gym-widget`) that contains:
+
+- **GymTodayWidget** (home-screen widget, small + medium)
+- **WorkoutLiveActivity** (lock screen + Dynamic Island)
+
+Data flow is snapshot-based (no network access inside the widget process):
+
+```text
+React Native stores (Steps + WorkoutSession)
+  -> useWidgetSync (debounced)
+  -> ExtensionStorage (App Group UserDefaults)
+  -> GymTodayWidget TimelineProvider (reads todaySnapshot JSON)
+```
+
+Live Activity updates use the local Expo module in `modules/live-activity`:
+
+```text
+WorkoutSessionStore actions
+  -> src/lib/liveActivity.ts
+  -> modules/live-activity (ActivityKit bridge)
+  -> WorkoutLiveActivity UI
+```
+
+Local development:
+
+```bash
+bunx expo prebuild -p ios --clean
+xed ios
+```
+
+Then edit Swift files in Xcode under `expo:targets/gym-widget` and `expo:modules/live-activity`.
 
 ## 9) Platform Support
 

@@ -44,6 +44,7 @@
     ]
   },
   "dependencies": {
+    "@bacons/apple-targets": "^4.0.7",
     "@expo/vector-icons": "^15.0.3",
     "@kingstinct/react-native-healthkit": "^13.3.0",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -110,6 +111,9 @@
           "@kingstinct/react-native-healthkit"
         ]
       }
+    },
+    "autolinking": {
+      "nativeModulesDir": "./modules"
     }
   },
   "overrides": {
