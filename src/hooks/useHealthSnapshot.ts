@@ -25,7 +25,6 @@ export function useHealthSnapshot(date?: Date): {
   const targetDate = date ?? defaultDateRef.current
   const dateKey = targetDate.toDateString()
   const targetDateRef = useRef(targetDate)
-  const statusRef = useRef<HealthSnapshotStatus>('unauthorized')
   const didMount = useRef(false)
 
   const [state, setState] = useState<HealthSnapshotHookState>(() => {
@@ -38,9 +37,15 @@ export function useHealthSnapshot(date?: Date): {
       }
     }
 
+    // On iOS we cannot reliably ask HealthKit whether read access has been
+    // granted — Apple intentionally hides that to prevent fingerprinting.
+    // Start in `loading` and attempt a fetch on mount; per-metric reads in
+    // the iOS adapter swallow individual errors and return zeros, so an
+    // unauthorized fetch is safe and yields the same empty snapshot the
+    // user would see otherwise.
     return {
       snapshot: null,
-      status: 'unauthorized',
+      status: 'loading',
       isDemoMode: false,
       error: null,
     }
@@ -49,10 +54,6 @@ export function useHealthSnapshot(date?: Date): {
   useEffect(() => {
     targetDateRef.current = targetDate
   }, [dateKey, targetDate])
-
-  useEffect(() => {
-    statusRef.current = state.status
-  }, [state.status])
 
   const fetchSnapshot = useCallback(async (nextDate: Date) => {
     setState((prev) => ({ ...prev, status: 'loading', error: null }))
@@ -92,19 +93,19 @@ export function useHealthSnapshot(date?: Date): {
   }, [fetchSnapshot])
 
   const refresh = useCallback(async () => {
-    if (statusRef.current === 'unauthorized') return
     await fetchSnapshot(targetDateRef.current)
   }, [fetchSnapshot])
 
   useEffect(() => {
     if (!didMount.current) {
       didMount.current = true
+      if (healthSnapshot.isAvailable()) {
+        void fetchSnapshot(targetDateRef.current)
+      }
       return
     }
 
-    if (statusRef.current !== 'unauthorized') {
-      void fetchSnapshot(targetDateRef.current)
-    }
+    void fetchSnapshot(targetDateRef.current)
   }, [dateKey, fetchSnapshot])
 
   return {

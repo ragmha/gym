@@ -63,14 +63,23 @@ describe('useHealthSnapshot', () => {
     )
   })
 
-  it('starts unauthorized with no snapshot when the source is available but not yet authorized', () => {
-    createSource({ isAvailable: jest.fn(() => true) })
+  it('starts loading and fetches on mount when the source is available', async () => {
+    const date = new Date('2026-02-15T12:00:00.000Z')
+    const snapshot = createDeterministicMockSnapshot(date)
+    const source = createSource({
+      isAvailable: jest.fn(() => true),
+      getDailySnapshot: jest.fn(async (_date: Date) => snapshot),
+    })
 
-    const { result } = renderHook(() => useHealthSnapshot())
+    const { result } = renderHook(() => useHealthSnapshot(date))
 
-    expect(result.current.status).toBe('unauthorized')
+    expect(result.current.status).toBe('loading')
     expect(result.current.snapshot).toBeNull()
     expect(result.current.isDemoMode).toBe(false)
+
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+    expect(source.getDailySnapshot).toHaveBeenCalledWith(date)
+    expect(result.current.snapshot).toEqual(snapshot)
   })
 
   it('requestAuthorization flips to loading, then ready, and populates the snapshot when granted', async () => {

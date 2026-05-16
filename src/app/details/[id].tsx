@@ -43,13 +43,15 @@ function DetailsScreen() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId
   const routeTitle = Array.isArray(rawTitle) ? rawTitle[0] : rawTitle
   const { exercises } = useExerciseStore()
-  const { session, updateCardio, complete } = useWorkoutSessionStoreBase(
-    useShallow((state) => ({
-      session: id ? state.sessions[id] : undefined,
-      updateCardio: state.updateCardio,
-      complete: state.complete,
-    })),
-  )
+  const { session, updateCardio, toggleCardioDone, complete } =
+    useWorkoutSessionStoreBase(
+      useShallow((state) => ({
+        session: id ? state.sessions[id] : undefined,
+        updateCardio: state.updateCardio,
+        toggleCardioDone: state.toggleCardioDone,
+        complete: state.complete,
+      })),
+    )
   const template = session ? exercises[session.templateId] : undefined
 
   const {
@@ -288,6 +290,34 @@ function DetailsScreen() {
                   >
                     Morning
                   </Text>
+                  <TouchableOpacity
+                    onPress={() => toggleCardioDone(session.id, 'morning')}
+                    activeOpacity={0.6}
+                    accessibilityLabel={`Mark morning cardio ${session.cardioCompleted.morning ? 'incomplete' : 'complete'}`}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{
+                      checked: session.cardioCompleted.morning,
+                    }}
+                    style={[
+                      styles.cardioDoneBtn,
+                      {
+                        borderColor: session.cardioCompleted.morning
+                          ? successColor
+                          : borderColor,
+                        backgroundColor: session.cardioCompleted.morning
+                          ? `${successColor}20`
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    {session.cardioCompleted.morning ? (
+                      <Ionicons
+                        name="checkmark"
+                        size={18}
+                        color={successColor}
+                      />
+                    ) : null}
+                  </TouchableOpacity>
                   <View style={styles.cardioStepperRow}>
                     <TouchableOpacity
                       onPress={() =>
@@ -356,6 +386,34 @@ function DetailsScreen() {
                   >
                     Evening
                   </Text>
+                  <TouchableOpacity
+                    onPress={() => toggleCardioDone(session.id, 'evening')}
+                    activeOpacity={0.6}
+                    accessibilityLabel={`Mark evening cardio ${session.cardioCompleted.evening ? 'incomplete' : 'complete'}`}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{
+                      checked: session.cardioCompleted.evening,
+                    }}
+                    style={[
+                      styles.cardioDoneBtn,
+                      {
+                        borderColor: session.cardioCompleted.evening
+                          ? successColor
+                          : borderColor,
+                        backgroundColor: session.cardioCompleted.evening
+                          ? `${successColor}20`
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    {session.cardioCompleted.evening ? (
+                      <Ionicons
+                        name="checkmark"
+                        size={18}
+                        color={successColor}
+                      />
+                    ) : null}
+                  </TouchableOpacity>
                   <View style={styles.cardioStepperRow}>
                     <TouchableOpacity
                       onPress={() =>
@@ -590,6 +648,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
+  },
+  cardioDoneBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardioStepperRow: {
     flexDirection: 'row',
