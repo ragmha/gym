@@ -16,10 +16,17 @@ interface SessionState {
     detailId: string,
     kg: number,
   ) => void
+  setWeightForSet: (
+    sessionId: string,
+    detailId: string,
+    setIdx: number,
+    kg: number,
+  ) => void
   updateCardio: (
     sessionId: string,
     cardio: { morning: number; evening: number },
   ) => void
+  toggleCardioDone: (sessionId: string, slot: 'morning' | 'evening') => void
   updateExerciseOverrides: (
     sessionId: string,
     detailId: string,
@@ -127,6 +134,7 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
       completedAt: null,
       exerciseProgress: createProgress(template),
       cardio: { ...template.cardio },
+      cardioCompleted: { morning: false, evening: false },
       status: 'in-progress',
     }
 
@@ -156,7 +164,25 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
       }
 
       const selectedSets = [...progress.selectedSets]
-      selectedSets[setIdx] = !selectedSets[setIdx]
+      const wasSelected = selectedSets[setIdx]
+      selectedSets[setIdx] = !wasSelected
+
+      // When marking a set DONE (not undoing), cascade its weight to the
+      // next blank set so the user only types kg once per "weight change".
+      // We never overwrite a non-zero weight the user already entered.
+      let weightPerSet = progress.weightPerSet
+      if (!wasSelected) {
+        const currentKg = weightPerSet[setIdx] ?? 0
+        const nextIdx = setIdx + 1
+        if (
+          currentKg > 0 &&
+          nextIdx < weightPerSet.length &&
+          (weightPerSet[nextIdx] ?? 0) === 0
+        ) {
+          weightPerSet = [...weightPerSet]
+          weightPerSet[nextIdx] = currentKg
+        }
+      }
 
       return {
         sessions: {
@@ -168,6 +194,7 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
               [detailId]: {
                 ...progress,
                 selectedSets,
+                weightPerSet,
               },
             },
           },
@@ -200,6 +227,40 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
     })
   },
 
+  setWeightForSet: (sessionId, detailId, setIdx, kg) => {
+    set((state) => {
+      const session = state.sessions[sessionId]
+      const progress = session?.exerciseProgress[detailId]
+      if (
+        !session ||
+        !progress ||
+        setIdx < 0 ||
+        setIdx >= progress.weightPerSet.length
+      ) {
+        return state
+      }
+
+      const weightPerSet = [...progress.weightPerSet]
+      weightPerSet[setIdx] = Math.max(0, kg)
+
+      return {
+        sessions: {
+          ...state.sessions,
+          [sessionId]: {
+            ...session,
+            exerciseProgress: {
+              ...session.exerciseProgress,
+              [detailId]: {
+                ...progress,
+                weightPerSet,
+              },
+            },
+          },
+        },
+      }
+    })
+  },
+
   updateCardio: (sessionId, cardio) => {
     set((state) => {
       const session = state.sessions[sessionId]
@@ -213,6 +274,26 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
             cardio: {
               morning: Math.max(0, cardio.morning),
               evening: Math.max(0, cardio.evening),
+            },
+          },
+        },
+      }
+    })
+  },
+
+  toggleCardioDone: (sessionId, slot) => {
+    set((state) => {
+      const session = state.sessions[sessionId]
+      if (!session) return state
+
+      return {
+        sessions: {
+          ...state.sessions,
+          [sessionId]: {
+            ...session,
+            cardioCompleted: {
+              ...session.cardioCompleted,
+              [slot]: !session.cardioCompleted[slot],
             },
           },
         },

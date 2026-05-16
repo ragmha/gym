@@ -86,6 +86,7 @@ const SESSION: WorkoutSession = {
   completedAt: '2026-01-01T01:00:00.000Z',
   status: 'complete',
   cardio: { morning: 10, evening: 0 },
+  cardioCompleted: { morning: false, evening: false },
   exerciseProgress: {
     bench: {
       detailId: 'bench',

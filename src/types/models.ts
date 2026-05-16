@@ -40,6 +40,8 @@ export interface WorkoutSession {
   completedAt: string | null
   exerciseProgress: Record<string, ExerciseProgress>
   cardio: { morning: number; evening: number }
+  /** Whether the user has manually marked each cardio block as done. */
+  cardioCompleted: { morning: boolean; evening: boolean }
   status: 'in-progress' | 'complete'
 }
 
