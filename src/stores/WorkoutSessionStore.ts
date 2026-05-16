@@ -1,11 +1,18 @@
-import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
-import { supabase } from '@/lib/supabase'
-import { workoutSessionInsertSchema } from '@/lib/validators'
-import type { WorkoutSessionInsert } from '@/lib/validators'
+import {
+  commitWorkout,
+  completedSetCount,
+  totalSetCount,
+  totalVolumeKg,
+  cardioMinutes,
+  isComplete as isCompleteHelper,
+} from '@/lib/workoutCommit'
 import type { WorkoutSession, WorkoutTemplate } from '@/types/models'
 import 'react-native-get-random-values'
 import { v4 as uuidv4 } from 'uuid'
 import { create } from 'zustand'
+
+export { completedSetCount, totalSetCount, totalVolumeKg, cardioMinutes }
+export { isCompleteHelper as isComplete }
 
 interface SessionState {
   sessions: Record<string, WorkoutSession>
@@ -58,66 +65,6 @@ function createProgress(
       },
     ]),
   )
-}
-
-export function completedSetCount(session: WorkoutSession): number {
-  return Object.values(session.exerciseProgress).reduce(
-    (count, progress) => count + progress.selectedSets.filter(Boolean).length,
-    0,
-  )
-}
-
-export function totalSetCount(session: WorkoutSession): number {
-  return Object.values(session.exerciseProgress).reduce(
-    (count, progress) => count + progress.selectedSets.length,
-    0,
-  )
-}
-
-export function totalVolumeKg(
-  session: WorkoutSession,
-  template: WorkoutTemplate,
-): number {
-  let volume = 0
-  for (const detail of template.exercises) {
-    const progress = session.exerciseProgress[detail.id]
-    if (!progress) continue
-    const reps = progress.repsOverride ?? detail.reps
-    for (let index = 0; index < progress.selectedSets.length; index++) {
-      if (progress.selectedSets[index]) {
-        volume += (progress.weightPerSet[index] ?? 0) * reps
-      }
-    }
-  }
-  return Math.round(volume * 100) / 100
-}
-
-export function cardioMinutes(session: WorkoutSession): number {
-  return (
-    Math.max(0, session.cardio.morning) + Math.max(0, session.cardio.evening)
-  )
-}
-
-export function isComplete(
-  session: WorkoutSession,
-  _template: WorkoutTemplate,
-): boolean {
-  return (
-    totalSetCount(session) > 0 &&
-    completedSetCount(session) === totalSetCount(session)
-  )
-}
-
-function completedExerciseCount(
-  session: WorkoutSession,
-  template: WorkoutTemplate,
-): number {
-  return template.exercises.filter((detail) => {
-    const progress = session.exerciseProgress[detail.id]
-    return (
-      progress?.selectedSets.length > 0 && progress.selectedSets.every(Boolean)
-    )
-  }).length
 }
 
 export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
@@ -354,68 +301,16 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
     const template = templateBySessionId.get(sessionId)
     if (!session || !template || session.status === 'complete') return
 
-    const completedAt = new Date().toISOString()
-    const durationSeconds = Math.max(
-      0,
-      Math.round(
-        (new Date(completedAt).getTime() -
-          new Date(session.startedAt).getTime()) /
-          1000,
-      ),
-    )
-    const minutes = cardioMinutes(session)
-    const payload: WorkoutSessionInsert = {
-      exercise_day: template.day,
-      exercise_week: template.week,
-      title: template.title,
-      started_at: session.startedAt,
-      completed_at: completedAt,
-      duration_seconds: durationSeconds,
-      total_volume_kg: totalVolumeKg(session, template),
-      sets_completed: completedSetCount(session),
-      total_sets: totalSetCount(session),
-      exercises_completed: completedExerciseCount(session, template),
-      total_exercises: template.exercises.length,
-      cardio_minutes: minutes,
-    }
-
-    const parsed = workoutSessionInsertSchema.safeParse(payload)
-    if (!parsed.success) {
-      console.error('[WorkoutSession] Validation failed:', parsed.error.issues)
+    const outcome = await commitWorkout(session, template)
+    if (outcome.kind === 'invalid') {
+      console.error('[WorkoutSession] Validation failed:', outcome.issues)
       return
     }
-
-    try {
-      const { error } = await supabase
-        .from('workout_sessions')
-        .insert(parsed.data)
-      if (error) {
-        // Don't mark complete — leave the session in-progress so the next
-        // attempt (e.g. a remount of the detail screen) can retry. Marking
-        // complete here would silently drop the workout: the idempotency
-        // guard at the top of complete() blocks every subsequent call.
-        console.warn('[WorkoutSession] Supabase insert error:', error.message)
-        return
-      }
-    } catch (error) {
-      console.warn('[WorkoutSession] Save failed:', error)
+    if (outcome.kind === 'persistence-failed') {
+      console.warn('[WorkoutSession] Save failed:', outcome.error)
       return
     }
-
-    if (minutes > 0) {
-      const endDate = new Date(completedAt)
-      const startDate = new Date(endDate.getTime() - minutes * 60_000)
-      try {
-        await healthSnapshot.saveCardioWorkout({
-          durationMinutes: minutes,
-          startDate,
-          endDate,
-        })
-      } catch (error) {
-        console.warn('[WorkoutSession] HealthKit sync failed:', error)
-      }
-    }
-
+    // outcome.kind === 'committed'
     set((state) => {
       const current = state.sessions[sessionId]
       if (!current || current.status === 'complete') return state
@@ -424,7 +319,7 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
           ...state.sessions,
           [sessionId]: {
             ...current,
-            completedAt,
+            completedAt: outcome.payload.completed_at,
             status: 'complete',
           },
         },
