@@ -20,9 +20,6 @@ import { useReadiness } from '@/hooks/useReadiness'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useTodaySuggestion } from '@/hooks/useTodaySuggestion'
 import { useWeeklyTraining } from '@/hooks/useWeeklyTraining'
-import { computeRecoveryScore } from '@/lib/recovery'
-
-const SLEEP_GOAL_HOURS = 8
 
 export default function HomeScreen() {
   const router = useRouter()
@@ -32,23 +29,6 @@ export default function HomeScreen() {
   const readiness = useReadiness()
   const training = useWeeklyTraining()
   const suggestion = useTodaySuggestion(readiness, training.sessions)
-
-  const recoveryScore = useMemo(() => {
-    if (
-      readiness.hrv.value == null ||
-      readiness.restingHeartRate.value == null
-    ) {
-      return null
-    }
-    return computeRecoveryScore({
-      hrv: readiness.hrv.value,
-      restingHR: readiness.restingHeartRate.value,
-      sleepHours: readiness.sleepHours.value ?? 0,
-      hrvBaseline: readiness.hrv.baseline,
-      rhrBaseline: readiness.restingHeartRate.baseline,
-      sleepGoalHours: SLEEP_GOAL_HOURS,
-    }).score
-  }, [readiness])
 
   const [refreshing, setRefreshing] = useState(false)
   const onRefresh = useCallback(async () => {
@@ -80,7 +60,7 @@ export default function HomeScreen() {
 
       <TodayHeader
         date={today}
-        recoveryScore={recoveryScore}
+        recoveryScore={readiness.recoveryScore}
         suggestion={suggestion}
       />
 

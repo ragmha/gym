@@ -1,14 +1,13 @@
 import { renderHook } from '@testing-library/react-native'
 
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
-import type { RecoveryPresentation } from '@/lib/recovery'
 import type { DailyHydrationSummary } from '@/stores/HydrationStore'
 
 import { useFitnessMetricsDashboard } from '..'
 
 const mockUseHealthSnapshot = jest.fn()
 const mockUseDailyHydration = jest.fn()
-const mockUseRecoveryPresentation = jest.fn()
+const mockUseReadiness = jest.fn()
 const mockUseDailyNutrition = jest.fn()
 
 jest.mock('@/hooks/useHealthSnapshot', () => ({
@@ -19,9 +18,8 @@ jest.mock('@/stores/HydrationStore', () => ({
   useDailyHydration: () => mockUseDailyHydration(),
 }))
 
-jest.mock('@/lib/recovery', () => ({
-  useRecoveryPresentation: (input: unknown) =>
-    mockUseRecoveryPresentation(input),
+jest.mock('@/hooks/useReadiness', () => ({
+  useReadiness: () => mockUseReadiness(),
 }))
 
 jest.mock('@/stores/MealStore', () => ({
@@ -56,13 +54,8 @@ const hydration: DailyHydrationSummary = {
   formattedRemaining: '1,000',
 }
 
-const recovery: RecoveryPresentation = {
-  score: 80,
-  label: 'Primed to Perform',
-  description: 'Ready',
-  tone: 'primed',
-  accentColorToken: 'success',
-  shortHint: 'Ready for higher intensity.',
+const recovery = {
+  recoveryScore: 80,
 }
 
 const nutrition = {
@@ -78,7 +71,7 @@ describe('useFitnessMetricsDashboard', () => {
   beforeEach(() => {
     mockUseHealthSnapshot.mockReturnValue({ snapshot: snapshot() })
     mockUseDailyHydration.mockReturnValue(hydration)
-    mockUseRecoveryPresentation.mockReturnValue(recovery)
+    mockUseReadiness.mockReturnValue(recovery)
     mockUseDailyNutrition.mockReturnValue(nutrition)
   })
 

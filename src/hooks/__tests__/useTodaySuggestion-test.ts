@@ -22,6 +22,7 @@ function neutralReadiness(): ReadinessSummary {
     hrv: metric(50, 50, 'neutral'),
     restingHeartRate: metric(55, 55, 'neutral'),
     sleepHours: metric(7.5, 7.5, 'neutral'),
+    recoveryScore: null,
     refresh: async () => {},
   }
 }
