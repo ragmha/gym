@@ -74,6 +74,10 @@ describe('WorkoutSessionStore', () => {
         false,
       ])
       expect(session.exerciseProgress.press.weightPerSet).toEqual([0, 0, 0])
+      expect(session.cardioCompleted).toEqual({
+        morning: false,
+        evening: false,
+      })
     })
 
     it('returns the active session for the same template without overwriting progress', () => {
@@ -132,6 +136,103 @@ describe('WorkoutSessionStore', () => {
         false,
       ])
     })
+
+    it('cascades the completed set weight to the next blank set', () => {
+      const session = useWorkoutSessionStoreBase
+        .getState()
+        .startSession(TEMPLATE)
+      useWorkoutSessionStoreBase
+        .getState()
+        .setWeightForSet(session.id, 'bench', 0, 60)
+
+      useWorkoutSessionStoreBase.getState().toggleSet(session.id, 'bench', 0)
+
+      const updated = useWorkoutSessionStoreBase.getState().sessions[session.id]
+      expect(updated.exerciseProgress.bench.weightPerSet).toEqual([
+        60, 60, 0, 0,
+      ])
+    })
+
+    it('does not overwrite an existing weight when cascading', () => {
+      const session = useWorkoutSessionStoreBase
+        .getState()
+        .startSession(TEMPLATE)
+      useWorkoutSessionStoreBase
+        .getState()
+        .setWeightForSet(session.id, 'bench', 0, 60)
+      useWorkoutSessionStoreBase
+        .getState()
+        .setWeightForSet(session.id, 'bench', 1, 65)
+
+      useWorkoutSessionStoreBase.getState().toggleSet(session.id, 'bench', 0)
+
+      const updated = useWorkoutSessionStoreBase.getState().sessions[session.id]
+      expect(updated.exerciseProgress.bench.weightPerSet).toEqual([
+        60, 65, 0, 0,
+      ])
+    })
+
+    it('does not cascade when undoing a set', () => {
+      const session = useWorkoutSessionStoreBase
+        .getState()
+        .startSession(TEMPLATE)
+      useWorkoutSessionStoreBase
+        .getState()
+        .setWeightForSet(session.id, 'bench', 0, 60)
+      // Toggle on -> cascades 60 to set 1
+      useWorkoutSessionStoreBase.getState().toggleSet(session.id, 'bench', 0)
+      // Toggle off -> must NOT cascade again
+      useWorkoutSessionStoreBase.getState().toggleSet(session.id, 'bench', 0)
+
+      const updated = useWorkoutSessionStoreBase.getState().sessions[session.id]
+      expect(updated.exerciseProgress.bench.selectedSets[0]).toBe(false)
+      expect(updated.exerciseProgress.bench.weightPerSet).toEqual([
+        60, 60, 0, 0,
+      ])
+    })
+  })
+
+  describe('setWeightForSet()', () => {
+    it('updates only the requested set index', () => {
+      const session = useWorkoutSessionStoreBase
+        .getState()
+        .startSession(TEMPLATE)
+
+      useWorkoutSessionStoreBase
+        .getState()
+        .setWeightForSet(session.id, 'bench', 2, 42.5)
+
+      const updated = useWorkoutSessionStoreBase.getState().sessions[session.id]
+      expect(updated.exerciseProgress.bench.weightPerSet).toEqual([
+        0, 0, 42.5, 0,
+      ])
+    })
+
+    it('clamps negative weights to zero', () => {
+      const session = useWorkoutSessionStoreBase
+        .getState()
+        .startSession(TEMPLATE)
+
+      useWorkoutSessionStoreBase
+        .getState()
+        .setWeightForSet(session.id, 'bench', 0, -10)
+
+      const updated = useWorkoutSessionStoreBase.getState().sessions[session.id]
+      expect(updated.exerciseProgress.bench.weightPerSet[0]).toBe(0)
+    })
+
+    it('ignores out-of-range indexes', () => {
+      const session = useWorkoutSessionStoreBase
+        .getState()
+        .startSession(TEMPLATE)
+
+      useWorkoutSessionStoreBase
+        .getState()
+        .setWeightForSet(session.id, 'bench', 99, 50)
+
+      const updated = useWorkoutSessionStoreBase.getState().sessions[session.id]
+      expect(updated.exerciseProgress.bench.weightPerSet).toEqual([0, 0, 0, 0])
+    })
   })
 
   describe('setWeightForExercise()', () => {
@@ -165,6 +266,50 @@ describe('WorkoutSessionStore', () => {
       expect(
         useWorkoutSessionStoreBase.getState().sessions[session.id].cardio,
       ).toEqual({ morning: 25, evening: 0 })
+    })
+  })
+
+  describe('toggleCardioDone()', () => {
+    it('flips just the requested slot', () => {
+      const session = useWorkoutSessionStoreBase
+        .getState()
+        .startSession(TEMPLATE)
+
+      useWorkoutSessionStoreBase
+        .getState()
+        .toggleCardioDone(session.id, 'morning')
+
+      expect(
+        useWorkoutSessionStoreBase.getState().sessions[session.id]
+          .cardioCompleted,
+      ).toEqual({ morning: true, evening: false })
+
+      useWorkoutSessionStoreBase
+        .getState()
+        .toggleCardioDone(session.id, 'evening')
+
+      expect(
+        useWorkoutSessionStoreBase.getState().sessions[session.id]
+          .cardioCompleted,
+      ).toEqual({ morning: true, evening: true })
+    })
+
+    it('toggles back off on a second call', () => {
+      const session = useWorkoutSessionStoreBase
+        .getState()
+        .startSession(TEMPLATE)
+
+      useWorkoutSessionStoreBase
+        .getState()
+        .toggleCardioDone(session.id, 'morning')
+      useWorkoutSessionStoreBase
+        .getState()
+        .toggleCardioDone(session.id, 'morning')
+
+      expect(
+        useWorkoutSessionStoreBase.getState().sessions[session.id]
+          .cardioCompleted.morning,
+      ).toBe(false)
     })
   })
 

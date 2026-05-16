@@ -19,8 +19,6 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
-const WEIGHT_STEP = 2.5
-
 type WorkoutDetailProps = {
   item: ExerciseDetailTemplate
   sessionId: string
@@ -39,14 +37,13 @@ export default function WorkoutDetail({
   onSetUncompleted,
 }: WorkoutDetailProps) {
   const router = useRouter()
-  const { progress, toggleSet, setWeightForExercise } =
-    useWorkoutSessionStoreBase(
-      useShallow((state) => ({
-        progress: state.sessions[sessionId]?.exerciseProgress[item.id],
-        toggleSet: state.toggleSet,
-        setWeightForExercise: state.setWeightForExercise,
-      })),
-    )
+  const { progress, toggleSet, setWeightForSet } = useWorkoutSessionStoreBase(
+    useShallow((state) => ({
+      progress: state.sessions[sessionId]?.exerciseProgress[item.id],
+      toggleSet: state.toggleSet,
+      setWeightForSet: state.setWeightForSet,
+    })),
+  )
 
   const defaultSets = progress?.setsOverride ?? item.sets
   const effectiveReps = progress?.repsOverride ?? item.reps
@@ -58,8 +55,16 @@ export default function WorkoutDetail({
     progress?.selectedSets ?? Array.from({ length: defaultSets }, () => false)
   const weights =
     progress?.weightPerSet ?? Array.from({ length: defaultSets }, () => 0)
-  const displayWeight = weights[0] ?? 0
   const completedCount = selectedCircles.filter(Boolean).length
+  // Top-line weight summary: the most-recently entered (highest-index)
+  // non-zero kg value, falling back to the first set's weight.
+  const summaryWeight = (() => {
+    for (let i = weights.length - 1; i >= 0; i--) {
+      const w = weights[i] ?? 0
+      if (w > 0) return w
+    }
+    return 0
+  })()
   const scale = useSharedValue(1)
   const progressAnim = useSharedValue(
     defaultSets > 0 ? completedCount / defaultSets : 0,
@@ -72,24 +77,17 @@ export default function WorkoutDetail({
     )
   }, [completedCount, defaultSets, progressAnim])
 
-  const adjustWeight = useCallback(
-    (delta: number) => {
-      const newWeight = Math.max(0, displayWeight + delta)
-      setWeightForExercise(sessionId, item.id, newWeight)
-    },
-    [displayWeight, item.id, sessionId, setWeightForExercise],
-  )
-
   const handleWeightInput = useCallback(
-    (text: string) => {
+    (setIdx: number, text: string) => {
       const parsed = parseFloat(text)
-      setWeightForExercise(
+      setWeightForSet(
         sessionId,
         item.id,
+        setIdx,
         Number.isNaN(parsed) ? 0 : Math.max(0, parsed),
       )
     },
-    [item.id, sessionId, setWeightForExercise],
+    [item.id, sessionId, setWeightForSet],
   )
 
   const toggleCircle = (idx: number) => {
@@ -194,9 +192,9 @@ export default function WorkoutDetail({
             <Text style={[styles.repsInfo, { color: subtitleText }]}>
               {defaultSets} × {effectiveReps} reps
             </Text>
-            {displayWeight > 0 && (
+            {summaryWeight > 0 && (
               <Text style={[styles.repsInfo, { color: subtitleText }]}>
-                · {displayWeight} kg
+                · up to {summaryWeight} kg
               </Text>
             )}
           </View>
@@ -217,76 +215,63 @@ export default function WorkoutDetail({
         </Text>
       </View>
 
-      {/* Weight adjuster */}
-      <View style={styles.weightRow}>
-        <TouchableOpacity
-          onPress={() => adjustWeight(-WEIGHT_STEP)}
-          style={[styles.weightBtn, { borderColor }]}
-          activeOpacity={0.6}
-          disabled={displayWeight <= 0}
-        >
-          <Text
-            style={[
-              styles.weightBtnText,
-              { color: displayWeight > 0 ? textColor : subtitleText },
-            ]}
-          >
-            −
-          </Text>
-        </TouchableOpacity>
-        <View style={styles.weightCenter}>
-          <TextInput
-            style={[styles.weightValue, { color: textColor }]}
-            value={displayWeight > 0 ? String(displayWeight) : ''}
-            placeholder="0"
-            placeholderTextColor={subtitleText}
-            keyboardType="numeric"
-            onChangeText={handleWeightInput}
-            selectTextOnFocus
-          />
-          <Text style={[styles.weightUnit, { color: subtitleText }]}>kg</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => adjustWeight(WEIGHT_STEP)}
-          style={[styles.weightBtn, { borderColor }]}
-          activeOpacity={0.6}
-        >
-          <Text style={[styles.weightBtnText, { color: textColor }]}>+</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Row 2: Set pills */}
-      <Animated.View style={[styles.pillRow, bounceStyle]}>
+      {/* Per-set columns: kg input on top, tappable pill below */}
+      <Animated.View style={[styles.columnRow, bounceStyle]}>
         {Array.from({ length: defaultSets }).map((_, i) => {
           const done = selectedCircles[i]
+          const kg = weights[i] ?? 0
           return (
-            <TouchableOpacity
-              key={i}
-              activeOpacity={0.6}
-              onPress={() => toggleCircle(i)}
-              style={[
-                styles.pill,
-                {
-                  backgroundColor: done ? successInactive : 'transparent',
-                  borderColor: done ? successColor : borderColor,
-                },
-              ]}
-            >
-              {done ? (
-                <Text style={[styles.pillCheck, { color: successColor }]}>
-                  ✓
-                </Text>
-              ) : (
-                <View style={styles.pillContent}>
-                  <Text style={[styles.pillLabel, { color: subtitleText }]}>
-                    S{i + 1}
+            <View key={i} style={styles.setColumn}>
+              <View
+                style={[
+                  styles.kgWrap,
+                  {
+                    borderColor: done ? successColor : borderColor,
+                    backgroundColor: done ? `${successColor}10` : 'transparent',
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.kgInput, { color: textColor }]}
+                  value={kg > 0 ? String(kg) : ''}
+                  placeholder="0"
+                  placeholderTextColor={subtitleText}
+                  keyboardType="numeric"
+                  onChangeText={(t) => handleWeightInput(i, t)}
+                  selectTextOnFocus
+                  accessibilityLabel={`Weight for set ${i + 1}`}
+                />
+                <Text style={[styles.kgUnit, { color: subtitleText }]}>kg</Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.6}
+                onPress={() => toggleCircle(i)}
+                accessibilityLabel={`Set ${i + 1}, ${done ? 'completed' : 'incomplete'}`}
+                accessibilityRole="button"
+                style={[
+                  styles.pill,
+                  {
+                    backgroundColor: done ? successInactive : 'transparent',
+                    borderColor: done ? successColor : borderColor,
+                  },
+                ]}
+              >
+                {done ? (
+                  <Text style={[styles.pillCheck, { color: successColor }]}>
+                    ✓
                   </Text>
-                  <Text style={[styles.pillText, { color: textColor }]}>
-                    {effectiveReps}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
+                ) : (
+                  <View style={styles.pillContent}>
+                    <Text style={[styles.pillLabel, { color: subtitleText }]}>
+                      S{i + 1}
+                    </Text>
+                    <Text style={[styles.pillText, { color: textColor }]}>
+                      {effectiveReps}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           )
         })}
       </Animated.View>
@@ -369,52 +354,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
-  /* Weight adjuster */
-  weightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  weightBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  weightBtnText: {
-    fontSize: 20,
-    fontWeight: '600',
-    lineHeight: 22,
-  },
-  weightCenter: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  weightValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-    minWidth: 40,
-    textAlign: 'center',
-    padding: 0,
-  },
-  weightUnit: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  /* Row 2 */
-  pillRow: {
+  /* Per-set column row */
+  columnRow: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
+  },
+  setColumn: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  kgWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 2,
+    minWidth: 56,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1.5,
+  },
+  kgInput: {
+    fontSize: 15,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    textAlign: 'center',
+    minWidth: 24,
+    padding: 0,
+  },
+  kgUnit: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   pill: {
     height: 44,
-    minWidth: 44,
+    minWidth: 56,
     borderRadius: 12,
     borderWidth: 1.5,
     justifyContent: 'center',
