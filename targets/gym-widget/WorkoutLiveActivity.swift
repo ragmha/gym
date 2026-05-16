@@ -50,7 +50,7 @@ struct WorkoutLiveActivity: Widget {
       } compactLeading: {
         Image(systemName: "dumbbell.fill")
       } compactTrailing: {
-        if let restEndsAt = context.state.restEndsAt {
+        if let restEndsAt = context.state.restEndsAt, restEndsAt > Date() {
           Text(timerInterval: Date()...restEndsAt, countsDown: true)
             .font(.caption2)
             .monospacedDigit()
@@ -60,7 +60,7 @@ struct WorkoutLiveActivity: Widget {
             .monospacedDigit()
         }
       } minimal: {
-        if let restEndsAt = context.state.restEndsAt {
+        if let restEndsAt = context.state.restEndsAt, restEndsAt > Date() {
           Text(timerInterval: Date()...restEndsAt, countsDown: true)
             .font(.caption2)
             .monospacedDigit()

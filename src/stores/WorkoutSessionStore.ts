@@ -214,7 +214,6 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
   },
 
   toggleSet: (sessionId, detailId, setIdx) => {
-    let nextSession: WorkoutSession | undefined
     set((state) => {
       const session = state.sessions[sessionId]
       const progress = session?.exerciseProgress[detailId]
@@ -248,26 +247,24 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
         }
       }
 
-      nextSession = {
-        ...session,
-        exerciseProgress: {
-          ...session.exerciseProgress,
-          [detailId]: {
-            ...progress,
-            selectedSets,
-            weightPerSet,
-          },
-        },
-      }
-
       return {
         sessions: {
           ...state.sessions,
-          [sessionId]: nextSession!,
+          [sessionId]: {
+            ...session,
+            exerciseProgress: {
+              ...session.exerciseProgress,
+              [detailId]: {
+                ...progress,
+                selectedSets,
+                weightPerSet,
+              },
+            },
+          },
         },
       }
     })
-    syncLiveActivity(sessionId, nextSession)
+    syncLiveActivity(sessionId)
   },
 
   setWeightForExercise: (sessionId, detailId, kg) => {
@@ -369,7 +366,6 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
   },
 
   updateExerciseOverrides: (sessionId, detailId, updates) => {
-    let nextSession: WorkoutSession | undefined
     set((state) => {
       const session = state.sessions[sessionId]
       const progress = session?.exerciseProgress[detailId]
@@ -392,32 +388,30 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
           : Math.max(0, updates.defaultWeight),
       )
 
-      nextSession = {
-        ...session,
-        exerciseProgress: {
-          ...session.exerciseProgress,
-          [detailId]: {
-            ...progress,
-            selectedSets,
-            weightPerSet,
-            setsOverride: updates.sets ?? progress.setsOverride,
-            repsOverride: updates.reps ?? progress.repsOverride,
-            variationOverride:
-              updates.variation !== undefined
-                ? updates.variation
-                : progress.variationOverride,
-          },
-        },
-      }
-
       return {
         sessions: {
           ...state.sessions,
-          [sessionId]: nextSession!,
+          [sessionId]: {
+            ...session,
+            exerciseProgress: {
+              ...session.exerciseProgress,
+              [detailId]: {
+                ...progress,
+                selectedSets,
+                weightPerSet,
+                setsOverride: updates.sets ?? progress.setsOverride,
+                repsOverride: updates.reps ?? progress.repsOverride,
+                variationOverride:
+                  updates.variation !== undefined
+                    ? updates.variation
+                    : progress.variationOverride,
+              },
+            },
+          },
         },
       }
     })
-    syncLiveActivity(sessionId, nextSession)
+    syncLiveActivity(sessionId)
   },
 
   complete: async (sessionId) => {

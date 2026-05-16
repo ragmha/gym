@@ -11,14 +11,15 @@ import { useStepsStoreBase } from '@/stores/StepsStore'
 function calculateWorkoutXpAndLastWorkoutAt(
   sessions: ReturnType<typeof useWorkoutSessionStoreBase.getState>['sessions'],
 ): { workoutXp: number; lastWorkoutAt: string | null } {
+  const toLocalDayKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
   const today = new Date()
-  const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
+  const todayKey = toLocalDayKey(today)
   const isSameLocalDay = (iso: string | null) => {
     if (!iso) return false
     const date = new Date(iso)
-    return (
-      `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` === todayKey
-    )
+    return toLocalDayKey(date) === todayKey
   }
 
   const allSessions = Object.values(sessions)
