@@ -134,11 +134,11 @@ This project targets **iOS and Web as primary platforms**, with **minimal Androi
   - PR quality gate: `bun run quality:pr`
   - Expo compatibility: `bun run expo:check` and `bun run expo:doctor`
   - Unit/component Implementation: `bun run test:unit`
-  - Web smoke Adapter: `bun run test:e2e:web`
-  - Native smoke Adapter: `bun run test:e2e:maestro:ios` / `bun run test:e2e:maestro:android`
+  - Web compatibility check: `bun run build:web` (the static export itself is the smoke test)
+  - Native smoke Adapter (iOS only): `bun run test:e2e:maestro:ios`
 - Keep PR CI focused on high-Leverage, high-Locality checks: Expo compatibility, lint, typecheck, and unit/component tests.
-- Keep Playwright web smoke tests small and focused on the browser Seam; do not duplicate Jest assertions.
-- Keep Maestro as a native simulator/device Adapter for local, release, or dedicated native CI. Do not make it mandatory PR CI unless the runner support is reliable.
+- Browser-level E2E tests (Playwright, Cypress, etc.) and visual-regression screenshot tests are intentionally not part of the stack — they were dropped as high-noise, low-signal for an iOS-first solo project. If web ever becomes load-bearing, add browser tests that exercise behaviour, not existence.
+- Keep Maestro as an iOS-only native simulator/device Adapter for local, release, or dedicated native CI. Android Maestro flows are not maintained (Android is best-effort).
 - Pre-commit hooks (Husky + lint-staged) auto-run ESLint `--fix` on staged `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs` files.
 
 ## Issue and Debugging Hygiene
