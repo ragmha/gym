@@ -25,7 +25,11 @@
         "foregroundImage": "./src/assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "io.raghib.gym"
+      "package": "io.raghib.gym",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -68,6 +72,9 @@
       "eas": {
         "projectId": "be33becb-fe1c-448c-adc5-1f2a961d8045"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/be33becb-fe1c-448c-adc5-1f2a961d8045"
     }
   }
 }
