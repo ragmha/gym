@@ -1,6 +1,6 @@
-import { CircularProgress } from '@/components/CircularProgress'
+import { CircularProgress } from '@/components/common/CircularProgress'
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs'
-import Workout from '@/components/Workout'
+import Workout from '@/components/workout/Workout'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import {

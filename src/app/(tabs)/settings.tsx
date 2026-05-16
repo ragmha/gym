@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native'
 
-import Header from '@/components/Header'
+import Header from '@/components/common/Header'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'

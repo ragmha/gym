@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+# Ensure hooks find bun/bunx when launched from GUI git clients (VS Code,
+# GitHub Desktop, Tower, …) which often run git with a stripped PATH.
+export PATH="$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # Run lint-staged (ESLint --fix on staged files)
 bunx lint-staged
 

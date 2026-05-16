@@ -1,29 +1,9 @@
 /**
- * AI meal parser Module.
+ * AI parser seam — swap the active implementation here.
  *
- * Behind one Interface (`MealParser`) so we can swap mock → OpenAI Vision →
- * Anthropic Claude Vision → on-device CoreML without touching callers.
- *
- * Today's only adapter is `mockParser`; future adapters live alongside it.
+ * `mockParser` ships today. To plug in a real backend (OpenAI Vision,
+ * Claude Vision, CoreML, …) create a new adapter that satisfies
+ * `MealParser` and re-export it as `activeParser` from this file.
  */
-import type { MealParser, ParseInput } from './types'
-import { mockParser } from './mockParser'
-
-export type { MealParser, ParseInput, ParseError, ParseResult } from './types'
-export { mockParser } from './mockParser'
-
-/**
- * Resolve the active parser at runtime. The selection lives in one place so
- * future provider swaps are a single edit.
- */
-export function getActiveParser(): MealParser {
-  return mockParser
-}
-
-/**
- * Convenience wrapper that runs the active parser. Callers don't need to know
- * which adapter is in use.
- */
-export async function parseMeal(input: ParseInput) {
-  return getActiveParser().parse(input)
-}
+export { mockParser as activeParser } from './mockParser'
+export type { MealParser, ParseInput, ParseResult, ParseError } from './types'

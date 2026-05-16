@@ -64,7 +64,7 @@ export function WeightBarChart({
   height = 220,
   mode = 'bar',
 }: WeightBarChartProps) {
-  const font = useFont(require('../assets/fonts/SpaceMono-Regular.ttf'), 10)
+  const font = useFont(require('@/assets/fonts/SpaceMono-Regular.ttf'), 10)
 
   const { chartData, lineData, goalValue, yDomain } = useMemo(() => {
     const today = getTodayStr()

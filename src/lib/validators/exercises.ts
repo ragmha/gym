@@ -1,11 +1,10 @@
 /**
- * Zod schemas — the single source of truth for exercise data shapes.
+ * Zod schemas — exercises domain.
  *
- * All TypeScript types are derived from these schemas via `z.infer`.
- * Used for:
- *  - Validating Supabase responses (reads)
- *  - Validating payloads before Supabase writes
- *  - Generating the `ExerciseRow`, `ExerciseDetail`, and `Cardio` types
+ * Covers:
+ *  - DB row / insert / update shapes for the `exercises` table
+ *  - Client-side exercise + workout-template shapes (with UI state)
+ *  - In-progress workout session aggregate (used by WorkoutSessionStore)
  */
 import { z } from 'zod'
 
@@ -157,72 +156,6 @@ export type WorkoutSessionAggregateSchema = z.infer<
   typeof workoutSessionAggregateSchema
 >
 
-// ─── Daily health snapshot schemas ──────────────────────────────────
-
-/** Schema for the daily_health_snapshots table row */
-export const dailyHealthSnapshotSchema = z.object({
-  id: z.uuid(),
-  date: z.string(), // YYYY-MM-DD
-  steps: z.number().nullable(),
-  calories: z.number().nullable(),
-  sleepMinutes: z.number().nullable(),
-  hrv: z.number().nullable(),
-  restingHr: z.number().nullable(),
-  heartRate: z.number().nullable(),
-  waterLiters: z.number().nullable(),
-  recoveryScore: z.number().int().min(0).max(100).nullable(),
-  strainScore: z.number().min(0).max(21).nullable(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-})
-
-/** Inferred type for a daily health snapshot */
-export type DailyHealthSnapshot = z.infer<typeof dailyHealthSnapshotSchema>
-
-/** Schema for upserting a snapshot (omit server-generated fields) */
-export const dailyHealthSnapshotUpsertSchema = dailyHealthSnapshotSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-})
-
-export type DailyHealthSnapshotUpsert = z.infer<
-  typeof dailyHealthSnapshotUpsertSchema
->
-
-// ─── Workout session schemas ────────────────────────────────────────
-
-/** Schema for a workout_sessions table row */
-export const workoutSessionSchema = z.object({
-  id: z.uuid(),
-  exercise_day: z.string(),
-  exercise_week: z.string(),
-  title: z.string(),
-  started_at: z.string(),
-  completed_at: z.string(),
-  duration_seconds: z.number().int().min(0),
-  total_volume_kg: z.number().min(0),
-  sets_completed: z.number().int().min(0),
-  total_sets: z.number().int().min(0),
-  exercises_completed: z.number().int().min(0),
-  total_exercises: z.number().int().min(0),
-  cardio_minutes: z.number().int().min(0),
-  notes: z.string().nullable().optional(),
-  created_at: z.string().optional(),
-  updated_at: z.string().optional(),
-})
-
-/** Schema for inserting a workout session (omit server-generated fields) */
-export const workoutSessionInsertSchema = workoutSessionSchema.omit({
-  id: true,
-  created_at: true,
-  updated_at: true,
-})
-
-/** Inferred types */
-export type WorkoutSession = z.infer<typeof workoutSessionSchema>
-export type WorkoutSessionInsert = z.infer<typeof workoutSessionInsertSchema>
-
 // ─── Parse helpers ──────────────────────────────────────────────────
 
 /**
@@ -241,62 +174,4 @@ export function parseExerciseRows(rows: unknown[]): ExerciseRow[] {
   return rows
     .map(parseExerciseRow)
     .filter((row): row is ExerciseRow => row !== null)
-}
-
-// ─── Meal schemas ───────────────────────────────────────────────────
-
-export const mealSourceSchema = z.enum(['photo', 'barcode', 'manual'])
-
-/** Schema for a meals table row (Supabase response) */
-export const mealRowSchema = z.object({
-  id: z.uuid(),
-  date: z.string(), // YYYY-MM-DD
-  consumed_at: z.string(),
-  name: z.string().min(1).max(200),
-  calories_kcal: z.number().min(0).max(10000),
-  protein_g: z.number().min(0).max(1000),
-  carb_g: z.number().min(0).max(1000),
-  fat_g: z.number().min(0).max(1000),
-  source: mealSourceSchema,
-  photo_url: z.string().nullable().optional(),
-  barcode: z.string().nullable().optional(),
-  ai_confidence: z.number().min(0).max(1).nullable().optional(),
-  created_at: z.string().optional(),
-  updated_at: z.string().optional(),
-})
-
-/** Schema for inserting a meal */
-export const mealInsertSchema = mealRowSchema.omit({
-  id: true,
-  created_at: true,
-  updated_at: true,
-})
-
-/** Schema for updating a meal */
-export const mealUpdateSchema = mealInsertSchema.partial()
-
-/** AI parser output before user confirmation */
-export const parsedMealSchema = z.object({
-  name: z.string().min(1),
-  calories_kcal: z.number().min(0),
-  protein_g: z.number().min(0),
-  carb_g: z.number().min(0),
-  fat_g: z.number().min(0),
-  ai_confidence: z.number().min(0).max(1),
-})
-
-/** Inferred types */
-export type MealSource = z.infer<typeof mealSourceSchema>
-export type MealRow = z.infer<typeof mealRowSchema>
-export type MealInsert = z.infer<typeof mealInsertSchema>
-export type MealUpdate = z.infer<typeof mealUpdateSchema>
-export type ParsedMeal = z.infer<typeof parsedMealSchema>
-
-export function parseMealRow(raw: unknown): MealRow | null {
-  const result = mealRowSchema.safeParse(raw)
-  return result.success ? result.data : null
-}
-
-export function parseMealRows(rows: unknown[]): MealRow[] {
-  return rows.map(parseMealRow).filter((row): row is MealRow => row !== null)
 }

@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Alert, AppState } from 'react-native'
 import 'react-native-reanimated'
 
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useExerciseStoreBase } from '@/stores/ExerciseStore'

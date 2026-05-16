@@ -8,7 +8,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
 
-import { clamp, seededRandom } from '@/components/MiniCharts'
+import { clamp, seededRandom } from '@/components/charts/MiniCharts'
 import { useTheme } from '@/hooks/useThemeColor'
 
 // ── Types ──────────────────────────────────────────────────────────────

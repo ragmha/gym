@@ -1,4 +1,4 @@
-import { WorkoutProgress } from '@/components/WorkoutProgress'
+import { WorkoutProgress } from '@/components/workout/WorkoutProgress'
 import {
   fireEvent,
   render,

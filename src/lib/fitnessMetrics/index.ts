@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
-import { useRecoveryPresentation } from '@/lib/recovery'
+import { useRecoveryPresentation } from '@/utils/recovery'
 import { useDailyHydration } from '@/stores/HydrationStore'
 import { useDailyNutrition } from '@/stores/MealStore'
 
