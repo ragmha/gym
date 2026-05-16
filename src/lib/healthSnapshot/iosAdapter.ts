@@ -129,8 +129,8 @@ function toMeters(distance?: { quantity?: number; unit?: string }): number {
     case 'cm':
       return quantity / 100
     default:
-      // HealthKit may omit a unit for workouts; treat that as meters since
-      // the returned base distance quantity is meter-based.
+      // Treat missing/unknown units as meters to satisfy this adapter's
+      // distanceMeters contract.
       return quantity
   }
 }

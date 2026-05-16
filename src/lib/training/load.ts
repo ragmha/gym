@@ -216,7 +216,7 @@ export function calibrateTargets(
 
   if (weeksObserved < 4) {
     const partialWindowWeeks = Math.max(weeksObserved, 1)
-    const partialAvg = {
+    const avgMinutesPerWeek = {
       strength: completeWeeksWindow.strength.minutes / partialWindowWeeks,
       run: completeWeeksWindow.run.minutes / partialWindowWeeks,
       conditioning:
@@ -224,14 +224,14 @@ export function calibrateTargets(
     }
     return {
       strengthMinutes: Math.round(
-        partialAvg.strength * 0.5 +
+        avgMinutesPerWeek.strength * 0.5 +
           FALLBACK_WEEKLY_TARGETS.strengthMinutes * 0.5,
       ),
       runMinutes: Math.round(
-        partialAvg.run * 0.5 + FALLBACK_WEEKLY_TARGETS.runMinutes * 0.5,
+        avgMinutesPerWeek.run * 0.5 + FALLBACK_WEEKLY_TARGETS.runMinutes * 0.5,
       ),
       conditioningMinutes: Math.round(
-        partialAvg.conditioning * 0.5 +
+        avgMinutesPerWeek.conditioning * 0.5 +
           FALLBACK_WEEKLY_TARGETS.conditioningMinutes * 0.5,
       ),
       source: 'partial',
