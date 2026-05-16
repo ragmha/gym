@@ -2,7 +2,7 @@ import {
   computeRecoveryScore,
   presentRecoveryScore,
   type RecoveryResult,
-} from '../recoveryScore'
+} from '../recovery'
 
 function resultWithScore(score: number): RecoveryResult {
   return {
