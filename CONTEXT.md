@@ -22,6 +22,12 @@ A body-weight measurement recorded for a specific date, with an optional note.
 ### Workout Session
 A user's active or completed workout built from one or more exercises. A session tracks exercise progress, cardio minutes, and completion status.
 
+### Widget Snapshot
+A serialized daily summary written by the app into App Group storage for iOS widgets. It includes steps, step goal, workout XP, and last workout timestamp.
+
+### Live Activity
+An iOS-only real-time workout surface (Lock Screen + Dynamic Island) that mirrors active workout state: workout name, exercise, set progress, and rest countdown.
+
 ## Terminology stewardship
 
 Prefer these domain terms over implementation-only names. Update this context when app-facing code, documentation, or data models introduce or rename domain concepts.

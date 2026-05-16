@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ActivityRings } from '@/components/ActivityRings'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
+import { useStepsStoreBase } from '@/stores/StepsStore'
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -54,7 +55,10 @@ export default function StepsScreen() {
     AsyncStorage.getItem(STORAGE_KEY).then((val) => {
       if (val) {
         const parsed = parseInt(val, 10)
-        if (!Number.isNaN(parsed) && parsed > 0) setStepsGoal(parsed)
+        if (!Number.isNaN(parsed) && parsed > 0) {
+          setStepsGoal(parsed)
+          useStepsStoreBase.getState().setStepsGoal(parsed)
+        }
       }
     })
   }, [])
@@ -75,6 +79,7 @@ export default function StepsScreen() {
       return
     }
     setStepsGoal(parsed)
+    useStepsStoreBase.getState().setStepsGoal(parsed)
     AsyncStorage.setItem(STORAGE_KEY, String(parsed))
     setGoalInput('')
     setShowGoalModal(false)

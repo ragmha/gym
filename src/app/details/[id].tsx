@@ -52,6 +52,9 @@ function DetailsScreen() {
         complete: state.complete,
       })),
     )
+  const setRestEndsAt = useWorkoutSessionStoreBase(
+    (state) => state.setRestEndsAt,
+  )
   const template = session ? exercises[session.templateId] : undefined
 
   const {
@@ -78,10 +81,19 @@ function DetailsScreen() {
 
   const handleSetCompleted = () => {
     setShowTimer(true)
+    if (session) {
+      setRestEndsAt(
+        session.id,
+        new Date(Date.now() + REST_SECONDS * 1000).toISOString(),
+      )
+    }
   }
 
   const handleSetUncompleted = () => {
     setShowTimer(false)
+    if (session) {
+      setRestEndsAt(session.id, null)
+    }
   }
 
   const completedSetsCount = session ? completedSetCount(session) : 0
@@ -503,7 +515,18 @@ function DetailsScreen() {
       {showTimer && (
         <RestTimer
           restSeconds={REST_SECONDS}
-          onDismiss={() => setShowTimer(false)}
+          onDismiss={() => {
+            setShowTimer(false)
+            if (session) {
+              setRestEndsAt(session.id, null)
+            }
+          }}
+          onComplete={() => {
+            setShowTimer(false)
+            if (session) {
+              setRestEndsAt(session.id, null)
+            }
+          }}
         />
       )}
 

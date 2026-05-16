@@ -1,4 +1,9 @@
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
+import {
+  endWorkoutActivity,
+  startWorkoutActivity,
+  updateWorkoutActivity,
+} from '@/lib/liveActivity'
 import { supabase } from '@/lib/supabase'
 import { workoutSessionInsertSchema } from '@/lib/validators'
 import type { WorkoutSessionInsert } from '@/lib/validators'
@@ -38,12 +43,63 @@ interface SessionState {
     },
   ) => void
   complete: (sessionId: string) => Promise<void>
+  setRestEndsAt: (sessionId: string, restEndsAt: string | null) => void
   getActiveSessionForTemplate: (
     templateId: string,
   ) => WorkoutSession | undefined
 }
 
 const templateBySessionId = new Map<string, WorkoutTemplate>()
+const restEndsAtBySessionId = new Map<string, string | null>()
+
+function getLiveActivityState(
+  session: WorkoutSession,
+  template: WorkoutTemplate,
+) {
+  const details = template.exercises
+  let focused = details[0]
+  let focusedProgress = focused
+    ? session.exerciseProgress[focused.id]
+    : undefined
+
+  for (const detail of details) {
+    const progress = session.exerciseProgress[detail.id]
+    if (!progress?.selectedSets.every(Boolean)) {
+      focused = detail
+      focusedProgress = progress
+      break
+    }
+  }
+
+  const totalSets = Math.max(
+    1,
+    focusedProgress?.setsOverride ?? focused?.sets ?? 1,
+  )
+  const completedSets = focusedProgress
+    ? focusedProgress.selectedSets.filter(Boolean).length
+    : 0
+  const currentSet = Math.min(totalSets, completedSets + 1)
+  const restEndsAtRaw = restEndsAtBySessionId.get(session.id)
+
+  return {
+    exerciseName: focused?.title ?? 'Exercise',
+    currentSet,
+    totalSets,
+    restEndsAt: restEndsAtRaw ? new Date(restEndsAtRaw) : null,
+  }
+}
+
+function syncLiveActivity(
+  sessionId: string,
+  fallbackSession?: WorkoutSession,
+): void {
+  const state = useWorkoutSessionStoreBase.getState()
+  const session = state.sessions[sessionId] ?? fallbackSession
+  const template = templateBySessionId.get(sessionId)
+  if (!session || !template || session.status !== 'in-progress') return
+
+  void updateWorkoutActivity(sessionId, getLiveActivityState(session, template))
+}
 
 function createProgress(
   template: WorkoutTemplate,
@@ -147,6 +203,13 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
       },
     }))
 
+    restEndsAtBySessionId.set(session.id, null)
+    void startWorkoutActivity(
+      session.id,
+      template.title,
+      getLiveActivityState(session, template),
+    )
+
     return session
   },
 
@@ -201,6 +264,7 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
         },
       }
     })
+    syncLiveActivity(sessionId)
   },
 
   setWeightForExercise: (sessionId, detailId, kg) => {
@@ -347,6 +411,7 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
         },
       }
     })
+    syncLiveActivity(sessionId)
   },
 
   complete: async (sessionId) => {
@@ -430,7 +495,14 @@ export const useWorkoutSessionStoreBase = create<SessionState>((set, get) => ({
         },
       }
     })
+    restEndsAtBySessionId.delete(sessionId)
     templateBySessionId.delete(sessionId)
+    void endWorkoutActivity(sessionId)
+  },
+
+  setRestEndsAt: (sessionId, restEndsAt) => {
+    restEndsAtBySessionId.set(sessionId, restEndsAt)
+    syncLiveActivity(sessionId)
   },
 
   getActiveSessionForTemplate: (templateId) =>

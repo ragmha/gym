@@ -19,6 +19,7 @@ interface RestTimerProps {
   /** Total rest time in seconds */
   restSeconds: number
   onDismiss: () => void
+  onComplete?: () => void
 }
 
 function formatTime(totalSeconds: number): string {
@@ -27,9 +28,14 @@ function formatTime(totalSeconds: number): string {
   return `${m}m${s.toString().padStart(2, '0')}s`
 }
 
-export function RestTimer({ restSeconds, onDismiss }: RestTimerProps) {
+export function RestTimer({
+  restSeconds,
+  onDismiss,
+  onComplete,
+}: RestTimerProps) {
   const [remaining, setRemaining] = useState(restSeconds)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null)
+  const onCompleteRef = useRef(onComplete)
   const [barWidth, setBarWidth] = useState(0)
 
   const progress = useSharedValue(1)
@@ -43,10 +49,15 @@ export function RestTimer({ restSeconds, onDismiss }: RestTimerProps) {
   } = useTheme()
 
   useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  useEffect(() => {
     intervalRef.current = setInterval(() => {
       setRemaining((prev) => {
         if (prev <= 1) {
           if (intervalRef.current) clearInterval(intervalRef.current)
+          onCompleteRef.current?.()
           return 0
         }
         return prev - 1

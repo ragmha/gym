@@ -13,6 +13,7 @@ import 'react-native-reanimated'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
+import { useWidgetSync } from '@/hooks/useWidgetSync'
 import { useExerciseStoreBase } from '@/stores/ExerciseStore'
 
 // Show JS errors as alerts in Release mode (no red screen)
@@ -34,6 +35,7 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
+  useWidgetSync()
 
   useEffect(() => {
     if (loaded) {

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import { createDeterministicMockSnapshot } from '@/lib/healthSnapshot/mockAdapter'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
+import { useStepsStoreBase } from '@/stores/StepsStore'
 
 type HealthSnapshotStatus = 'unauthorized' | 'loading' | 'ready' | 'error'
 
@@ -60,6 +61,7 @@ export function useHealthSnapshot(date?: Date): {
 
     try {
       const snapshot = await healthSnapshot.getDailySnapshot(nextDate)
+      useStepsStoreBase.getState().setSteps(snapshot.steps ?? 0)
       setState((prev) => ({
         ...prev,
         snapshot,
