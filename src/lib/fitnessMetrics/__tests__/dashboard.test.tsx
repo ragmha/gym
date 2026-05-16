@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react-native'
 
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
-import type { RecoveryPresentation } from '@/lib/recovery'
+import type { RecoveryPresentation } from '@/utils/recovery'
 import type { DailyHydrationSummary } from '@/stores/HydrationStore'
 
 import { useFitnessMetricsDashboard } from '..'
@@ -19,7 +19,7 @@ jest.mock('@/stores/HydrationStore', () => ({
   useDailyHydration: () => mockUseDailyHydration(),
 }))
 
-jest.mock('@/lib/recovery', () => ({
+jest.mock('@/utils/recovery', () => ({
   useRecoveryPresentation: (input: unknown) =>
     mockUseRecoveryPresentation(input),
 }))

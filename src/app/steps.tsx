@@ -17,7 +17,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { ActivityRings } from '@/components/ActivityRings'
+import { ActivityRings } from '@/components/charts/ActivityRings'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 
 // ── Constants ─────────────────────────────────────────────────────────

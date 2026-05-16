@@ -16,8 +16,11 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { WeightBarChart, type ChartMode } from '@/components/WeightBarChart'
-import { WeightGoalSheet } from '@/components/WeightGoalSheet'
+import {
+  WeightBarChart,
+  type ChartMode,
+} from '@/components/charts/WeightBarChart'
+import { WeightGoalSheet } from '@/components/weight/WeightGoalSheet'
 import { useWeightStore } from '@/stores/WeightStore'
 
 const KG_TO_LBS = 2.20462

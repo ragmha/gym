@@ -1,7 +1,7 @@
 import React from 'react'
 import { Platform, StyleSheet, Text, View } from 'react-native'
 
-import { CircularProgress } from '@/components/CircularProgress'
+import { CircularProgress } from '@/components/common/CircularProgress'
 import { useTheme } from '@/hooks/useThemeColor'
 
 export interface DailyStepsProps {

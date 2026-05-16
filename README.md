@@ -64,124 +64,243 @@ bun run web            # Web browser (Metro bundler)
 
 ## 3) Project Structure
 
+Source code lives under `src/`, grouped by responsibility. Components are
+organised by **domain** rather than alphabetically — when a feature changes,
+its surface area is contained inside a single subfolder.
+
 ```text
 src/
-  app/               # expo-router file-based routes
-    (tabs)/           #   tab navigator group (home, workouts, settings)
-    details/          #   detail screens ([id].tsx)
-  components/         # shared UI components
-    __tests__/        #   component tests
-    navigation/       #   TabBarIcon
-  constants/          # design tokens (Colors.ts)
-  data/               # static data / fetch scripts
-  hooks/              # custom React hooks (useHealthKit, useColorScheme, etc.)
-  lib/                # service clients & config
-    env.ts            #   env var resolution
-    supabaseEnv.ts    #   Supabase env validation (Zod)
-    supabase.ts       #   Supabase client init
-    healthkit.ts      #   HealthKit wrapper
-    validators.ts     #   Zod schemas for DB row validation
-    database.types.ts #   generated Supabase types
-  stores/             # Zustand stores (ExerciseStore)
-  types/              # TypeScript type definitions (models.ts)
-  utils/              # pure utility functions
-  shims/              # polyfill shims (ws.js for Supabase realtime)
-  assets/             # fonts, images
+  app/                          # expo-router file-based routes
+    _layout.tsx                 #   root Stack: registers tabs + modal screens
+    +html.tsx                   #   web HTML shell
+    +not-found.tsx
+    (tabs)/                     #   tab navigator (home, workouts, nutrition, settings)
+      _layout.tsx
+      index.tsx                 #     home / dashboard
+      workouts.tsx
+      nutrition.tsx
+      settings.tsx
+      __tests__/
+    details/[id].tsx            #   workout detail screen
+    nutrition/                  #   meal scan + edit screens (router.push targets)
+      scan.tsx
+      edit/[id].tsx
+    exercise-edit.tsx           #   modal screens registered in root _layout
+    fitness-metrics.tsx
+    hydration.tsx
+    steps.tsx
+    weight.tsx
+
+  components/                   # UI components, grouped by domain
+    common/                     #   cross-domain primitives (CircularProgress, ProgressCard, Header, ErrorBoundary)
+    themed/                     #   theme-aware base components (ThemedText, ThemedView)
+    ui/                         #   visual primitives (Chip, SegmentedTabs)
+    navigation/                 #   TabBarIcon
+    charts/                     #   MiniCharts, WeightBarChart, ActivityRings, ActivityHeatmap
+    dashboard/                  #   CalendarStrip, WorkoutXPCard
+    workout/                    #   Workout, WorkoutDetail, WorkoutProgress, WorkoutCompleteModal, RestTimer, VideoPlayer
+    health/                     #   DailySteps, HealthMetrics
+    weight/                     #   WeightGoalSheet
+    # Each subfolder owns its own __tests__/ when tests exist.
+
+  constants/                    # design tokens
+    Colors.ts                   #   semantic colour palette (light + dark)
+    DesignSystem.ts             #   Spacing, Radii, Typography, Elevation
+
+  hooks/                        # cross-cutting hooks
+    useColorScheme.ts / .web.ts #   platform-split theme detection
+    useThemeColor.ts
+    useHealthSnapshot.ts
+
+  lib/                          # service layer
+    env.ts                      #   single env resolver
+    supabaseEnv.ts              #   Zod-validated Supabase env
+    supabase.ts                 #   Supabase client (typed via Database)
+    database.types.ts           #   types derived from Zod schemas
+    validators.ts               #   Zod schemas for all Supabase rows + payloads
+    aiParser/                   #   meal photo → ParsedMeal (mock today, pluggable)
+    foodDatabase/               #   barcode lookup (mock today, pluggable)
+    healthSnapshot/             #   DailyHealthSnapshot source w/ iOS + mock adapters
+    fitnessMetrics/             #   presenter that joins snapshots + stores for the UI
+    offlineFirstQuery/          #   reusable cache-then-fetch query helper used by stores
+
+  stores/                       # Zustand stores (one per domain)
+    ExerciseStore.ts            #   workout templates + completion state
+    WorkoutSessionStore.ts      #   active session + completed-session history
+    HydrationStore.ts
+    MealStore.ts                #   meals + daily nutrition selectors
+    WeightStore.ts
+    ThemeStore.ts               #   theme preference (light/dark/system)
+    __tests__/                  #   *.test.ts colocated
+
+  types/models.ts               # UI-facing types (templates, sessions) — re-exports lib/validators types
+  utils/                        # pure helpers (recovery, getRandomPastelColor)
+  shims/ws.js                   # ws polyfill for Supabase Realtime (wired via metro.config.js)
+  assets/                       # fonts, images
 
 supabase/
-  config.toml         # local Supabase config
-  seed.sql            # seed data for exercises table
-  migrations/         # SQL migrations (exercises table + RLS)
+  config.toml                   # local Supabase CLI config
+  seed.sql                      # exercises seed data
+  migrations/                   # SQL migrations (one file per table)
 
-.maestro/             # Maestro E2E test flows (iOS + Android)
+.maestro/flows/                 # iOS-only native smoke flows (Android intentionally not maintained)
 .github/
-  workflows/          # CI/CD (preview, build, update, triage, etc.)
-  skills/             # Copilot skill files
-  instructions/       # Copilot instruction files
+  workflows/                    # CI/CD (preview, build, update, triage)
+  skills/                       # reusable Copilot skill packs
+  instructions/                 # Copilot instruction files
+  copilot-instructions.md       # canonical agent policy
 ```
 
-### Import Alias
+### Import alias
 
-Use `@/*` (mapped to `src/*` in tsconfig) for all project imports:
+Use `@/*` (mapped to `src/*` in tsconfig) for **all** project imports. Avoid
+relative paths that climb out of a folder (`../../`).
 
 ```ts
 import { supabase } from '@/lib/supabase'
-import { Exercise } from '@/types/models'
+import { ProgressCard } from '@/components/common/ProgressCard'
+import { useExerciseStore } from '@/stores/ExerciseStore'
+import type { WorkoutTemplate } from '@/types/models'
 ```
+
+### Test conventions
+
+- Test files use the `*.test.ts(x)` suffix and live in `__tests__/` next to the
+  code under test. Snapshots go in `__tests__/__snapshots__/`.
+- Component tests live in the component's domain folder
+  (e.g. `src/components/workout/__tests__/`), not in a global test directory.
 
 ## 4) Architecture
 
+The app is a thin UI layer on top of a small set of Zustand stores. Stores own
+all I/O: they read from Supabase, fall back to local cache via the offline-first
+query helper, validate everything with Zod, and expose UI-shaped selectors.
+HealthKit data flows through a single adapter so iOS, mock, and (future) web
+sources share one interface.
+
 ```text
-┌────────────────────────────────────────────────────────────────────┐
-│                        React Native App                            │
-│       Expo Router screens + components (src/app, src/components)   │
-└───────────────────────────────┬────────────────────────────────────┘
-                                │
-                                │ uses
-                                ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                    Zustand Store (client state)                    │
-│                    src/stores/ExerciseStore.ts                     │
-│                                                                    │
-│ initialize()                                                       │
-│  1) SELECT * FROM public.exercises ORDER BY day                    │
-│  2) Validate response with Zod (src/lib/validators.ts)            │
-│  3) If query fails → fall back to in-file mock workouts            │
-│  4) Normalize for UI (selectedSets, localId, color, date)          │
-│                                                                    │
-│ sync()                                                             │
-│  - Validate payload with Zod before writing                        │
-│  - Write completion back to public.exercises                       │
-└───────────────────────────────┬────────────────────────────────────┘
-                                │
-                                │ Supabase JS client
-                                ▼
-┌────────────────────────────────────────────────────────────────────┐
-│                             Supabase                               │
-│  Table: public.exercises                                           │
-│  RLS enabled (anon → SELECT; authenticated → INSERT/UPDATE/DELETE) │
-│  Indexes: day+week composite, GIN on title (FTS), GIN on exercises │
-└────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            React Native App                                  │
+│   Expo Router screens (src/app) + domain components (src/components/*)       │
+└───────────────────────────────────┬──────────────────────────────────────────┘
+                                    │ selectors / actions
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                       Zustand stores (one per domain)                        │
+│                                                                              │
+│  ExerciseStore         workout templates + per-set completion                │
+│  WorkoutSessionStore   active session, completed sessions history            │
+│  HydrationStore        water intake + daily summary                          │
+│  MealStore             meals + daily nutrition aggregation                   │
+│  WeightStore           body-weight entries + goal                            │
+│  ThemeStore            theme preference (persisted)                          │
+│                                                                              │
+│  Every store:                                                                │
+│   1) Reads via lib/offlineFirstQuery (cache-then-fetch)                      │
+│   2) Validates rows + payloads with lib/validators (Zod)                     │
+│   3) Falls back to local/mock state when Supabase is unreachable             │
+└───────────────────┬───────────────────────────┬──────────────────────────────┘
+                    │                           │
+                    │ supabase-js               │ DailyHealthSnapshot
+                    ▼                           ▼
+┌──────────────────────────┐    ┌──────────────────────────────────────────────┐
+│         Supabase         │    │       lib/healthSnapshot (adapters)          │
+│  exercises               │    │   iosAdapter   → @kingstinct/healthkit       │
+│  weight_entries          │    │   mockAdapter  → deterministic demo data     │
+│  daily_health_snapshots  │    │   HealthSnapshotSource picks per Platform.OS │
+│  workout_sessions        │    └──────────────────────────────────────────────┘
+│  meals                   │
+│  RLS enabled on all      │    lib/fitnessMetrics combines snapshots +
+└──────────────────────────┘    hydration + meals + recovery for the
+                                fitness-metrics screen.
 ```
+
+Other building blocks worth knowing:
+
+- **`lib/aiParser`** — pluggable meal-photo parser; `mockParser` is the only
+  implementation today, but `index.ts` is the single seam to swap in a real AI
+  backend.
+- **`lib/foodDatabase`** — pluggable barcode lookup; same shape as `aiParser`.
+- **`utils/recovery`** — pure recovery-score math + `useRecoveryPresentation`
+  hook. Used by the dashboard and `lib/fitnessMetrics`.
 
 ## 5) Database Schema
 
-Defined in `supabase/migrations/20260308000000_create_exercises_table.sql`.
+All tables live in `public.` and have RLS enabled. Each migration is one file
+under `supabase/migrations/`. Generated types live at `src/lib/database.types.ts`
+(regenerate with `bun run generate-types`).
+
+| Table                    | Migration  | Purpose                                                            |
+| ------------------------ | ---------- | ------------------------------------------------------------------ |
+| `exercises`              | `20260308` | Workout templates: day/week, title, cardio JSONB, exercises JSONB. |
+| `weight_entries`         | `20260309` | One body-weight entry per date (`UNIQUE(date)`), optional note.    |
+| `daily_health_snapshots` | `20260310` | Aggregated daily health (steps, sleep, HRV, RHR, recovery, …).     |
+| `workout_sessions`       | `20260315` | Completed-session metrics: duration, volume, sets, cardio min.     |
+| `meals`                  | `20260514` | Logged meals + macros, `source ∈ {photo, barcode, manual}`.        |
 
 ```text
-public.exercises
-├─ id          UUID (PK, auto-generated)
-├─ day         TEXT NOT NULL
-├─ week        TEXT NOT NULL
-├─ title       TEXT NOT NULL
-├─ videoURL    TEXT (nullable)
-├─ cardio      JSONB { morning: number, evening: number }
-├─ exercises   JSONB array of exercise details
-│  ├─ id         string
-│  ├─ title      string
-│  ├─ sets       number | "To Failure"
-│  ├─ reps       number
-│  └─ variation  string | null
-├─ created_at  TIMESTAMPTZ
-└─ updated_at  TIMESTAMPTZ (auto-updated via trigger)
+public.exercises                         public.weight_entries
+├─ id            UUID PK                 ├─ id            UUID PK
+├─ day           TEXT                    ├─ date          DATE UNIQUE
+├─ week          TEXT                    ├─ weight_kg     NUMERIC(5,2)  [0–500]
+├─ title         TEXT                    ├─ note          TEXT
+├─ videoURL      TEXT                    └─ created_at / updated_at
+├─ cardio        JSONB { morning, evening }
+├─ exercises     JSONB[{ id, title, sets|"To Failure", reps, variation }]
+└─ created_at / updated_at
+
+public.daily_health_snapshots            public.workout_sessions
+├─ id              UUID PK               ├─ id                   UUID PK
+├─ date            DATE UNIQUE           ├─ exercise_day/week    TEXT
+├─ steps           INTEGER               ├─ title                TEXT
+├─ calories        NUMERIC(8,2)          ├─ started_at           TIMESTAMPTZ
+├─ sleep_minutes   INTEGER               ├─ completed_at         TIMESTAMPTZ
+├─ hrv             NUMERIC(6,2)          ├─ duration_seconds     INTEGER
+├─ resting_hr      NUMERIC(5,2)          ├─ total_volume_kg      NUMERIC(10,2)
+├─ heart_rate      NUMERIC(5,2)          ├─ sets_completed       INTEGER
+├─ water_liters    NUMERIC(5,3)          ├─ total_sets           INTEGER
+├─ recovery_score  INTEGER  [0–100]      ├─ exercises_completed  INTEGER
+├─ strain_score    NUMERIC(4,1) [0–21]   ├─ total_exercises      INTEGER
+└─ created_at / updated_at               ├─ cardio_minutes       INTEGER
+                                         ├─ notes                TEXT
+public.meals                             └─ created_at / updated_at
+├─ id              UUID PK
+├─ date            DATE
+├─ consumed_at     TIMESTAMPTZ
+├─ name            TEXT
+├─ calories_kcal   NUMERIC(7,2)   [0–10000]
+├─ protein_g/carb_g/fat_g  NUMERIC(6,2)  [0–1000]
+├─ source          TEXT  CHECK IN ('photo','barcode','manual')
+├─ photo_url / barcode    TEXT
+├─ ai_confidence   NUMERIC(3,2)   [0–1, nullable]
+└─ created_at / updated_at
 ```
 
-**Row Level Security** is enabled:
-
-- `SELECT` — open to all (anon + authenticated)
-- `INSERT` / `UPDATE` / `DELETE` — authenticated users only
+**Row Level Security**: every table is `ENABLE ROW LEVEL SECURITY`. The current
+policy set allows anonymous reads + writes (matching the offline-first, no-auth
+client). When auth is introduced, tighten policies in each migration before
+rolling out.
 
 ## 6) Data Validation
 
-All database I/O is validated with [Zod](https://zod.dev/) schemas in `src/lib/validators.ts`:
+All database I/O is validated with [Zod](https://zod.dev/) schemas in
+`src/lib/validators.ts` — it is the **single source of truth** for row shapes.
+`src/lib/database.types.ts` derives `Database['public']` from those schemas, so
+the Supabase client is statically typed against the same definitions used at
+runtime.
 
-- `exerciseRowSchema` — validates rows read from Supabase
-- `exerciseInsertSchema` — validates new rows before insert
-- `exerciseUpdateSchema` — validates payloads before update
-- `exerciseDetailSchema` — validates individual exercise JSONB items
-- `cardioSchema` — validates the cardio JSONB column
+| Schema                                    | Purpose                                    |
+| ----------------------------------------- | ------------------------------------------ |
+| `exerciseRowSchema` / `Insert` / `Update` | Workout templates (`exercises` table).     |
+| `weightEntryRowSchema` / `Insert`         | Body-weight entries.                       |
+| `dailyHealthSnapshotSchema`               | Persisted health snapshots.                |
+| `workoutSessionRowSchema` / `Insert`      | Completed workout sessions.                |
+| `mealRowSchema` / `Insert`                | Meal log rows.                             |
+| `parsedMealSchema`                        | AI/barcode parser output (`lib/aiParser`). |
 
-TypeScript types (`ExerciseRow`, `ExerciseDetail`, `Cardio`) are derived from these schemas via `z.infer`.
+TypeScript types are derived via `z.infer` (e.g. `ExerciseRow`, `WeightEntry`,
+`Meal`, `WorkoutSessionInsert`) and re-exported from `src/types/models.ts` for
+UI-facing code.
 
 ## 7) CI/CD
 
@@ -204,7 +323,7 @@ This project uses Expo Continuous Native Generation (CNG).
 
 - `ios/` and `android/` are generated artifacts and git-ignored.
 - Native configuration lives in `app.json` and config plugins.
-- Plugins: `expo-router`, `expo-font`, `expo-web-browser`, `react-native-health`
+- Plugins: `expo-router`, `expo-font`, `expo-image-picker`, `expo-camera`, `@kingstinct/react-native-healthkit`.
 
 Regenerate native projects:
 

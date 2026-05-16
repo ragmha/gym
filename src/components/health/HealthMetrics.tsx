@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native'
 
-import { ProgressCard } from '@/components/ProgressCard'
+import { ProgressCard } from '@/components/common/ProgressCard'
 import { useTheme } from '@/hooks/useThemeColor'
 import type { HealthWorkout } from '@/lib/healthSnapshot/types'
 

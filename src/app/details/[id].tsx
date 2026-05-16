@@ -1,8 +1,8 @@
-import { CircularProgress } from '@/components/CircularProgress'
-import { RestTimer } from '@/components/RestTimer'
-import VideoPlayer from '@/components/VideoPlayer'
-import { WorkoutCompleteModal } from '@/components/WorkoutCompleteModal'
-import WorkoutDetail from '@/components/WorkoutDetail'
+import { CircularProgress } from '@/components/common/CircularProgress'
+import { RestTimer } from '@/components/workout/RestTimer'
+import VideoPlayer from '@/components/workout/VideoPlayer'
+import { WorkoutCompleteModal } from '@/components/workout/WorkoutCompleteModal'
+import WorkoutDetail from '@/components/workout/WorkoutDetail'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import {

@@ -1,4 +1,4 @@
-import WorkoutDetail from '@/components/WorkoutDetail'
+import WorkoutDetail from '@/components/workout/WorkoutDetail'
 import { useWorkoutSessionStoreBase } from '@/stores/WorkoutSessionStore'
 import type { WorkoutTemplate } from '@/types/models'
 import { fireEvent, render, screen } from '@testing-library/react-native'

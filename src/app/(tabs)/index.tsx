@@ -13,15 +13,15 @@ import {
   View,
 } from 'react-native'
 
-import { ActivityHeatmap } from '@/components/ActivityHeatmap'
-import { CalendarStrip } from '@/components/CalendarStrip'
-import type { MetricRing } from '@/components/WorkoutXPCard'
-import { FitnessRingsCard } from '@/components/WorkoutXPCard'
+import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap'
+import { CalendarStrip } from '@/components/dashboard/CalendarStrip'
+import type { MetricRing } from '@/components/dashboard/WorkoutXPCard'
+import { FitnessRingsCard } from '@/components/dashboard/WorkoutXPCard'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useTodayHydration } from '@/stores/HydrationStore'
 import { useWeightStore } from '@/stores/WeightStore'
-import { computeRecoveryScore } from '@/utils/recoveryScore'
+import { computeRecoveryScore } from '@/utils/recovery'
 
 if (
   Platform.OS === 'android' &&

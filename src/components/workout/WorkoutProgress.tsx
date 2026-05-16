@@ -1,9 +1,9 @@
+import { ProgressCard } from '@/components/common/ProgressCard'
 import { useTheme } from '@/hooks/useThemeColor'
 import { useExerciseStore } from '@/stores/ExerciseStore'
 import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { TouchableOpacity } from 'react-native'
-import { ProgressCard } from './ProgressCard'
 
 export function WorkoutProgress() {
   const router = useRouter()

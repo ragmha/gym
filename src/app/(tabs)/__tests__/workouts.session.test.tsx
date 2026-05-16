@@ -14,7 +14,7 @@ const { useWorkoutSessionStoreBase } = jest.requireActual<
   typeof import('@/stores/WorkoutSessionStore')
 >('@/stores/WorkoutSessionStore')
 
-jest.mock('@/components/CircularProgress', () => ({
+jest.mock('@/components/common/CircularProgress', () => ({
   CircularProgress: ({ children }: { children: React.ReactNode }) => children,
 }))
 

@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, Text, TextStyle, View } from 'react-native'
 
-import { CircularProgress } from '@/components/CircularProgress'
+import { CircularProgress } from '@/components/common/CircularProgress'
 
 interface ProgressCardProps {
   title?: string
