@@ -1,6 +1,7 @@
 import type { WorkoutSession, WorkoutTemplate } from '@/types/models'
 import type { PriorSessionAggregate, WorkoutEfficiency } from './types'
 
+export { fetchPriorAggregates } from './fetchPriorAggregates'
 export type {
   PriorSessionAggregate,
   WorkoutEfficiency,
