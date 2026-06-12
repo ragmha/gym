@@ -1,9 +1,8 @@
 /**
  * AI parser seam — swap the active implementation here.
  *
- * `mockParser` ships today. To plug in a real backend (OpenAI Vision,
- * Claude Vision, CoreML, …) create a new adapter that satisfies
- * `MealParser` and re-export it as `activeParser` from this file.
+ * `coachParser` uses the on-device coach engine for text hints while keeping
+ * photo-only parsing mock-backed until image attachments land.
  */
-export { mockParser as activeParser } from './mockParser'
+export { coachParser as activeParser } from './coachParser'
 export type { MealParser, ParseInput, ParseResult, ParseError } from './types'
