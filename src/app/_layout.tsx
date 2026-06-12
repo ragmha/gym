@@ -112,6 +112,12 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="coach"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
             name="details/[id]"
             options={{
               headerBackTitle: ' ',
