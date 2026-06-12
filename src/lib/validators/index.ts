@@ -8,4 +8,5 @@
 export * from './exercises'
 export * from './healthSnapshots'
 export * from './meals'
+export * from './coach'
 export * from './workoutSessions'
