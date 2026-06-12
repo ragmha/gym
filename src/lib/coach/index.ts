@@ -22,13 +22,31 @@ async function resolveActiveEngine(): Promise<CoachEngine> {
       Platform.OS,
       appleAvailability === 'available',
     )
-
-    resolvedEngine =
+    const engine =
       engineId === 'apple-fm' ? appleFMCoachEngine : mockCoachEngine
-    return resolvedEngine
+
+    if (isTerminalAvailability(appleAvailability)) {
+      resolvedEngine = engine
+      return resolvedEngine
+    }
+
+    // model-not-ready and ai-disabled can change after asset download or user
+    // Settings changes, so fall back only for this call and re-probe next time.
+    resolvedEngine = null
+    resolveEnginePromise = null
+    return engine
   })()
 
   return resolveEnginePromise
+}
+
+function isTerminalAvailability(availability: CoachAvailability): boolean {
+  return (
+    availability === 'available' ||
+    availability === 'device-unsupported' ||
+    availability === 'platform-unsupported' ||
+    availability === 'os-too-old'
+  )
 }
 
 export function resetActiveCoachEngineForTests(): void {

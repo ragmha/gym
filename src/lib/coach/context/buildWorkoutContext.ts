@@ -45,7 +45,11 @@ export function formatWorkoutContextForPrompt(
 
   appendMetric(lines, 'durationMin', efficiency.durationMinutes)
   appendMetric(lines, 'densityKgPerMin', efficiency.sessionDensityKgPerMin)
-  appendMetric(lines, 'weekOverWeekVolumePct', efficiency.weekOverWeekVolumePct)
+  appendMetric(
+    lines,
+    'volumeVsPreviousSessionPct',
+    efficiency.volumeVsPriorSessionPct,
+  )
 
   if (ctx.recovery) {
     lines.push(`- recoveryScore: ${ctx.recovery.score}`)

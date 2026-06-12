@@ -264,12 +264,14 @@ export function WorkoutCompleteModal({
                 color={textColor}
                 labelColor={subtitleText}
               />
-              {efficiency.weekOverWeekVolumePct !== null && (
+              {efficiency.volumeVsPriorSessionPct !== null && (
                 <EfficiencyMetric
-                  label="Week over week"
-                  value={formatWeekOverWeek(efficiency.weekOverWeekVolumePct)}
+                  label="vs last session"
+                  value={formatVolumeVsPriorSession(
+                    efficiency.volumeVsPriorSessionPct,
+                  )}
                   color={
-                    efficiency.weekOverWeekVolumePct >= 0
+                    efficiency.volumeVsPriorSessionPct >= 0
                       ? successColor
                       : warningColor
                   }
@@ -554,7 +556,7 @@ function formatDensity(value: number | null): string {
   return value === null ? '—' : `${Math.round(value)}kg/min`
 }
 
-function formatWeekOverWeek(value: number): string {
+function formatVolumeVsPriorSession(value: number): string {
   const arrow = value >= 0 ? '↑' : '↓'
   return `${arrow} ${Math.abs(value).toFixed(1)}%`
 }

@@ -5,6 +5,8 @@ import {
   waitFor,
 } from '@testing-library/react-native'
 
+import { activeCoachEngine } from '@/lib/coach'
+import type { CoachChatContext } from '@/lib/coach'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 
 import CoachScreen from '../coach'
@@ -22,10 +24,12 @@ const mockSnapshot: DailyHealthSnapshot = {
   workouts: [],
 }
 
+let mockSnapshotState: DailyHealthSnapshot | null = mockSnapshot
+
 jest.mock('@/hooks/useHealthSnapshot', () => ({
   useHealthSnapshot: () => ({
-    snapshot: mockSnapshot,
-    status: 'ready',
+    snapshot: mockSnapshotState,
+    status: mockSnapshotState ? 'ready' : 'loading',
     isDemoMode: false,
     error: null,
     refresh: jest.fn(),
@@ -90,7 +94,33 @@ jest.mock('@/hooks/useThemeColor', () => {
 const streamedResponse =
   'Based on your question, I would keep this practical. Your recovery score is 85/100. Choose a load that keeps reps crisp. If pain or injury shows up, pause and speak with a professional.'
 
+const originalRequestAnimationFrame = global.requestAnimationFrame
+
 describe('CoachScreen', () => {
+  beforeAll(() => {
+    global.requestAnimationFrame = (callback) => {
+      callback(0)
+      return 0
+    }
+  })
+
+  beforeEach(() => {
+    mockSnapshotState = mockSnapshot
+    jest
+      .spyOn(activeCoachEngine, 'chat')
+      .mockImplementation(async function* () {
+        yield streamedResponse
+      })
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  afterAll(() => {
+    global.requestAnimationFrame = originalRequestAnimationFrame
+  })
+
   it('renders the empty state with suggestion chips', () => {
     render(<CoachScreen />)
 
@@ -122,4 +152,40 @@ describe('CoachScreen', () => {
     expect(screen.getByText('Am I recovered enough to train?')).toBeTruthy()
     await waitFor(() => expect(screen.getByText(streamedResponse)).toBeTruthy())
   })
+
+  it('uses the latest loaded snapshot when sending after health data arrives', async () => {
+    mockSnapshotState = null
+    const { rerender } = render(<CoachScreen />)
+
+    mockSnapshotState = { ...mockSnapshot, steps: 9200, sleepHours: 7.5 }
+    rerender(<CoachScreen />)
+
+    fireEvent.press(screen.getByText('How was my week?'))
+
+    await waitFor(() => expect(activeCoachEngine.chat).toHaveBeenCalled())
+    const ctx = getLastChatContext()
+    expect(ctx.snapshot).toEqual(mockSnapshotState)
+    expect(ctx.recovery).not.toBeNull()
+  })
+
+  it('passes null recovery when sending before a health snapshot is available', async () => {
+    mockSnapshotState = null
+    render(<CoachScreen />)
+
+    fireEvent.press(screen.getByText('How was my week?'))
+
+    await waitFor(() => expect(activeCoachEngine.chat).toHaveBeenCalled())
+    const ctx = getLastChatContext()
+    expect(ctx.snapshot).toBeNull()
+    expect(ctx.recovery).toBeNull()
+  })
 })
+
+function getLastChatContext(): CoachChatContext {
+  const chat = activeCoachEngine.chat as jest.MockedFunction<
+    typeof activeCoachEngine.chat
+  >
+  const lastCall = chat.mock.calls[chat.mock.calls.length - 1]
+  expect(lastCall).toBeDefined()
+  return lastCall?.[1] as CoachChatContext
+}

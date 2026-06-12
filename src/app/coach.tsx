@@ -32,7 +32,7 @@ export default function CoachScreen() {
   const router = useRouter()
   const theme = useTheme()
   const { snapshot } = useHealthSnapshot()
-  const recovery = useRecoveryPresentation({
+  const recoveryPresentation = useRecoveryPresentation({
     hrv: snapshot?.hrv ?? 0,
     restingHR: snapshot?.restingHeartRate ?? 0,
     sleepHours: snapshot?.sleepHours ?? 0,
@@ -41,13 +41,15 @@ export default function CoachScreen() {
     sleepGoalHours: 8,
   })
 
-  const contextRef = useRef<CoachChatContext | null>(null)
-  if (contextRef.current === null) {
-    contextRef.current = {
-      dateISO: new Date().toISOString(),
-      snapshot,
-      recovery,
-    }
+  const contextRef = useRef<CoachChatContext>({
+    dateISO: new Date().toISOString(),
+    snapshot: null,
+    recovery: null,
+  })
+  contextRef.current = {
+    dateISO: new Date().toISOString(),
+    snapshot,
+    recovery: snapshot ? recoveryPresentation : null,
   }
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -104,9 +106,6 @@ export default function CoachScreen() {
       setMessages((current) => [...current, userMessage, assistantMessage])
 
       const coachContext = contextRef.current
-      if (!coachContext) {
-        return
-      }
 
       try {
         for await (const chunk of activeCoachEngine.chat(

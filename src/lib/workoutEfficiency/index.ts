@@ -65,7 +65,10 @@ export function computeWorkoutEfficiency(
     durationMinutes,
     sessionDensityKgPerMin,
     perExercise,
-    weekOverWeekVolumePct: findWeekOverWeekVolumePct(totalVolumeKg, history),
+    volumeVsPriorSessionPct: findVolumeVsPriorSessionPct(
+      totalVolumeKg,
+      history,
+    ),
   }
 }
 
@@ -84,7 +87,7 @@ function getDurationMinutes(session: WorkoutSession): number | null {
   return Math.max(0, (completed - started) / 60000)
 }
 
-function findWeekOverWeekVolumePct(
+function findVolumeVsPriorSessionPct(
   totalVolumeKg: number,
   history: readonly PriorSessionAggregate[],
 ): number | null {

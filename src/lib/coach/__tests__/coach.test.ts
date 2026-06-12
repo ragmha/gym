@@ -104,6 +104,7 @@ describe('coach context builders', () => {
     expect(formatted).toContain('- volumeKg: 1050')
     expect(formatted).toContain('- completionRate: 100%')
     expect(formatted).toContain('- recoveryLabel: Primed to Perform')
+    expect(formatted).not.toContain('weekOverWeek')
     expect(formatted.split(/\s+/).length).toBeLessThanOrEqual(150)
   })
 })

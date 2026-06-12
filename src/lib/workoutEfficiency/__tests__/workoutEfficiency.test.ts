@@ -129,7 +129,7 @@ describe('computeWorkoutEfficiency', () => {
     expect(result.sessionDensityKgPerMin).toBe(0)
   })
 
-  it('computes week-over-week volume from the most recent aggregate', () => {
+  it('computes volume vs prior session from the most recent aggregate', () => {
     const oneExerciseTemplate = template({
       exercises: [
         {
@@ -159,17 +159,17 @@ describe('computeWorkoutEfficiency', () => {
       ],
     )
 
-    expect(result.weekOverWeekVolumePct).toBe(20)
+    expect(result.volumeVsPriorSessionPct).toBe(20)
   })
 
-  it('returns null week-over-week volume for empty history or zero prior volume', () => {
+  it('returns null volume vs prior session for empty history or zero prior volume', () => {
     expect(
-      computeWorkoutEfficiency(session(), template()).weekOverWeekVolumePct,
+      computeWorkoutEfficiency(session(), template()).volumeVsPriorSessionPct,
     ).toBeNull()
     expect(
       computeWorkoutEfficiency(session(), template(), [
         { completedAt: '2026-06-08T10:45:00.000Z', totalVolumeKg: 0 },
-      ]).weekOverWeekVolumePct,
+      ]).volumeVsPriorSessionPct,
     ).toBeNull()
   })
 
@@ -182,7 +182,7 @@ describe('computeWorkoutEfficiency', () => {
 
     expect(result.durationMinutes).toBeNull()
     expect(result.sessionDensityKgPerMin).toBeNull()
-    expect(result.weekOverWeekVolumePct).toBeNull()
+    expect(result.volumeVsPriorSessionPct).toBeNull()
   })
 
   it('keeps zero duration but does not divide density by zero', () => {

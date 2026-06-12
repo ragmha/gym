@@ -11,6 +11,7 @@ export type CoachAvailability =
   | 'available'
   | 'device-unsupported'
   | 'ai-disabled'
+  | 'model-not-ready'
   | 'os-too-old'
   | 'platform-unsupported'
 

@@ -122,6 +122,7 @@ describe('WorkoutCompleteModal', () => {
     expect(screen.getAllByText('3/4')).toHaveLength(2)
     expect(screen.getByText('40m')).toBeTruthy()
     expect(screen.getByText('19kg/min')).toBeTruthy()
+    expect(await screen.findByText('vs last session')).toBeTruthy()
     expect(await screen.findByText('↑ 90.0%')).toBeTruthy()
     expect(screen.getByText('760kg')).toBeTruthy()
   })

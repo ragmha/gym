@@ -121,22 +121,33 @@ export const appleFMCoachEngine: CoachEngine = {
     const native = await getRequiredNative()
     const release = await acquireNativeSessionLock()
     let session: AppleLLMSession | null = null
+    let iterator: AsyncIterator<string> | null = null
     let previous = ''
+    let streamDone = false
+    let streamFailed = false
 
     try {
       session = new native.AppleLLMSession()
       await session.configure({ instructions: buildCoachChatPrompt().system })
 
-      const stream = await withTimeout(
-        Promise.resolve(
-          session.generateTextStream({
-            prompt: buildChatPrompt(messages, ctx),
-          }),
-        ),
-        'Apple Foundation Models chat stream timed out',
-      )
+      const stream = session.generateTextStream({
+        prompt: buildChatPrompt(messages, ctx),
+      })
+      iterator = getTextStreamIterator(stream)
 
-      for await (const cumulativeChunk of iterateTextStream(stream)) {
+      while (true) {
+        const result = await withTimeout(
+          Promise.resolve(iterator.next()),
+          GENERATE_TIMEOUT_MS,
+          'Apple Foundation Models chat chunk',
+        )
+
+        if (result.done) {
+          streamDone = true
+          return
+        }
+
+        const cumulativeChunk = result.value
         const delta = toDelta(previous, cumulativeChunk)
         previous = cumulativeChunk
 
@@ -144,9 +155,19 @@ export const appleFMCoachEngine: CoachEngine = {
           yield delta
         }
       }
+    } catch (error) {
+      streamFailed = true
+      throw error
     } finally {
-      session?.dispose()
-      release()
+      if (session && iterator && !streamDone && !streamFailed) {
+        // Native AppleLLM exposes a singleton chunk event but no cancel API.
+        // Keep the global session lock until abandoned native chunks drain so
+        // they cannot interleave with the next chat stream listener.
+        void drainAbandonedStream(iterator, session, release)
+      } else {
+        session?.dispose()
+        release()
+      }
     }
   },
 
@@ -167,9 +188,6 @@ export const appleFMCoachEngine: CoachEngine = {
 function mapFoundationModelsAvailability(
   status: FoundationModelsAvailability,
 ): CoachAvailability {
-  // react-native-apple-llm v1.0.16 exposes four statuses. The CoachEngine
-  // seam has no transient "model preparing" state, so modelNotReady is treated
-  // as OS/native-readiness unavailable and falls back to the mock engine.
   switch (status) {
     case 'available':
       return 'available'
@@ -178,7 +196,7 @@ function mapFoundationModelsAvailability(
     case 'unavailable':
       return 'device-unsupported'
     case 'modelNotReady':
-      return 'os-too-old'
+      return 'model-not-ready'
   }
 }
 
@@ -263,13 +281,15 @@ async function requestJson(
   if (typeof session.generateStructuredOutput === 'function') {
     return withTimeout(
       session.generateStructuredOutput({ structure, prompt }),
-      `Apple Foundation Models ${label} structured output timed out`,
+      GENERATE_TIMEOUT_MS,
+      `Apple Foundation Models ${label} structured output`,
     )
   }
 
   return withTimeout(
     session.generateText({ prompt }),
-    `Apple Foundation Models ${label} text output timed out`,
+    GENERATE_TIMEOUT_MS,
+    `Apple Foundation Models ${label} text output`,
   )
 }
 
@@ -305,13 +325,17 @@ function stripJsonFences(raw: string): string {
   return withoutFences
 }
 
-function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
-      reject(new Error(`${message} after ${GENERATE_TIMEOUT_MS / 1000}s`))
-    }, GENERATE_TIMEOUT_MS)
+      reject(new Error(`${label} timed out after ${timeoutMs / 1000}s`))
+    }, timeoutMs)
   })
 
   return Promise.race([promise, timeout]).finally(() => {
@@ -321,33 +345,40 @@ function withTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
   })
 }
 
-async function* iterateTextStream(
+function getTextStreamIterator(
   stream: ReadableStream<string> | AsyncIterable<string>,
-): AsyncIterable<string> {
-  if (Symbol.asyncIterator in Object(stream)) {
-    for await (const chunk of stream as AsyncIterable<string>) {
-      yield chunk
-    }
-    return
+): AsyncIterator<string> {
+  const iterable = stream as AsyncIterable<string>
+
+  if (typeof iterable[Symbol.asyncIterator] !== 'function') {
+    throw new Error('Apple Foundation Models chat stream is not async iterable')
   }
 
-  const reader = (stream as ReadableStream<string>).getReader()
+  return iterable[Symbol.asyncIterator]()
+}
 
+async function drainAbandonedStream(
+  iterator: AsyncIterator<string>,
+  session: AppleLLMSession,
+  release: () => void,
+): Promise<void> {
   try {
     while (true) {
       const result = await withTimeout(
-        reader.read(),
-        'Apple Foundation Models chat stream read timed out',
+        Promise.resolve(iterator.next()),
+        GENERATE_TIMEOUT_MS,
+        'Apple Foundation Models abandoned chat chunk',
       )
 
       if (result.done) {
         return
       }
-
-      yield result.value
     }
+  } catch (error) {
+    console.warn('Apple Foundation Models abandoned chat drain stopped', error)
   } finally {
-    reader.releaseLock()
+    session.dispose()
+    release()
   }
 }
 

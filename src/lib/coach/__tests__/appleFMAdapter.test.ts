@@ -103,7 +103,76 @@ async function* cumulativeChunks(chunks: string[]): AsyncIterable<string> {
   }
 }
 
+class ControlledTextStream implements AsyncIterableIterator<string> {
+  private readonly queued: IteratorResult<string>[] = []
+  private readonly waiters: ((result: IteratorResult<string>) => void)[] = []
+
+  next(): Promise<IteratorResult<string>> {
+    const queued = this.queued.shift()
+
+    if (queued) {
+      return Promise.resolve(queued)
+    }
+
+    return new Promise((resolve) => {
+      this.waiters.push(resolve)
+    })
+  }
+
+  [Symbol.asyncIterator](): AsyncIterableIterator<string> {
+    return this
+  }
+
+  push(value: string): void {
+    this.settle({ done: false, value })
+  }
+
+  finish(): void {
+    this.settle({ done: true, value: undefined })
+  }
+
+  private settle(result: IteratorResult<string>): void {
+    const waiter = this.waiters.shift()
+
+    if (waiter) {
+      waiter(result)
+    } else {
+      this.queued.push(result)
+    }
+  }
+}
+
+function neverResolvingStream(): AsyncIterable<string> {
+  return {
+    [Symbol.asyncIterator](): AsyncIterator<string> {
+      return {
+        next: () => new Promise<IteratorResult<string>>(() => undefined),
+      }
+    },
+  }
+}
+
+async function flushMicrotasks(times = 5): Promise<void> {
+  for (let i = 0; i < times; i += 1) {
+    await Promise.resolve()
+  }
+}
+
+async function flushUntil(
+  predicate: () => boolean,
+  attempts = 50,
+): Promise<void> {
+  for (let i = 0; i < attempts; i += 1) {
+    if (predicate()) {
+      return
+    }
+
+    await Promise.resolve()
+  }
+}
+
 beforeEach(() => {
+  jest.useRealTimers()
   jest.clearAllMocks()
   resetActiveCoachEngineForTests()
   setPlatform('web')
@@ -129,7 +198,7 @@ describe('appleFMCoachEngine availability', () => {
     ['available', 'available'],
     ['appleIntelligenceNotEnabled', 'ai-disabled'],
     ['unavailable', 'device-unsupported'],
-    ['modelNotReady', 'os-too-old'],
+    ['modelNotReady', 'model-not-ready'],
   ] as const)('maps native status %s to %s', async (nativeStatus, expected) => {
     setPlatform('ios')
     mockedIsFoundationModelsEnabled.mockResolvedValue(nativeStatus)
@@ -278,6 +347,115 @@ describe('appleFMCoachEngine chat', () => {
     })
     expect(nativeSession.dispose).toHaveBeenCalledTimes(1)
   })
+
+  it('times out stalled stream chunks and releases the native session lock', async () => {
+    jest.useFakeTimers()
+    setPlatform('ios')
+    const stalledSession = makeSession()
+    stalledSession.generateTextStream.mockReturnValue(neverResolvingStream())
+    const recoverySession = makeSession()
+    recoverySession.generateStructuredOutput?.mockResolvedValue({
+      headline: 'Recovered',
+      body: 'The next call was not blocked.',
+      suggestion: 'Keep moving.',
+      tone: 'steady',
+    })
+    mockedAppleLLMSession
+      .mockImplementationOnce(() => stalledSession)
+      .mockImplementationOnce(() => recoverySession)
+
+    const iterator = appleFMCoachEngine
+      .chat([{ role: 'user', content: 'Will this stall?' }], {
+        dateISO: '2026-06-12',
+        snapshot,
+        recovery,
+      })
+      [Symbol.asyncIterator]()
+    const next = iterator
+      .next()
+      .then((result) => ({ error: null, result }))
+      .catch((error: unknown) => ({
+        error,
+        result: null,
+      }))
+
+    await flushMicrotasks()
+    await jest.advanceTimersByTimeAsync(30_000)
+
+    const timedOut = await next
+    expect(timedOut.error).toEqual(
+      new Error('Apple Foundation Models chat chunk timed out after 30s'),
+    )
+    expect(stalledSession.dispose).toHaveBeenCalledTimes(1)
+
+    await expect(
+      appleFMCoachEngine.generateDailyInsight(
+        buildDailyContext({ dateISO: '2026-06-12', snapshot, recovery }),
+      ),
+    ).resolves.toEqual({
+      headline: 'Recovered',
+      body: 'The next call was not blocked.',
+      suggestion: 'Keep moving.',
+      tone: 'steady',
+    })
+    expect(recoverySession.dispose).toHaveBeenCalledTimes(1)
+    jest.useRealTimers()
+  })
+
+  it('drains an abandoned stream before allowing the next chat to start', async () => {
+    setPlatform('ios')
+    const abandonedStream = new ControlledTextStream()
+    const cleanStream = new ControlledTextStream()
+    const abandonedSession = makeSession()
+    const cleanSession = makeSession()
+    abandonedSession.generateTextStream.mockReturnValue(abandonedStream)
+    cleanSession.generateTextStream.mockReturnValue(cleanStream)
+    mockedAppleLLMSession
+      .mockImplementationOnce(() => abandonedSession)
+      .mockImplementationOnce(() => cleanSession)
+
+    const firstIterator = appleFMCoachEngine
+      .chat([{ role: 'user', content: 'First chat' }], {
+        dateISO: '2026-06-12',
+        snapshot,
+        recovery,
+      })
+      [Symbol.asyncIterator]()
+
+    const firstNext = firstIterator.next()
+    await flushMicrotasks()
+    abandonedStream.push('Old')
+    await expect(firstNext).resolves.toEqual({ done: false, value: 'Old' })
+
+    await firstIterator.return?.()
+
+    const secondIterator = appleFMCoachEngine
+      .chat([{ role: 'user', content: 'Second chat' }], {
+        dateISO: '2026-06-12',
+        snapshot,
+        recovery,
+      })
+      [Symbol.asyncIterator]()
+    const secondNext = secondIterator.next()
+
+    await flushMicrotasks()
+    expect(AppleLLMSession).toHaveBeenCalledTimes(1)
+    expect(abandonedSession.dispose).not.toHaveBeenCalled()
+
+    abandonedStream.push('Old native still finishing')
+    abandonedStream.finish()
+    await flushUntil(() => mockedAppleLLMSession.mock.calls.length === 2)
+
+    expect(abandonedSession.dispose).toHaveBeenCalledTimes(1)
+    expect(AppleLLMSession).toHaveBeenCalledTimes(2)
+
+    cleanStream.push('Clean')
+    await expect(secondNext).resolves.toEqual({ done: false, value: 'Clean' })
+    const secondDone = secondIterator.next()
+    cleanStream.finish()
+    await expect(secondDone).resolves.toEqual({ done: true, value: undefined })
+    expect(cleanSession.dispose).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('activeCoachEngine facade', () => {
@@ -345,5 +523,38 @@ describe('activeCoachEngine facade', () => {
       expect.objectContaining({ name: 'eggs' }),
     )
     expect(activeCoachEngine.id).toBe('mock')
+  })
+
+  it('falls back only temporarily while the Apple model is not ready', async () => {
+    setPlatform('ios')
+    mockedIsFoundationModelsEnabled
+      .mockResolvedValueOnce('modelNotReady')
+      .mockResolvedValueOnce('available')
+    const nativeSession = makeSession()
+    nativeSession.generateStructuredOutput?.mockResolvedValue({
+      headline: 'Ready now',
+      body: 'The model became available after a re-probe.',
+      suggestion: 'Use the native engine.',
+      tone: 'steady',
+    })
+    mockedAppleLLMSession.mockImplementation(() => nativeSession)
+
+    await expect(activeCoachEngine.parseMealText('eggs')).resolves.toEqual(
+      expect.objectContaining({ name: 'eggs' }),
+    )
+    expect(activeCoachEngine.id).toBe('mock')
+
+    await expect(
+      activeCoachEngine.generateDailyInsight(
+        buildDailyContext({ dateISO: '2026-06-12', snapshot, recovery }),
+      ),
+    ).resolves.toEqual({
+      headline: 'Ready now',
+      body: 'The model became available after a re-probe.',
+      suggestion: 'Use the native engine.',
+      tone: 'steady',
+    })
+    expect(isFoundationModelsEnabled).toHaveBeenCalledTimes(2)
+    expect(activeCoachEngine.id).toBe('apple-fm')
   })
 })

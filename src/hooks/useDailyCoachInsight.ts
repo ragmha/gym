@@ -13,6 +13,7 @@ interface DailyCoachInsightState {
 }
 
 const insightCache = new Map<string, CoachInsight | Promise<CoachInsight>>()
+const MAX_INSIGHT_CACHE_ENTRIES = 8
 
 export function clearInsightCache(): void {
   insightCache.clear()
@@ -51,11 +52,13 @@ export function useDailyCoachInsight({
     setState({ insight: null, status: 'loading' })
 
     const request = cached ?? generateInsight(snapshot, recovery)
-    insightCache.set(cacheKey, request)
+    setInsightCacheEntry(cacheKey, request)
 
     request
       .then((insight) => {
-        insightCache.set(cacheKey, insight)
+        if (insightCache.get(cacheKey) === request) {
+          setInsightCacheEntry(cacheKey, insight)
+        }
         if (!cancelled) {
           setState({ insight, status: 'ready' })
         }
@@ -92,31 +95,45 @@ function buildCacheKey(
   snapshot: DailyHealthSnapshot,
   recovery: RecoveryResult | null,
 ): string {
+  // Bucket volatile intra-day metrics so the on-device model regenerates only
+  // when coaching inputs meaningfully change, not on every HealthKit refresh.
   return `${snapshot.date}:${JSON.stringify({
-    steps: snapshot.steps,
-    calories: snapshot.calories,
-    sleepHours: snapshot.sleepHours,
-    heartRate: snapshot.heartRate,
-    hrv: snapshot.hrv,
-    restingHeartRate: snapshot.restingHeartRate,
-    waterLiters: snapshot.waterLiters,
-    flightsClimbed: snapshot.flightsClimbed,
-    workouts: snapshot.workouts.map((workout) => ({
-      activityName: workout.activityName,
-      calories: workout.calories,
-      distance: workout.distance,
-      durationMinutes: workout.durationMinutes,
-      startISO: workout.startISO,
-      endISO: workout.endISO,
-    })),
-    recovery: recovery
-      ? {
-          score: recovery.score,
-          label: recovery.label,
-          description: recovery.description,
-        }
-      : null,
+    workouts: snapshot.workouts.length,
+    stepsBucket: bucketNumber(snapshot.steps, 2000),
+    sleepHoursBucket: bucketNumber(snapshot.sleepHours, 0.5),
+    recoveryTone: recovery ? getRecoveryTone(recovery.score) : 'unknown',
   })}`
+}
+
+function setInsightCacheEntry(
+  key: string,
+  value: CoachInsight | Promise<CoachInsight>,
+): void {
+  insightCache.set(key, value)
+
+  while (insightCache.size > MAX_INSIGHT_CACHE_ENTRIES) {
+    const oldestKey = insightCache.keys().next().value
+    if (oldestKey === undefined) {
+      return
+    }
+    insightCache.delete(oldestKey)
+  }
+}
+
+function bucketNumber(value: number | null, bucketSize: number): number | null {
+  return value === null ? null : Math.round(value / bucketSize) * bucketSize
+}
+
+function getRecoveryTone(score: number): 'caution' | 'celebrate' | 'steady' {
+  if (score < 34) {
+    return 'caution'
+  }
+
+  if (score >= 67) {
+    return 'celebrate'
+  }
+
+  return 'steady'
 }
 
 function isPromise(

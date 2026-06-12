@@ -70,8 +70,8 @@ export const mockCoachEngine: CoachEngine = {
     const completion = Math.round(ctx.efficiency.completionRate * 100)
     const summary = `You completed ${completion}% of ${ctx.templateTitle} and moved ${volume}kg.`
     const nextSessionTip =
-      ctx.efficiency.weekOverWeekVolumePct !== null &&
-      ctx.efficiency.weekOverWeekVolumePct > 0
+      ctx.efficiency.volumeVsPriorSessionPct !== null &&
+      ctx.efficiency.volumeVsPriorSessionPct > 0
         ? 'Volume is up from the prior session, so protect recovery before adding more load.'
         : 'Repeat the same structure and progress only if reps stay clean.'
 

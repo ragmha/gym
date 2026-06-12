@@ -20,5 +20,5 @@ export interface WorkoutEfficiency {
   durationMinutes: number | null
   sessionDensityKgPerMin: number | null
   perExercise: WorkoutEfficiencyExercise[]
-  weekOverWeekVolumePct: number | null
+  volumeVsPriorSessionPct: number | null
 }
