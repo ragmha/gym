@@ -65,6 +65,8 @@ export function WorkoutCompleteModal({
       return
     }
 
+    processedSessionIds.current.add(session.id)
+
     let isCancelled = false
     setNarration(null)
     setIsNarrationLoading(true)
