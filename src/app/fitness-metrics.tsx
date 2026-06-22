@@ -202,8 +202,26 @@ export default function FitnessMetricsScreen() {
       {
         id: 'recovery',
         label: 'Recovery Score',
-        value: `${recoveryPresentation.score}`,
+        value: snapshot ? `${recoveryPresentation.score}` : '--',
         unit: '%',
+        subtitle: snapshot
+          ? recoveryPresentation.label
+          : 'Health data not loaded yet',
+        iconName: 'shield-checkmark',
+        accentColorToken: snapshot
+          ? recoveryPresentation.accentColorToken
+          : 'disabled',
+        progress: snapshot
+          ? Math.min(Math.max(recoveryPresentation.score / 100, 0), 1)
+          : 0,
+        status: snapshot
+          ? recoveryPresentation.score <= 0
+            ? 'empty'
+            : recoveryPresentation.score >= 100
+              ? 'reached'
+              : 'progress'
+          : 'empty',
+      },
         subtitle: recoveryPresentation.label,
         iconName: 'shield-checkmark',
         accentColorToken: recoveryPresentation.accentColorToken,
