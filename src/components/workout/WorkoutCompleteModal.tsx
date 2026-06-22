@@ -55,15 +55,19 @@ export function WorkoutCompleteModal({
 
     setEfficiency(computeWorkoutEfficiency(session, template))
 
-    if (!session.completedAt || processedSessionIds.current.has(session.id)) {
+    if (!session.completedAt) {
+      setNarration(null)
+      setIsNarrationLoading(false)
+      return
+    }
+
+    if (processedSessionIds.current.has(session.id)) {
       return
     }
 
     let isCancelled = false
-    processedSessionIds.current.add(session.id)
     setNarration(null)
     setIsNarrationLoading(true)
-
     async function buildSummary() {
       const priorAggregates = await fetchPriorAggregates(
         template.title,
