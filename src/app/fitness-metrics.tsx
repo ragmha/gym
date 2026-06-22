@@ -18,8 +18,8 @@ import {
   type MetricRoute,
 } from '@/lib/fitnessMetrics'
 
-function clamp(value: number) {
-  return Math.min(Math.max(value, 0), 1)
+function clamp(val: number, min: number, max: number) {
+  return Math.min(Math.max(val, min), max)
 }
 
 // ── Mini bar chart ───────────────────────────────────────────────────
@@ -145,7 +145,7 @@ function MetricCard({
             styles.progressFill,
             {
               backgroundColor: iconColor,
-              width: `${Math.round(clamp(metric.progress) * 100)}%`,
+              width: `${Math.round(clamp(metric.progress, 0, 1) * 100)}%`,
             },
           ]}
         />
