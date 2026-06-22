@@ -114,6 +114,7 @@ export function WorkoutCompleteModal({
 
     return () => {
       isCancelled = true
+      processedSessionIds.current.delete(session.id)
     }
   }, [session, template, visible])
 
