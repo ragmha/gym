@@ -210,6 +210,22 @@ describe('coach availability', () => {
     )
   })
 
+  it('surfaces the Apple FM status on iOS', () => {
+    expect(
+      resolveCoachAvailability({
+        platformOS: 'ios',
+        appleFMStatus: 'available',
+      }),
+    ).toBe('available')
+    expect(
+      resolveCoachAvailability({
+        platformOS: 'ios',
+        appleFMStatus: 'model-not-ready',
+      }),
+    ).toBe('model-not-ready')
+    expect(resolveCoachAvailability({ platformOS: 'ios' })).toBe('available')
+  })
+
   it('selects apple-fm only for iOS when available', () => {
     expect(selectEngineId('ios', true)).toBe('apple-fm')
     expect(selectEngineId('ios', false)).toBe('mock')
