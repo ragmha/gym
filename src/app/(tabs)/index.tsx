@@ -296,19 +296,32 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Notification bell */}
-          <TouchableOpacity
-            style={[styles.settingsBtn, { backgroundColor: cardBg }]}
-            activeOpacity={0.7}
-            accessibilityLabel="Notifications"
-            accessibilityHint="Opens your notifications"
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={18}
-              color={textColor}
-            />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[styles.coachBtn, { backgroundColor: cardBg }]}
+              activeOpacity={0.7}
+              accessibilityLabel="Open coach"
+              accessibilityHint="Opens your AI coach chat"
+              onPress={() => router.push('/coach')}
+            >
+              <Ionicons name="chatbubbles" size={16} color={accentColor} />
+              <Text style={[styles.coachBtnText, { color: textColor }]}>
+                Coach
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.settingsBtn, { backgroundColor: cardBg }]}
+              activeOpacity={0.7}
+              accessibilityLabel="Notifications"
+              accessibilityHint="Opens your notifications"
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={18}
+                color={textColor}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -425,6 +438,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  coachBtn: {
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 12,
+  },
+  coachBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   settingsBtn: {
     width: 36,

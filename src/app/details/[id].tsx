@@ -512,10 +512,8 @@ function DetailsScreen() {
         <WorkoutCompleteModal
           visible={showCompleteModal}
           onDismiss={() => setShowCompleteModal(false)}
-          workoutTitle={template.title}
-          exerciseCount={totalExerciseCount}
-          setsCompleted={completedSetsCount}
-          totalSets={totalSetsCount}
+          session={session}
+          template={template}
           cardioMinutes={cardioMinutes(session)}
         />
       )}

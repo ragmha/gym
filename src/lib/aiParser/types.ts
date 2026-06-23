@@ -19,9 +19,10 @@ export interface ParseInput {
 
 /**
  * MealParser is the seam: every adapter (mock, OpenAI Vision, Claude Vision,
- * CoreML) implements this interface and is swappable without caller changes.
+ * CoreML, coach) implements this interface and is swappable without caller
+ * changes.
  */
 export interface MealParser {
-  readonly id: 'mock' | 'openai' | 'anthropic' | 'coreml'
+  readonly id: 'mock' | 'openai' | 'anthropic' | 'coreml' | 'coach'
   parse(input: ParseInput): Promise<ParseResult>
 }

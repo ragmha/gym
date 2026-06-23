@@ -1,26 +1,30 @@
+import { activeCoachEngine, buildWorkoutContext } from '@/lib/coach'
+import {
+  computeWorkoutEfficiency,
+  fetchPriorAggregates,
+  type WorkoutEfficiency,
+} from '@/lib/workoutEfficiency'
+import type { WorkoutSession, WorkoutTemplate } from '@/types/models'
+import type { WorkoutNarration } from '@/lib/validators'
 import { useTheme } from '@/hooks/useThemeColor'
 import Ionicons from '@expo/vector-icons/Ionicons'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated'
 
 interface WorkoutCompleteModalProps {
   visible: boolean
   onDismiss: () => void
-  workoutTitle: string
-  exerciseCount: number
-  setsCompleted: number
-  totalSets: number
+  session: WorkoutSession
+  template: WorkoutTemplate
   cardioMinutes?: number
 }
 
 export function WorkoutCompleteModal({
   visible,
   onDismiss,
-  workoutTitle,
-  exerciseCount,
-  setsCompleted,
-  totalSets,
+  session,
+  template,
   cardioMinutes,
 }: WorkoutCompleteModalProps) {
   const {
@@ -31,11 +35,95 @@ export function WorkoutCompleteModal({
     subtitleText,
     border: borderColor,
     background: backgroundColor,
+    warning: warningColor,
   } = useTheme()
+  const processedSessionIdsRef = useRef(new Set<string>())
+  const [efficiency, setEfficiency] = useState<WorkoutEfficiency>(() =>
+    computeWorkoutEfficiency(session, template),
+  )
+  const [narration, setNarration] = useState<WorkoutNarration | null>(null)
+  const [isNarrationLoading, setIsNarrationLoading] = useState(false)
 
   const handleDismiss = useCallback(() => {
     onDismiss()
   }, [onDismiss])
+
+  useEffect(() => {
+    if (!visible) {
+      return
+    }
+
+    setEfficiency(computeWorkoutEfficiency(session, template))
+
+    if (!session.completedAt) {
+      setNarration(null)
+      setIsNarrationLoading(false)
+      return
+    }
+
+    if (processedSessionIdsRef.current.has(session.id)) {
+      return
+    }
+
+    processedSessionIdsRef.current.add(session.id)
+
+    let isCancelled = false
+    setNarration(null)
+    setIsNarrationLoading(true)
+    async function buildSummary() {
+      const priorAggregates = await fetchPriorAggregates(
+        template.title,
+        5,
+        session.completedAt ?? undefined,
+      )
+
+      if (isCancelled) {
+        return
+      }
+
+      const nextEfficiency = computeWorkoutEfficiency(
+        session,
+        template,
+        priorAggregates,
+      )
+      setEfficiency(nextEfficiency)
+
+      try {
+        const nextNarration = await activeCoachEngine.narrateWorkout(
+          buildWorkoutContext({
+            session,
+            template,
+            recovery: null,
+            history: priorAggregates,
+          }),
+        )
+
+        if (!isCancelled) {
+          setNarration(nextNarration)
+        }
+      } catch (error) {
+        console.warn('Failed to narrate workout summary', error)
+      } finally {
+        if (!isCancelled) {
+          setIsNarrationLoading(false)
+        }
+      }
+    }
+
+    void buildSummary()
+
+    return () => {
+      isCancelled = true
+      processedSessionIdsRef.current.delete(session.id)
+    }
+  }, [session, template, visible])
+
+  const toneColor = getToneColor(
+    narration?.tone ?? 'steady',
+    successColor,
+    accentColor,
+    warningColor,
+  )
 
   return (
     <Modal
@@ -75,7 +163,7 @@ export function WorkoutCompleteModal({
               Congratulations!
             </Text>
             <Text style={[styles.subtitle, { color: subtitleText }]}>
-              You crushed {workoutTitle}.{'\n'}Keep pushing forward!
+              You crushed {template.title}.{'\n'}Keep pushing forward!
             </Text>
           </Animated.View>
 
@@ -94,7 +182,7 @@ export function WorkoutCompleteModal({
             <View style={styles.statsRow}>
               <View style={styles.statBlock}>
                 <Text style={[styles.statNumber, { color: textColor }]}>
-                  {exerciseCount}
+                  {template.exercises.length}
                 </Text>
                 <Text style={[styles.statUnit, { color: subtitleText }]}>
                   EXERCISES
@@ -107,9 +195,9 @@ export function WorkoutCompleteModal({
 
               <View style={styles.statBlock}>
                 <Text style={[styles.statNumber, { color: textColor }]}>
-                  {setsCompleted}
+                  {efficiency.completedSets}
                   <Text style={[styles.statSuffix, { color: subtitleText }]}>
-                    /{totalSets}
+                    /{efficiency.totalSets}
                   </Text>
                 </Text>
                 <Text style={[styles.statUnit, { color: subtitleText }]}>
@@ -141,6 +229,93 @@ export function WorkoutCompleteModal({
                 </>
               )}
             </View>
+          </Animated.View>
+
+          <Animated.View
+            entering={FadeInUp.delay(525).duration(400)}
+            style={[styles.efficiencyCard, { backgroundColor: cardSurface }]}
+          >
+            <View style={styles.detailsHeader}>
+              <Ionicons
+                name="speedometer-outline"
+                size={18}
+                color={accentColor}
+              />
+              <Text style={[styles.detailsTitle, { color: textColor }]}>
+                Workout efficiency
+              </Text>
+            </View>
+
+            <View style={styles.efficiencyGrid}>
+              <EfficiencyMetric
+                label="Volume"
+                value={`${formatNumber(efficiency.totalVolumeKg)}kg`}
+                color={textColor}
+                labelColor={subtitleText}
+              />
+              <EfficiencyMetric
+                label="Sets"
+                value={`${efficiency.completedSets}/${efficiency.totalSets}`}
+                color={textColor}
+                labelColor={subtitleText}
+              />
+              <EfficiencyMetric
+                label="Duration"
+                value={formatDuration(efficiency.durationMinutes)}
+                color={textColor}
+                labelColor={subtitleText}
+              />
+              <EfficiencyMetric
+                label="Density"
+                value={formatDensity(efficiency.sessionDensityKgPerMin)}
+                color={textColor}
+                labelColor={subtitleText}
+              />
+              {efficiency.volumeVsPriorSessionPct !== null && (
+                <EfficiencyMetric
+                  label="vs last session"
+                  value={formatVolumeVsPriorSession(
+                    efficiency.volumeVsPriorSessionPct,
+                  )}
+                  color={
+                    efficiency.volumeVsPriorSessionPct >= 0
+                      ? successColor
+                      : warningColor
+                  }
+                  labelColor={subtitleText}
+                />
+              )}
+            </View>
+          </Animated.View>
+
+          <Animated.View
+            entering={FadeInUp.delay(600).duration(400)}
+            style={[styles.coachCard, { backgroundColor: cardSurface }]}
+          >
+            <View style={styles.coachLabelRow}>
+              <View style={[styles.toneDot, { backgroundColor: toneColor }]} />
+              <Text style={[styles.coachLabel, { color: subtitleText }]}>
+                AI Coach · On-device
+              </Text>
+            </View>
+
+            {narration ? (
+              <>
+                <Text style={[styles.coachHeadline, { color: toneColor }]}>
+                  {narration.headline}
+                </Text>
+                <Text style={[styles.coachSummary, { color: textColor }]}>
+                  {narration.summary}
+                </Text>
+                <Text style={[styles.coachTip, { color: subtitleText }]}>
+                  Next: {narration.nextSessionTip}
+                </Text>
+              </>
+            ) : isNarrationLoading ? (
+              <Text style={[styles.coachSummary, { color: subtitleText }]}>
+                AI coach is reviewing your session…
+              </Text>
+            ) : null}
           </Animated.View>
         </View>
 
@@ -256,6 +431,69 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
   },
+  efficiencyCard: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  efficiencyGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: 14,
+  },
+  efficiencyMetric: {
+    width: '50%',
+  },
+  efficiencyValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  efficiencyLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    marginTop: 3,
+    textTransform: 'uppercase',
+  },
+  coachCard: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 8,
+  },
+  coachLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  toneDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  coachLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  coachHeadline: {
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  coachSummary: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  coachTip: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8,
+  },
   /* ── Button ── */
   buttonArea: {
     width: '100%',
@@ -272,3 +510,60 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 })
+
+interface EfficiencyMetricProps {
+  label: string
+  value: string
+  color: string
+  labelColor: string
+}
+
+function EfficiencyMetric({
+  label,
+  value,
+  color,
+  labelColor,
+}: EfficiencyMetricProps) {
+  return (
+    <View style={styles.efficiencyMetric}>
+      <Text style={[styles.efficiencyValue, { color }]}>{value}</Text>
+      <Text style={[styles.efficiencyLabel, { color: labelColor }]}>
+        {label}
+      </Text>
+    </View>
+  )
+}
+
+function getToneColor(
+  tone: WorkoutNarration['tone'],
+  successColor: string,
+  accentColor: string,
+  warningColor: string,
+): string {
+  if (tone === 'celebrate') {
+    return successColor
+  }
+
+  if (tone === 'caution') {
+    return warningColor
+  }
+
+  return accentColor
+}
+
+function formatNumber(value: number): string {
+  return Math.round(value).toLocaleString()
+}
+
+function formatDuration(value: number | null): string {
+  return value === null ? '—' : `${Math.round(value)}m`
+}
+
+function formatDensity(value: number | null): string {
+  return value === null ? '—' : `${Math.round(value)}kg/min`
+}
+
+function formatVolumeVsPriorSession(value: number): string {
+  const arrow = value >= 0 ? '↑' : '↓'
+  return `${arrow} ${Math.abs(value).toFixed(1)}%`
+}
