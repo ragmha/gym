@@ -245,10 +245,6 @@ async function generateValidatedJson<T>({
     throw new Error(
       `Apple Foundation Models returned invalid ${label} JSON after retry: ${retryParse.error}`,
     )
-  } catch (error) {
-    session?.dispose()
-    release()
-    throw error
   } finally {
     if (session) {
       session.dispose()
