@@ -222,17 +222,6 @@ export default function FitnessMetricsScreen() {
               : 'progress'
           : 'empty',
       },
-        subtitle: recoveryPresentation.label,
-        iconName: 'shield-checkmark',
-        accentColorToken: recoveryPresentation.accentColorToken,
-        progress: Math.min(Math.max(recoveryPresentation.score / 100, 0), 1),
-        status:
-          recoveryPresentation.score <= 0
-            ? 'empty'
-            : recoveryPresentation.score >= 100
-              ? 'reached'
-              : 'progress',
-      },
       presentSteps(snapshot),
       presentCalories(snapshot),
       {
