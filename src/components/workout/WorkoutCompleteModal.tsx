@@ -37,7 +37,7 @@ export function WorkoutCompleteModal({
     background: backgroundColor,
     warning: warningColor,
   } = useTheme()
-  const processedSessionIds = useRef(new Set<string>())
+  const processedSessionIdsRef = useRef(new Set<string>())
   const [efficiency, setEfficiency] = useState<WorkoutEfficiency>(() =>
     computeWorkoutEfficiency(session, template),
   )
@@ -61,11 +61,11 @@ export function WorkoutCompleteModal({
       return
     }
 
-    if (processedSessionIds.current.has(session.id)) {
+    if (processedSessionIdsRef.current.has(session.id)) {
       return
     }
 
-    processedSessionIds.current.add(session.id)
+    processedSessionIdsRef.current.add(session.id)
 
     let isCancelled = false
     setNarration(null)
@@ -114,7 +114,7 @@ export function WorkoutCompleteModal({
 
     return () => {
       isCancelled = true
-      processedSessionIds.current.delete(session.id)
+      processedSessionIdsRef.current.delete(session.id)
     }
   }, [session, template, visible])
 

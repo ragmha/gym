@@ -51,8 +51,12 @@ export function useDailyCoachInsight({
 
     setState({ insight: null, status: 'loading' })
 
-    const request = cached ?? generateInsight(snapshot, recovery)
-    setInsightCacheEntry(cacheKey, request)
+    const existingRequest = cached && isPromise(cached) ? cached : null
+    const request = existingRequest ?? generateInsight(snapshot, recovery)
+
+    if (!existingRequest) {
+      setInsightCacheEntry(cacheKey, request)
+    }
 
     request
       .then((insight) => {
@@ -64,7 +68,9 @@ export function useDailyCoachInsight({
         }
       })
       .catch(() => {
-        insightCache.delete(cacheKey)
+        if (insightCache.get(cacheKey) === request) {
+          insightCache.delete(cacheKey)
+        }
         if (!cancelled) {
           setState({ insight: null, status: 'error' })
         }
@@ -72,6 +78,9 @@ export function useDailyCoachInsight({
 
     return () => {
       cancelled = true
+      if (insightCache.get(cacheKey) === request && isPromise(request)) {
+        insightCache.delete(cacheKey)
+      }
     }
   }, [cacheKey, recovery, snapshot])
 

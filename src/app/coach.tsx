@@ -150,6 +150,7 @@ export default function CoachScreen() {
           key={suggestion}
           onPress={() => void sendMessage(suggestion)}
           disabled={isStreaming}
+          accessibilityState={{ disabled: isStreaming }}
           style={({ pressed }) => [
             styles.chip,
             {
@@ -286,6 +287,9 @@ export default function CoachScreen() {
           <Pressable
             onPress={() => void sendMessage(input)}
             disabled={isStreaming || input.trim().length === 0}
+            accessibilityState={{
+              disabled: isStreaming || input.trim().length === 0,
+            }}
             style={({ pressed }) => [
               styles.sendButton,
               {

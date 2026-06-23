@@ -245,8 +245,14 @@ async function generateValidatedJson<T>({
     throw new Error(
       `Apple Foundation Models returned invalid ${label} JSON after retry: ${retryParse.error}`,
     )
-  } finally {
+  } catch (error) {
     session?.dispose()
+    release()
+    throw error
+  } finally {
+    if (session) {
+      session.dispose()
+    }
     release()
   }
 }
@@ -254,12 +260,16 @@ async function generateValidatedJson<T>({
 async function acquireNativeSessionLock(): Promise<() => void> {
   const previous = nativeSessionQueue
   let releaseCurrent!: () => void
-  nativeSessionQueue = new Promise<void>((resolve) => {
+  let rejectCurrent!: (error: Error) => void
+  nativeSessionQueue = new Promise<void>((resolve, reject) => {
     releaseCurrent = resolve
+    rejectCurrent = reject
   })
 
   await previous
-  return releaseCurrent
+  return () => {
+    releaseCurrent()
+  }
 }
 
 async function getRequiredNative(): Promise<AppleLLMModule> {
