@@ -22,6 +22,18 @@ A body-weight measurement recorded for a specific date, with an optional note.
 ### Workout Session
 A user's active or completed workout built from one or more exercises. A session tracks exercise progress, cardio minutes, and completion status.
 
+### AI Coach
+An on-device coaching assistant that generates daily insights, post-workout feedback, and conversational guidance based on health metrics, recovery signals, and workout history. Uses Apple Foundation Models on iOS or mock fallback on other platforms.
+
+### Coach Insight
+A daily AI-generated motivational or advisory message with a headline, body text, actionable suggestion, and tone (celebrate, steady, caution). Delivered on-device and cached to reduce redundant inference.
+
+### Workout Narration
+Post-workout AI-generated summary with headline, performance commentary, and next-session tip. Includes tone indicator and is based on workout efficiency metrics and recovery state.
+
+### Workout Efficiency
+Performance metrics for a completed session: total volume, set completion rate, session density (kg/min), top sets per exercise, and volume change vs prior session.
+
 ## Terminology stewardship
 
 Prefer these domain terms over implementation-only names. Update this context when app-facing code, documentation, or data models introduce or rename domain concepts.

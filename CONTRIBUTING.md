@@ -38,6 +38,7 @@ If any of those four don't pass on a clean clone, **stop and ask** — something
 | State       | Zustand v5 + persist                             | One store per domain in `src/stores/`                        |
 | Backend     | Supabase (Postgres + Auth)                       | JS SDK 2.x, anon key only today                              |
 | Validation  | Zod v4                                           | Top-level schemas (`z.email()` not `.string().email()`)      |
+| AI Coach    | react-native-apple-llm                           | On-device Apple Foundation Models (iOS only)                 |
 | Tests       | Jest (jest-expo) + @testing-library/react-native | Co-located in `__tests__/`                                   |
 | Lint/format | ESLint 9 (flat config) + Prettier                | `eslint --fix` runs on staged files                          |
 | Hooks       | Husky + lint-staged                              | Pre-commit auto-formats                                      |
@@ -78,7 +79,7 @@ We use the language from `.github/skills/improve-codebase-architecture/`:
 
 - **Module / Interface / Implementation / Depth / Seam / Adapter / Leverage / Locality**
 - Avoid: "component", "service", "API", "boundary" (overloaded with DDD bounded context).
-- Each domain Module exposes **one** Interface; adapters at seams stay swappable (see `src/lib/aiParser/`, `src/lib/healthSnapshot/`, `src/lib/offlineFirstQuery/`).
+- Each domain Module exposes **one** Interface; adapters at seams stay swappable (see `src/lib/aiParser/`, `src/lib/healthSnapshot/`, `src/lib/coach/`, `src/lib/offlineFirstQuery/`).
 
 ### State
 

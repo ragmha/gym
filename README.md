@@ -90,6 +90,7 @@ src/
     hydration.tsx
     steps.tsx
     weight.tsx
+    coach.tsx                   #   AI coach conversational interface
 
   components/                   # UI components, grouped by domain
     common/                     #   cross-domain primitives (CircularProgress, ProgressCard, Header, ErrorBoundary)
@@ -99,7 +100,7 @@ src/
     charts/                     #   MiniCharts, WeightBarChart, ActivityRings, ActivityHeatmap
     dashboard/                  #   CalendarStrip, WorkoutXPCard
     workout/                    #   Workout, WorkoutDetail, WorkoutProgress, WorkoutCompleteModal, RestTimer, VideoPlayer
-    health/                     #   DailySteps, HealthMetrics
+    health/                     #   DailySteps, HealthMetrics, CoachInsightCard
     weight/                     #   WeightGoalSheet
     # Each subfolder owns its own __tests__/ when tests exist.
 
@@ -111,6 +112,7 @@ src/
     useColorScheme.ts / .web.ts #   platform-split theme detection
     useThemeColor.ts
     useHealthSnapshot.ts
+    useDailyCoachInsight.ts     #   on-device AI coach insight cache + hook
 
   lib/                          # service layer
     env.ts                      #   single env resolver
@@ -123,6 +125,8 @@ src/
     healthSnapshot/             #   DailyHealthSnapshot source w/ iOS + mock adapters
     fitnessMetrics/             #   presenter that joins snapshots + stores for the UI
     offlineFirstQuery/          #   reusable cache-then-fetch query helper used by stores
+    coach/                      #   AI Coach: Apple Foundation Models on iOS, mock fallback elsewhere
+    workoutEfficiency/          #   workout session performance metrics (volume, density, completion)
 
   stores/                       # Zustand stores (one per domain)
     ExerciseStore.ts            #   workout templates + completion state
@@ -178,13 +182,18 @@ query helper, validate everything with Zod, and expose UI-shaped selectors.
 HealthKit data flows through a single adapter so iOS, mock, and (future) web
 sources share one interface.
 
+The on-device AI Coach runs entirely locally on iOS (via Apple Foundation Models /
+react-native-apple-llm) and falls back to deterministic mock responses elsewhere.
+Daily insights are cached at the hook level to avoid redundant model inference on
+every HealthKit refresh.
+
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                            React Native App                                  │
 │   Expo Router screens (src/app) + domain components (src/components/*)       │
-└───────────────────────────────────┬──────────────────────────────────────────┘
-                                    │ selectors / actions
-                                    ▼
+└───────────────────────────────┬──────────────────────────────────────────────┘
+                                │ selectors / actions
+                                ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                       Zustand stores (one per domain)                        │
 │                                                                              │
@@ -210,8 +219,13 @@ sources share one interface.
 │  daily_health_snapshots  │    │   HealthSnapshotSource picks per Platform.OS │
 │  workout_sessions        │    └──────────────────────────────────────────────┘
 │  meals                   │
-│  RLS enabled on all      │    lib/fitnessMetrics combines snapshots +
-└──────────────────────────┘    hydration + meals + recovery for the
+│  RLS enabled on all      │    lib/coach (AI Coach adapters)
+└──────────────────────────┘      appleFMAdapter → react-native-apple-llm (iOS)
+                                  mockAdapter     → deterministic placeholders
+                                  activeCoachEngine lazy-resolves on first use
+
+                                lib/fitnessMetrics combines snapshots +
+                                hydration + meals + recovery for the
                                 fitness-metrics screen.
 ```
 
@@ -222,8 +236,20 @@ Other building blocks worth knowing:
   `activeParser` from `@/lib/aiParser` and swap backends by editing that one
   file.
 - **`lib/foodDatabase`** — pluggable barcode lookup; same shape as `aiParser`.
+- **`lib/coach`** — pluggable AI Coach interface with two adapters:
+  `appleFMAdapter` (iOS, react-native-apple-llm) and `mockAdapter` (all other
+  platforms). `activeCoachEngine` lazy-resolves on first use and caches the
+  result. Domain context builders live in `context/`; prompt templates in
+  `prompts/`.
+- **`lib/workoutEfficiency`** — computes performance metrics (volume, density,
+  completion rate) for a completed session, comparing it to prior sessions of
+  the same template. Used by the post-workout narration and the workout detail
+  screen.
 - **`utils/recovery`** — pure recovery-score math + `useRecoveryPresentation`
   hook. Used by the dashboard and `lib/fitnessMetrics`.
+- **`hooks/useDailyCoachInsight`** — caches AI-generated daily insights by a
+  bucketed snapshot key so the on-device model regenerates only when coaching
+  inputs meaningfully change, not on every HealthKit refresh.
 
 ## 5) Database Schema
 
