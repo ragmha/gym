@@ -7,6 +7,10 @@ hydration, weight, workouts — comes from Health, which is already recording it
 If a feature would ask you to log something your phone or watch already knows,
 it does not belong here.
 
+An on-device AI coach reads the same snapshot and nothing else. It runs through
+Apple Foundation Models on supported iOS devices and a deterministic mock
+everywhere else, so no health data leaves the phone.
+
 ## 1) Quick Start
 
 ### Prerequisites
@@ -55,19 +59,24 @@ src/
   app/                    # expo-router file-based routes
     index.tsx             #   the dashboard (root route)
     settings.tsx          #   pushed from the dashboard header
-    fitness-metrics.tsx   #   full metric breakdown
+    fitness-metrics.tsx   #   full metric breakdown + coach insight card
+    coach.tsx             #   streaming coach chat
     steps.tsx             #   step detail, presented modally
   components/
     dashboard/            #   dashboard sections + the ring builder
-    __tests__/            #   component tests
+    charts/               #   heatmap and ring primitives
+    health/               #   health-specific cards (coach insight)
+    common/               #   shared primitives (ErrorBoundary, Header)
+    themed/               #   theme-aware Text/View
   constants/              # design tokens (Colors.ts, DesignSystem.ts)
-  hooks/                  # useHealthSnapshot, useColorScheme, useThemeColor
+  hooks/                  # useHealthSnapshot, useDailyCoachInsight, theme hooks
   lib/
     healthSnapshot/       #   the only data source (see Architecture)
     fitnessMetrics/       #   snapshot → presentable metric mapping
-    recovery.ts           #   recovery score thresholds
+    coach/                #   coach engines, prompts, and daily context
+    validators/           #   zod schemas for coach output
   stores/                 # ThemeStore (the only store — theme preference)
-  utils/                  # pure utility functions
+  utils/                  # recovery scoring and pure helpers
   assets/                 # fonts, images
 
 .maestro/                 # Maestro E2E flows (iOS only)
@@ -132,6 +141,22 @@ One data source, one shape, two adapters.
 weigh-in reports `bodyMassKg: null` and renders `--`, not `0`.
 
 The app requests **read** permissions only. It never writes to Health.
+
+### The coach
+
+`src/lib/coach/` follows the same seam. `CoachEngine` is the interface;
+`appleFMAdapter` runs Apple Foundation Models on iOS and `mockAdapter` returns
+deterministic text everywhere else, so web and CI exercise the same code path
+without a model.
+
+`buildDailyContext` turns a `DailyHealthSnapshot` plus the recovery score into
+the only context a prompt ever sees. There is no other input — no history, no
+profile, no free-form notes — which keeps the prompt small enough to stay under
+the on-device token budget and keeps the coach honest about what it knows.
+
+Output is parsed through the zod schemas in `src/lib/validators/coach.ts`. A
+malformed response is retried once and then fails loudly rather than rendering
+half a sentence.
 
 ## 5) CI/CD
 
@@ -258,6 +283,10 @@ backend, and a meal scanner nobody used.
 
 Adding a backend, a login, or a form is a scope decision, not an implementation
 detail. Treat it as one.
+
+The same rule binds the coach. It may read the daily snapshot and the recovery
+score. Giving it something to remember, or somewhere to write, reintroduces the
+storage this app deliberately does not have.
 
 ## 11) Troubleshooting
 

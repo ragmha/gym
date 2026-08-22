@@ -17,6 +17,11 @@ it does, read it. If it does not, adding a form, a store that persists user
 input, or a network backend is a scope decision that needs explicit sign-off —
 not an implementation detail to decide while coding.
 
+The on-device AI coach (`src/lib/coach/`) inherits the same constraint. It reads
+the daily HealthKit snapshot and the recovery score, and nothing else. Do not
+give it persistence, a profile, or a server — its context is built solely by
+`buildDailyContext`, and prompts must stay within the on-device token budget.
+
 ## Tech Stack Summary
 
 | Layer            | Technology                                       | Version    |
@@ -32,6 +37,8 @@ not an implementation detail to decide while coding.
 | Charts           | react-native-svg                                 | —          |
 | Animations       | React Native Reanimated                          | 4.x        |
 | Health Data      | @kingstinct/react-native-healthkit               | 13.x       |
+| On-device AI     | react-native-apple-llm (Apple Foundation Models) | 1.x        |
+| Validation       | Zod (coach output only)                          | 4.x        |
 | Testing          | Jest + jest-expo + @testing-library/react-native | —          |
 | Linting          | ESLint 9 (flat config) + Prettier                | —          |
 | Pre-commit       | Husky + lint-staged                              | —          |
@@ -44,15 +51,22 @@ src/
   app/                  # expo-router file-based routes
     index.tsx           #   the dashboard (root route)
     settings.tsx        #   pushed from the dashboard header
+    coach.tsx           #   streaming coach chat
   components/
     dashboard/          #   dashboard sections + the ring builder
+    charts/             #   heatmap and ring primitives
+    health/             #   health cards (coach insight)
+    common/             #   shared primitives
+    themed/             #   theme-aware Text/View
   constants/            # design tokens (Colors.ts, DesignSystem.ts)
   hooks/                # custom React hooks
   lib/
     healthSnapshot/     #   the only data source
     fitnessMetrics/     #   snapshot -> presentable metric mapping
+    coach/              #   on-device AI coach engines and prompts
+    validators/         #   zod schemas for coach output
   stores/               # ThemeStore only
-  utils/                # pure utility functions
+  utils/                # recovery scoring and pure helpers
   assets/               # fonts, images
 ```
 
