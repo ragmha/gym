@@ -13,6 +13,8 @@ export const DASHBOARD_GOALS = {
   restingHrMin: 40,
   restingHrMax: 100,
   flightsGoal: 20,
+  dietaryCaloriesGoal: 2_200,
+  waterLitersGoal: 2.5,
 } as const
 
 export const FITNESS_METRIC_ORDER = METRIC_IDS
@@ -26,7 +28,66 @@ type SnapshotMetric = keyof Pick<
   | 'hrv'
   | 'restingHeartRate'
   | 'flightsClimbed'
+  | 'waterLiters'
+  | 'dietaryCalories'
+  | 'bodyMassKg'
 >
+
+export function presentNutritionIntake(
+  snapshot: DailyHealthSnapshot | null,
+): MetricPresentation {
+  const eaten = readMetric(snapshot, 'dietaryCalories')
+
+  return goalMetric({
+    id: 'nutrition-intake',
+    label: 'Calories Eaten',
+    value: formatWhole(eaten),
+    unit: 'kcal',
+    subtitle: `Goal: ${DASHBOARD_GOALS.dietaryCaloriesGoal.toLocaleString()} kcal`,
+    iconName: 'restaurant',
+    accentColorToken: 'metricNutrition',
+    actual: eaten,
+    goal: DASHBOARD_GOALS.dietaryCaloriesGoal,
+  })
+}
+
+export function presentHydration(
+  snapshot: DailyHealthSnapshot | null,
+): MetricPresentation {
+  const liters = readMetric(snapshot, 'waterLiters')
+
+  return goalMetric({
+    id: 'hydration',
+    label: 'Hydration',
+    value: liters > 0 ? liters.toFixed(1) : '--',
+    unit: 'L',
+    subtitle: `Goal: ${DASHBOARD_GOALS.waterLitersGoal} L`,
+    iconName: 'water',
+    accentColorToken: 'metricHydration',
+    actual: liters,
+    goal: DASHBOARD_GOALS.waterLitersGoal,
+  })
+}
+
+export function presentBodyMass(
+  snapshot: DailyHealthSnapshot | null,
+): MetricPresentation {
+  const bodyMassKg = snapshot?.bodyMassKg ?? null
+
+  return {
+    id: 'body-mass',
+    label: 'Weight',
+    value: bodyMassKg != null ? bodyMassKg.toFixed(1) : '--',
+    unit: 'kg',
+    subtitle: 'Latest weigh-in',
+    iconName: 'body',
+    accentColorToken: 'metricWeight',
+    // Weight has no universal goal, so the ring stays neutral rather than
+    // implying a target the user never set.
+    progress: 0,
+    status: bodyMassKg == null ? 'empty' : 'progress',
+  }
+}
 
 export function presentSteps(
   snapshot: DailyHealthSnapshot | null,

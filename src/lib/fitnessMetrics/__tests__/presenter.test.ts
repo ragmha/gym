@@ -173,6 +173,7 @@ describe('fitness metric presenters', () => {
       'hrv',
       'resting-hr',
       'flights-climbed',
+      'body-mass',
     ])
     expect(FITNESS_METRIC_ORDER[0]).toBe('recovery')
     expect(FITNESS_METRIC_ORDER.indexOf('hydration')).toBe(

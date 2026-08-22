@@ -45,6 +45,7 @@ export const Colors = {
     metricRestingHr: '#F59E0B',
     metricFlights: '#6366F1',
     metricNutrition: '#22c55e',
+    metricWeight: '#14B8A6',
   },
   dark: {
     text: '#F8FAFC',
@@ -89,6 +90,7 @@ export const Colors = {
     metricRestingHr: '#F59E0B',
     metricFlights: '#6366F1',
     metricNutrition: '#22c55e',
+    metricWeight: '#14B8A6',
   },
 } as const
 

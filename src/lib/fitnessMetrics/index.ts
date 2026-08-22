@@ -2,15 +2,16 @@ import { useMemo } from 'react'
 
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useRecoveryPresentation } from '@/utils/recovery'
-import { useDailyHydration } from '@/stores/HydrationStore'
-import { useDailyNutrition } from '@/stores/MealStore'
 
 import {
   DASHBOARD_GOALS,
+  presentBodyMass,
   presentCalories,
   presentFlightsClimbed,
   presentHeartRate,
   presentHrv,
+  presentHydration,
+  presentNutritionIntake,
   presentRestingHr,
   presentSleep,
   presentSteps,
@@ -35,8 +36,6 @@ export function useFitnessMetricsDashboard(): MetricPresentation[] {
     rhrBaseline: null,
     sleepGoalHours: DASHBOARD_GOALS.sleepGoalHours,
   })
-  const hydration = useDailyHydration()
-  const nutrition = useDailyNutrition()
 
   return useMemo(
     () => [
@@ -58,47 +57,15 @@ export function useFitnessMetricsDashboard(): MetricPresentation[] {
       },
       presentSteps(snapshot),
       presentCalories(snapshot),
-      {
-        id: 'nutrition-intake',
-        label: 'Calories Eaten',
-        value:
-          nutrition.totals.caloriesKcal > 0
-            ? Math.round(nutrition.totals.caloriesKcal).toLocaleString()
-            : '--',
-        unit: 'kcal',
-        subtitle: `Goal: ${nutrition.targets.caloriesKcal.toLocaleString()} kcal`,
-        iconName: 'restaurant',
-        accentColorToken: 'metricNutrition',
-        progress: Math.min(Math.max(nutrition.progress.calories, 0), 1),
-        route: '/nutrition',
-        status:
-          nutrition.totals.caloriesKcal === 0
-            ? 'empty'
-            : nutrition.totals.caloriesKcal >= nutrition.targets.caloriesKcal
-              ? nutrition.totals.caloriesKcal >
-                nutrition.targets.caloriesKcal * 1.05
-                ? 'over'
-                : 'reached'
-              : 'progress',
-      },
+      presentNutritionIntake(snapshot),
       presentSleep(snapshot),
-      {
-        id: 'hydration',
-        label: 'Hydration',
-        value: hydration.totalMl > 0 ? hydration.formattedTotal : '--',
-        unit: 'ml',
-        subtitle: `Goal: ${hydration.goalMl} ml`,
-        iconName: 'water',
-        accentColorToken: 'metricHydration',
-        progress: Math.min(Math.max(hydration.progress, 0), 1),
-        route: '/hydration',
-        status: hydration.status,
-      },
+      presentHydration(snapshot),
       presentHeartRate(snapshot),
       presentHrv(snapshot),
       presentRestingHr(snapshot),
       presentFlightsClimbed(snapshot),
+      presentBodyMass(snapshot),
     ],
-    [snapshot, recovery, hydration, nutrition],
+    [snapshot, recovery],
   )
 }

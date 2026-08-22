@@ -2,30 +2,19 @@ import { renderHook } from '@testing-library/react-native'
 
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 import type { RecoveryPresentation } from '@/utils/recovery'
-import type { DailyHydrationSummary } from '@/stores/HydrationStore'
 
 import { useFitnessMetricsDashboard } from '..'
 
 const mockUseHealthSnapshot = jest.fn()
-const mockUseDailyHydration = jest.fn()
 const mockUseRecoveryPresentation = jest.fn()
-const mockUseDailyNutrition = jest.fn()
 
 jest.mock('@/hooks/useHealthSnapshot', () => ({
   useHealthSnapshot: () => mockUseHealthSnapshot(),
 }))
 
-jest.mock('@/stores/HydrationStore', () => ({
-  useDailyHydration: () => mockUseDailyHydration(),
-}))
-
 jest.mock('@/utils/recovery', () => ({
   useRecoveryPresentation: (input: unknown) =>
     mockUseRecoveryPresentation(input),
-}))
-
-jest.mock('@/stores/MealStore', () => ({
-  useDailyNutrition: () => mockUseDailyNutrition(),
 }))
 
 function snapshot(): DailyHealthSnapshot {
@@ -37,25 +26,12 @@ function snapshot(): DailyHealthSnapshot {
     heartRate: 125,
     hrv: 40,
     restingHeartRate: 45,
-    waterLiters: null,
+    waterLiters: 1.5,
     flightsClimbed: 10,
     bodyMassKg: 78.5,
     dietaryCalories: 2_100,
     workouts: [],
   }
-}
-
-const hydration: DailyHydrationSummary = {
-  todayEntries: [],
-  totalMl: 1_000,
-  remainingMl: 1_000,
-  goalMl: 2_000,
-  progress: 0.5,
-  percentOfGoal: 50,
-  goalReached: false,
-  status: 'progress',
-  formattedTotal: '1,000',
-  formattedRemaining: '1,000',
 }
 
 const recovery: RecoveryPresentation = {
@@ -67,35 +43,19 @@ const recovery: RecoveryPresentation = {
   shortHint: 'Ready for higher intensity.',
 }
 
-const nutrition = {
-  date: '2026-02-20',
-  meals: [],
-  totals: { caloriesKcal: 800, proteinG: 60, carbG: 100, fatG: 20 },
-  remaining: { caloriesKcal: 1400, proteinG: 90, carbG: 150, fatG: 50 },
-  progress: { calories: 800 / 2200, protein: 0.4, carb: 0.4, fat: 0.3 },
-  targets: { caloriesKcal: 2200, proteinG: 150, carbG: 250, fatG: 70 },
-}
-
 describe('useFitnessMetricsDashboard', () => {
   beforeEach(() => {
     mockUseHealthSnapshot.mockReturnValue({ snapshot: snapshot() })
-    mockUseDailyHydration.mockReturnValue(hydration)
     mockUseRecoveryPresentation.mockReturnValue(recovery)
-    mockUseDailyNutrition.mockReturnValue(nutrition)
   })
 
   afterEach(() => {
     jest.clearAllMocks()
   })
 
-  it('composes the dashboard Interface from health, recovery, hydration, and nutrition Modules', () => {
+  it('composes every dashboard metric from the health snapshot and recovery alone', () => {
     const { result } = renderHook(() => useFitnessMetricsDashboard())
 
-    expect(result.current).toHaveLength(10)
-    expect(result.current[0]?.id).toBe('recovery')
-    expect(result.current[result.current.length - 1]?.id).toBe(
-      'flights-climbed',
-    )
     expect(result.current.map((metric) => metric.id)).toEqual([
       'recovery',
       'steps',
@@ -107,17 +67,39 @@ describe('useFitnessMetricsDashboard', () => {
       'hrv',
       'resting-hr',
       'flights-climbed',
+      'body-mass',
     ])
-    expect(result.current[3]).toMatchObject({
-      id: 'nutrition-intake',
-      value: '800',
+  })
+
+  it('reads intake, hydration and weight from HealthKit rather than manual stores', () => {
+    const { result } = renderHook(() => useFitnessMetricsDashboard())
+    const byId = new Map(result.current.map((metric) => [metric.id, metric]))
+
+    expect(byId.get('nutrition-intake')).toMatchObject({
+      value: '2,100',
+      unit: 'kcal',
       status: 'progress',
     })
-    expect(result.current[5]).toMatchObject({
-      id: 'hydration',
-      value: '1,000',
-      route: '/hydration',
+    expect(byId.get('hydration')).toMatchObject({
+      value: '1.5',
+      unit: 'L',
       status: 'progress',
     })
+    expect(byId.get('body-mass')).toMatchObject({
+      value: '78.5',
+      unit: 'kg',
+      status: 'progress',
+    })
+  })
+
+  it('renders an absent weigh-in as empty rather than zero', () => {
+    mockUseHealthSnapshot.mockReturnValue({
+      snapshot: { ...snapshot(), bodyMassKg: null },
+    })
+
+    const { result } = renderHook(() => useFitnessMetricsDashboard())
+    const bodyMass = result.current.find((metric) => metric.id === 'body-mass')
+
+    expect(bodyMass).toMatchObject({ value: '--', status: 'empty' })
   })
 })
