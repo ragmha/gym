@@ -65,32 +65,6 @@ jest.mock('react-native-worklets', () => ({
   scheduleOnRN: jest.fn((fn: any, ...args: any[]) => fn(...args)),
 }))
 
-// Mock Supabase client
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        order: jest.fn(() => Promise.resolve({ data: [], error: null })),
-        eq: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      })),
-      insert: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      delete: jest.fn(() => ({
-        eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      })),
-    })),
-    channel: jest.fn(() => ({
-      on: jest.fn(() => ({
-        subscribe: jest.fn(() => ({
-          unsubscribe: jest.fn(),
-        })),
-      })),
-    })),
-  },
-}))
-
 // Mock useThemeColor
 jest.mock('@/hooks/useThemeColor', () => ({
   useThemeColor: jest.fn((_props: any, colorName: string) => {
