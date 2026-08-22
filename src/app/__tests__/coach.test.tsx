@@ -21,6 +21,8 @@ const mockSnapshot: DailyHealthSnapshot = {
   restingHeartRate: 65,
   waterLiters: 2.1,
   flightsClimbed: 8,
+  bodyMassKg: 81.4,
+  dietaryCalories: null,
   workouts: [],
 }
 

@@ -1,4 +1,4 @@
-import type { MetricRing } from '@/components/WorkoutXPCard'
+import type { MetricRing } from '@/components/dashboard/WorkoutXPCard'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 
 export const SLEEP_GOAL_HOURS = 8

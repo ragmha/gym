@@ -5,10 +5,8 @@ import {
 } from 'react-native-apple-llm'
 
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
-import type { WorkoutSession, WorkoutTemplate } from '@/types/models'
 import type { RecoveryResult } from '@/utils/recovery'
 import { buildDailyContext } from '../context/buildDailyContext'
-import { buildWorkoutContext } from '../context/buildWorkoutContext'
 import { activeCoachEngine, resetActiveCoachEngineForTests } from '../index'
 import { appleFMCoachEngine } from '../appleFMAdapter'
 
@@ -40,6 +38,8 @@ const snapshot: DailyHealthSnapshot = {
   restingHeartRate: 62,
   waterLiters: null,
   flightsClimbed: 8,
+  bodyMassKg: 81.4,
+  dietaryCalories: null,
   workouts: [],
 }
 
@@ -51,40 +51,6 @@ const recovery: RecoveryResult = {
 
 function setPlatform(os: typeof Platform.OS): void {
   Object.defineProperty(Platform, 'OS', { configurable: true, value: os })
-}
-
-function template(): WorkoutTemplate {
-  return {
-    id: 'template-a',
-    day: 'Day 1',
-    week: 'Week 1',
-    title: 'Full Body Strength',
-    videoURL: null,
-    cardio: { morning: 0, evening: 0 },
-    color: '#000000',
-    exercises: [
-      { id: 'squat', title: 'Back Squat', sets: 2, reps: 5, variation: null },
-    ],
-  }
-}
-
-function session(): WorkoutSession {
-  return {
-    id: 'session-a',
-    templateId: 'template-a',
-    startedAt: '2026-06-12T08:00:00.000Z',
-    completedAt: '2026-06-12T08:30:00.000Z',
-    exerciseProgress: {
-      squat: {
-        detailId: 'squat',
-        selectedSets: [true, true],
-        weightPerSet: [100, 110],
-      },
-    },
-    cardio: { morning: 0, evening: 0 },
-    cardioCompleted: { morning: false, evening: false },
-    status: 'complete',
-  }
 }
 
 function makeSession(): MockSession {
@@ -254,31 +220,27 @@ describe('appleFMCoachEngine structured output', () => {
     nativeSession.generateStructuredOutput
       ?.mockResolvedValueOnce('```json\n{"headline":\n```')
       .mockResolvedValueOnce({
-        headline: 'Volume moved well',
-        summary: 'You completed the planned work.',
-        nextSessionTip: 'Repeat this structure next time.',
+        headline: 'Strong base for today',
+        body: 'Recovery is holding up well.',
+        suggestion: 'Keep the first working set controlled.',
         tone: 'celebrate',
       })
     mockedAppleLLMSession.mockImplementation(() => nativeSession)
 
     await expect(
-      appleFMCoachEngine.narrateWorkout(
-        buildWorkoutContext({
-          session: session(),
-          template: template(),
-          recovery,
-        }),
+      appleFMCoachEngine.generateDailyInsight(
+        buildDailyContext({ dateISO: '2026-06-12', snapshot, recovery }),
       ),
     ).resolves.toEqual({
-      headline: 'Volume moved well',
-      summary: 'You completed the planned work.',
-      nextSessionTip: 'Repeat this structure next time.',
+      headline: 'Strong base for today',
+      body: 'Recovery is holding up well.',
+      suggestion: 'Keep the first working set controlled.',
       tone: 'celebrate',
     })
     expect(nativeSession.generateStructuredOutput).toHaveBeenCalledTimes(2)
     expect(nativeSession.generateStructuredOutput).toHaveBeenLastCalledWith({
       structure: expect.objectContaining({
-        nextSessionTip: expect.any(Object),
+        suggestion: expect.any(Object),
       }),
       prompt: expect.stringContaining('Return ONLY valid JSON matching'),
     })
@@ -311,14 +273,16 @@ describe('appleFMCoachEngine structured output', () => {
     const nativeSession = makeSession()
     nativeSession.generateStructuredOutput = undefined
     nativeSession.generateText.mockResolvedValue(
-      '```json\n{"name":"chicken lunch","calories_kcal":640,"protein_g":42,"carb_g":74,"fat_g":18,"ai_confidence":0.8}\n```',
+      '```json\n{"headline":"Steady day","body":"Metrics look consistent.","suggestion":"Hold the current load.","tone":"steady"}\n```',
     )
     mockedAppleLLMSession.mockImplementation(() => nativeSession)
 
     await expect(
-      appleFMCoachEngine.parseMealText('chicken lunch'),
+      appleFMCoachEngine.generateDailyInsight(
+        buildDailyContext({ dateISO: '2026-06-12', snapshot, recovery }),
+      ),
     ).resolves.toEqual(
-      expect.objectContaining({ name: 'chicken lunch', ai_confidence: 0.8 }),
+      expect.objectContaining({ headline: 'Steady day', tone: 'steady' }),
     )
     expect(nativeSession.generateText).toHaveBeenCalledTimes(1)
   })
@@ -519,9 +483,7 @@ describe('activeCoachEngine facade', () => {
     resetActiveCoachEngineForTests()
     setPlatform('web')
 
-    await expect(activeCoachEngine.parseMealText('eggs')).resolves.toEqual(
-      expect.objectContaining({ name: 'eggs' }),
-    )
+    await expect(activeCoachEngine.availability()).resolves.toBe('available')
     expect(activeCoachEngine.id).toBe('mock')
   })
 
@@ -539,9 +501,7 @@ describe('activeCoachEngine facade', () => {
     })
     mockedAppleLLMSession.mockImplementation(() => nativeSession)
 
-    await expect(activeCoachEngine.parseMealText('eggs')).resolves.toEqual(
-      expect.objectContaining({ name: 'eggs' }),
-    )
+    await expect(activeCoachEngine.availability()).resolves.toBe('available')
     expect(activeCoachEngine.id).toBe('mock')
 
     await expect(

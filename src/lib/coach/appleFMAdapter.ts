@@ -1,23 +1,14 @@
 import { Platform } from 'react-native'
 
-import {
-  coachInsightSchema,
-  parsedMealSchema,
-  type CoachInsight,
-  type ParsedMeal,
-  type WorkoutNarration,
-  workoutNarrationSchema,
-} from '@/lib/validators'
+import { coachInsightSchema, type CoachInsight } from '@/lib/validators'
 import { buildCoachChatPrompt } from './prompts/chat'
 import { buildDailyInsightPrompt } from './prompts/dailyInsight'
-import { buildPostWorkoutPrompt } from './prompts/postWorkout'
 import type {
   CoachAvailability,
   CoachChatContext,
   CoachChatMessage,
   CoachEngine,
   DailyCoachContext,
-  WorkoutCoachContext,
 } from './types'
 import type {
   FoundationModelsAvailability,
@@ -100,20 +91,6 @@ export const appleFMCoachEngine: CoachEngine = {
     })
   },
 
-  async narrateWorkout(ctx: WorkoutCoachContext): Promise<WorkoutNarration> {
-    const { system, prompt } = buildPostWorkoutPrompt(ctx)
-
-    return generateValidatedJson({
-      system,
-      prompt,
-      retryInstruction:
-        'Return ONLY valid JSON matching {"headline":"string","summary":"string","nextSessionTip":"string","tone":"celebrate|steady|caution"}.',
-      schema: workoutNarrationSchema,
-      structure: workoutNarrationStructure,
-      label: 'workout narration',
-    })
-  },
-
   async *chat(
     messages: CoachChatMessage[],
     ctx: CoachChatContext,
@@ -169,19 +146,6 @@ export const appleFMCoachEngine: CoachEngine = {
         release()
       }
     }
-  },
-
-  async parseMealText(text: string): Promise<ParsedMeal> {
-    return generateValidatedJson({
-      system:
-        'You estimate nutrition from a short meal description. Return JSON only with shape {"name":"string","calories_kcal":"number","protein_g":"number","carb_g":"number","fat_g":"number","ai_confidence":"number 0..1"}. Use conservative estimates and never add commentary.',
-      prompt: `Meal description:\n${text}`,
-      retryInstruction:
-        'Return ONLY valid JSON matching {"name":"string","calories_kcal":"number","protein_g":"number","carb_g":"number","fat_g":"number","ai_confidence":"number 0..1"}.',
-      schema: parsedMealSchema,
-      structure: parsedMealStructure,
-      label: 'parsed meal',
-    })
   },
 }
 
@@ -425,20 +389,4 @@ const coachInsightStructure: StructureSchema = {
   body: { type: 'string', description: 'Concise insight body' },
   suggestion: { type: 'string', description: 'Next best training suggestion' },
   tone: { type: 'string', enum: ['celebrate', 'steady', 'caution'] },
-}
-
-const workoutNarrationStructure: StructureSchema = {
-  headline: { type: 'string', description: 'Short post-workout headline' },
-  summary: { type: 'string', description: 'Concise workout summary' },
-  nextSessionTip: { type: 'string', description: 'Tip for the next session' },
-  tone: { type: 'string', enum: ['celebrate', 'steady', 'caution'] },
-}
-
-const parsedMealStructure: StructureSchema = {
-  name: { type: 'string', description: 'Meal name from user text' },
-  calories_kcal: { type: 'number', description: 'Estimated calories' },
-  protein_g: { type: 'number', description: 'Estimated protein grams' },
-  carb_g: { type: 'number', description: 'Estimated carbohydrate grams' },
-  fat_g: { type: 'number', description: 'Estimated fat grams' },
-  ai_confidence: { type: 'number', description: 'Confidence from 0 to 1' },
 }
