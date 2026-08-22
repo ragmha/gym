@@ -75,21 +75,7 @@ export default function RootLayout() {
             options={{ headerShown: false, title: '' }}
           />
           <Stack.Screen
-            name="weight"
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-            }}
-          />
-          <Stack.Screen
             name="steps"
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-            }}
-          />
-          <Stack.Screen
-            name="hydration"
             options={{
               headerShown: false,
               presentation: 'modal',

@@ -19,8 +19,6 @@ import type { MetricRing } from '@/components/dashboard/WorkoutXPCard'
 import { FitnessRingsCard } from '@/components/dashboard/WorkoutXPCard'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
-import { useTodayHydration } from '@/stores/HydrationStore'
-import { useWeightStore } from '@/stores/WeightStore'
 import { computeRecoveryScore } from '@/utils/recovery'
 
 if (
@@ -31,7 +29,6 @@ if (
 }
 
 const SLEEP_GOAL_HOURS = 8
-const KG_TO_LBS = 2.20462
 
 // ── Icon badge component ──────────────────────────────────────
 function IconBadge({
@@ -78,11 +75,8 @@ export default function HomeScreen() {
   const workouts = snapshot?.workouts ?? []
   const hrv = snapshot?.hrv ?? 0
   const restingHeartRate = snapshot?.restingHeartRate ?? 0
-
-  const { latestEntry, distanceToGoal, goalKg, unit, trendDelta } =
-    useWeightStore()
-
-  const { totalMl: hydrationMl, goalMl: hydrationGoal } = useTodayHydration()
+  const bodyMassKg = snapshot?.bodyMassKg ?? null
+  const waterLiters = snapshot?.waterLiters ?? 0
 
   const [refreshing, setRefreshing] = useState(false)
 
@@ -113,36 +107,9 @@ export default function HomeScreen() {
         : '#E8707A'
 
   // ── Weight display helpers ────────────────────────────────────
-  const weightDisplay = latestEntry
-    ? unit === 'lbs'
-      ? (latestEntry.weightKg * KG_TO_LBS).toFixed(1)
-      : latestEntry.weightKg.toFixed(1)
-    : '--'
-
-  const goalDistDisplay =
-    distanceToGoal !== null
-      ? `${Math.abs(unit === 'lbs' ? distanceToGoal * KG_TO_LBS : distanceToGoal).toFixed(1)} ${unit} to goal`
-      : goalKg
-        ? ''
-        : 'Set a goal'
-
-  const trendIcon =
-    trendDelta !== null
-      ? trendDelta < 0
-        ? 'trending-down'
-        : trendDelta > 0
-          ? 'trending-up'
-          : 'remove-outline'
-      : null
-
-  const trendColor =
-    trendDelta !== null
-      ? trendDelta < 0
-        ? '#30D158'
-        : trendDelta > 0
-          ? '#FF3B30'
-          : subtitleColor
-      : subtitleColor
+  // HealthKit reports body mass in kilograms; there is no user-set unit
+  // preference to honour now that the manual weight tracker is gone.
+  const weightDisplay = bodyMassKg != null ? bodyMassKg.toFixed(1) : '--'
 
   // ── Date helpers ──────────────────────────────────────────────
   const today = useMemo(() => new Date(), [])
@@ -166,21 +133,6 @@ export default function HomeScreen() {
     workouts.reduce((sum, w) => sum + (w.durationMinutes ?? 0), 0),
   )
 
-  const weightLostKg =
-    distanceToGoal !== null ? Math.max(-distanceToGoal, 0) : 0
-  const weightLostDisplay =
-    unit === 'lbs' ? weightLostKg * KG_TO_LBS : weightLostKg
-  const weightGoalDisplay =
-    goalKg != null
-      ? unit === 'lbs'
-        ? (goalKg > 0 ? goalKg : 5) * KG_TO_LBS
-        : goalKg > 0
-          ? goalKg
-          : 5
-      : unit === 'lbs'
-        ? 10
-        : 5
-
   const fitnessMetrics: MetricRing[] = useMemo(
     () => [
       {
@@ -193,19 +145,19 @@ export default function HomeScreen() {
       },
       {
         label: 'Hydration',
-        value: hydrationMl,
-        goal: hydrationGoal,
-        unit: 'ml',
+        value: Math.round(waterLiters * 10) / 10,
+        goal: 2.5,
+        unit: 'L',
         color: '#2563EB',
         icon: 'water',
       },
       {
-        label: 'Weight Loss',
-        value: Math.round(weightLostDisplay * 10) / 10,
-        goal: Math.round(weightGoalDisplay * 10) / 10,
-        unit,
+        label: 'Sleep',
+        value: Math.round(sleepHours * 10) / 10,
+        goal: SLEEP_GOAL_HOURS,
+        unit: 'hrs',
         color: '#30D158',
-        icon: 'trending-down',
+        icon: 'moon',
       },
       {
         label: 'Steps',
@@ -224,16 +176,7 @@ export default function HomeScreen() {
         icon: 'heart-circle',
       },
     ],
-    [
-      calories,
-      hydrationMl,
-      hydrationGoal,
-      weightLostDisplay,
-      weightGoalDisplay,
-      unit,
-      steps,
-      cardioMinutes,
-    ],
+    [calories, waterLiters, sleepHours, steps, cardioMinutes],
   )
 
   return (
@@ -354,10 +297,8 @@ export default function HomeScreen() {
       />
 
       {/* ── Weight ─────────────────────────────────────────────── */}
-      <TouchableOpacity
+      <View
         style={[styles.weightCard, { backgroundColor: cardBg, borderColor }]}
-        onPress={() => router.push('/weight')}
-        activeOpacity={0.7}
       >
         <View style={styles.weightLeft}>
           <View style={styles.weightHeaderRow}>
@@ -371,25 +312,16 @@ export default function HomeScreen() {
               {weightDisplay}
             </Text>
             <Text style={[styles.weightUnit, { color: subtitleColor }]}>
-              {unit}
+              kg
             </Text>
-            {trendIcon && (
-              <Ionicons
-                name={trendIcon as 'trending-down'}
-                size={16}
-                color={trendColor}
-                style={styles.trendIcon}
-              />
-            )}
           </View>
-          {goalDistDisplay ? (
-            <Text style={[styles.goalText, { color: accentColor }]}>
-              {goalDistDisplay}
-            </Text>
-          ) : null}
+          <Text style={[styles.goalText, { color: subtitleColor }]}>
+            {bodyMassKg != null
+              ? 'Latest weigh-in from Health'
+              : 'No weigh-in recorded'}
+          </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
-      </TouchableOpacity>
+      </View>
 
       {/* ── Activity heatmap ───────────────────────────────────── */}
       <ActivityHeatmap />
