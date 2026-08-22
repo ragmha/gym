@@ -39,6 +39,8 @@ function snapshot(): DailyHealthSnapshot {
     restingHeartRate: 45,
     waterLiters: null,
     flightsClimbed: 10,
+    bodyMassKg: 78.5,
+    dietaryCalories: 2_100,
     workouts: [],
   }
 }

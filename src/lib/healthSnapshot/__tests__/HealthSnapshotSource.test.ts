@@ -47,6 +47,10 @@ describe('HealthSnapshotSource adapters', () => {
           { quantity: 3.2 },
           { quantity: 1.3 },
         ],
+        HKQuantityTypeIdentifierDietaryEnergyConsumed: [
+          { quantity: 1200.4 },
+          { quantity: 640.2 },
+        ],
       }
       return Promise.resolve(quantities[identifier] ?? [])
     })
@@ -58,6 +62,7 @@ describe('HealthSnapshotSource adapters', () => {
         HKQuantityTypeIdentifierHeartRate: 71.6,
         HKQuantityTypeIdentifierHeartRateVariabilitySDNN: 42.4,
         HKQuantityTypeIdentifierRestingHeartRate: 55.5,
+        HKQuantityTypeIdentifierBodyMass: 78.46,
       }
       return Promise.resolve({ quantity: quantities[identifier] })
     })
@@ -81,6 +86,8 @@ describe('HealthSnapshotSource adapters', () => {
       restingHeartRate: 56,
       waterLiters: 1.5,
       flightsClimbed: 5,
+      bodyMassKg: 78.5,
+      dietaryCalories: 1841,
       workouts: [
         {
           activityName: 'Running',
@@ -259,6 +266,20 @@ describe('HealthSnapshotSource adapters', () => {
     expect(hk.saveWorkoutSample).not.toHaveBeenCalled()
   })
 
+  it('reports bodyMassKg as null when HealthKit holds no body mass sample', async () => {
+    hk.queryQuantitySamples.mockResolvedValue([])
+    hk.queryCategorySamples.mockResolvedValue([])
+    hk.queryWorkoutSamples.mockResolvedValue([])
+    hk.getMostRecentQuantitySample.mockResolvedValue(undefined)
+
+    const snapshot = await iosHealthKitAdapter.getDailySnapshot(
+      new Date('2026-02-15T12:00:00.000Z'),
+    )
+
+    // Absent weight must stay null rather than collapsing to a bogus 0 kg.
+    expect(snapshot.bodyMassKg).toBeNull()
+  })
+
   it('requestAuthorization uses documented read and write permissions for iOS while mock authorizes immediately', async () => {
     hk.isHealthDataAvailable.mockResolvedValue(true)
     hk.requestAuthorization.mockResolvedValue(true)
@@ -273,6 +294,8 @@ describe('HealthSnapshotSource adapters', () => {
         'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
         'HKQuantityTypeIdentifierDietaryWater',
         'HKQuantityTypeIdentifierFlightsClimbed',
+        'HKQuantityTypeIdentifierBodyMass',
+        'HKQuantityTypeIdentifierDietaryEnergyConsumed',
         'HKCategoryTypeIdentifierSleepAnalysis',
         'HKWorkoutTypeIdentifier',
       ],

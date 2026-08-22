@@ -25,6 +25,8 @@ function snapshot(
     restingHeartRate: null,
     waterLiters: null,
     flightsClimbed: null,
+    bodyMassKg: null,
+    dietaryCalories: null,
     workouts: [],
     ...overrides,
   }
