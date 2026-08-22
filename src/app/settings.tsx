@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons'
+import { useRouter } from 'expo-router'
 import {
   Linking,
   Platform,
@@ -29,6 +30,7 @@ const THEME_OPTIONS: {
 ]
 
 export default function SettingsScreen() {
+  const router = useRouter()
   const colorScheme = useColorScheme()
   const {
     background: backgroundColor,
@@ -63,6 +65,15 @@ export default function SettingsScreen() {
     <View style={[styles.container, { backgroundColor }]}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Header>Settings</Header>
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => router.back()}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+      >
+        <Ionicons name="chevron-back" size={22} color={textColor} />
+      </TouchableOpacity>
 
       {showHealthKit && (
         <View style={styles.section}>
@@ -167,6 +178,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 50,
+  },
+  backBtn: {
+    position: 'absolute',
+    top: 104,
+    left: 12,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   section: {
     paddingHorizontal: 16,

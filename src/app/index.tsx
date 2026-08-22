@@ -255,14 +255,11 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={[styles.settingsBtn, { backgroundColor: cardBg }]}
               activeOpacity={0.7}
-              accessibilityLabel="Notifications"
-              accessibilityHint="Opens your notifications"
+              onPress={() => router.push('/settings')}
+              accessibilityLabel="Settings"
+              accessibilityHint="Opens app settings"
             >
-              <Ionicons
-                name="notifications-outline"
-                size={18}
-                color={textColor}
-              />
+              <Ionicons name="settings-outline" size={18} color={textColor} />
             </TouchableOpacity>
           </View>
         </View>
@@ -334,7 +331,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 120,
+    paddingBottom: 40,
   },
   // ── Header ────────────────────────────────────────────────────
   header: {

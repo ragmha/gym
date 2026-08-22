@@ -71,8 +71,13 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen
-            name="(tabs)"
+            name="index"
             options={{ headerShown: false, title: '' }}
+          />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="fitness-metrics"
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="steps"
