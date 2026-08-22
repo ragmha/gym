@@ -91,6 +91,8 @@ export function createDeterministicMockSnapshot(
     restingHeartRate: rand(48, 72, 6),
     waterLiters: decimalFromSeed(seed + 7, 0.5, 3),
     flightsClimbed: rand(0, 20, 8),
+    bodyMassKg: decimalFromSeed(seed + 12, 70, 82),
+    dietaryCalories: rand(1_400, 2_900, 13),
     workouts: [createMockWorkout(date, seed, rand)],
   }
 }

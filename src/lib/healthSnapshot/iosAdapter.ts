@@ -26,6 +26,8 @@ const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
   'HKQuantityTypeIdentifierDietaryWater',
   'HKQuantityTypeIdentifierFlightsClimbed',
+  'HKQuantityTypeIdentifierBodyMass',
+  'HKQuantityTypeIdentifierDietaryEnergyConsumed',
   'HKCategoryTypeIdentifierSleepAnalysis',
   'HKWorkoutTypeIdentifier',
 ] as const
@@ -157,9 +159,11 @@ async function readQuantitySum(
 
 async function readMostRecent(
   identifier: Parameters<typeof getMostRecentQuantitySample>[0],
+  unit?: string,
+  round: (value: number) => number = roundInt,
 ): Promise<number> {
-  const sample = await getMostRecentQuantitySample(identifier)
-  return roundInt(sample?.quantity ?? 0)
+  const sample = await getMostRecentQuantitySample(identifier, unit)
+  return round(sample?.quantity ?? 0)
 }
 
 async function readSleepHours(date: Date): Promise<number> {
@@ -180,6 +184,16 @@ async function readSleepHours(date: Date): Promise<number> {
   }, 0)
 
   return roundTenths(totalMinutes / 60)
+}
+
+async function readBodyMassKg(): Promise<number | null> {
+  const sample = await getMostRecentQuantitySample(
+    'HKQuantityTypeIdentifierBodyMass',
+    'kg',
+  )
+  // A missing sample means "never weighed in", which is not the same as 0 kg.
+  if (sample?.quantity == null) return null
+  return roundTenths(sample.quantity)
 }
 
 async function readWorkouts(date: Date): Promise<HealthWorkout[]> {
@@ -205,6 +219,8 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       restingHeartRate,
       waterLiters,
       flightsClimbed,
+      bodyMassKg,
+      dietaryCalories,
       workouts,
     ] = await Promise.all([
       readMetric('steps', () =>
@@ -249,6 +265,15 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
           'count',
         ),
       ),
+      readMetric('body mass', () => readBodyMassKg()),
+      readMetric('dietary calories', () =>
+        readQuantitySum(
+          'HKQuantityTypeIdentifierDietaryEnergyConsumed',
+          date,
+          roundInt,
+          'kcal',
+        ),
+      ),
       readMetric('workouts', () => readWorkouts(date)),
     ])
 
@@ -262,6 +287,8 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       restingHeartRate,
       waterLiters,
       flightsClimbed,
+      bodyMassKg: bodyMassKg ?? null,
+      dietaryCalories,
       workouts: workouts ?? [],
     }
   },

@@ -8,6 +8,10 @@ export interface DailyHealthSnapshot {
   restingHeartRate: number | null
   waterLiters: number | null
   flightsClimbed: number | null
+  /** Most recent body mass sample in kilograms, not a same-day-only reading. */
+  bodyMassKg: number | null
+  /** Dietary energy consumed for the day in kcal. */
+  dietaryCalories: number | null
   workouts: HealthWorkout[]
 }
 
