@@ -5,11 +5,11 @@ name: Settings HealthKit Test
 - runFlow:
     file: ../common/startup.yaml
 
-# Navigate to Settings tab
-- tapOn: 'Settings'
+# Settings is pushed from the dashboard header, not a tab.
+- tapOn:
+    id: 'Settings'
 - waitForAnimationToEnd
 
-# Verify Settings screen loaded
 - assertVisible: 'Settings'
 - takeScreenshot: settings_screen
 
@@ -19,13 +19,15 @@ name: Settings HealthKit Test
 - assertVisible: 'Connect to see health data on the home screen'
 - takeScreenshot: settings_healthkit_section
 
-# Tap the Apple Health switch to trigger authorization
+# Tap the Apple Health switch to trigger authorization.
+# Note: the native HealthKit permission sheet cannot be automated by Maestro.
 - tapOn:
-    id: 'Apple Health'
+    id: 'apple-health-switch'
 - waitForAnimationToEnd
 
-# Navigate back to Home to verify integration
-- tapOn: 'Home'
+# Back to the dashboard to verify the app still renders after the round trip.
+- tapOn:
+    id: 'Back'
 - waitForAnimationToEnd
-- assertVisible: 'Workout Progress'
+- assertVisible: 'Fitness Metrics'
 - takeScreenshot: settings_back_to_home

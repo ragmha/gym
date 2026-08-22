@@ -2,6 +2,21 @@
 
 These instructions capture Expo team best practices from Expo docs, GitHub issue templates, and maintainer guidance.
 
+## What this app is
+
+A read-only daily health dashboard. Every number on screen is read from Apple
+HealthKit. There is no backend, no login, and no manual data entry.
+
+This is the single most important constraint in the repo. The app previously
+carried a second, competing architecture — manual CRUD screens on a Supabase
+backend that duplicated data HealthKit already had — and that is what made it
+unmaintainable. Do not reintroduce it.
+
+Before adding a feature, check whether the data already exists in HealthKit. If
+it does, read it. If it does not, adding a form, a store that persists user
+input, or a network backend is a scope decision that needs explicit sign-off —
+not an implementation detail to decide while coding.
+
 ## Tech Stack Summary
 
 | Layer            | Technology                                       | Version    |
@@ -12,10 +27,9 @@ These instructions capture Expo team best practices from Expo docs, GitHub issue
 | Routing          | expo-router (file-based)                         | 55.x       |
 | Language         | TypeScript (strict)                              | 5.9        |
 | Package Manager  | Bun                                              | 1.2        |
-| Backend / DB     | Supabase (Postgres + Auth)                       | JS SDK 2.x |
-| State Management | Zustand                                          | 5.x        |
-| Validation       | Zod                                              | 4.x        |
-| Charts           | Victory Native + Skia                            | —          |
+| Backend / DB     | None — HealthKit is the only data source         | —          |
+| State Management | Zustand (theme preference only)                  | 5.x        |
+| Charts           | react-native-svg                                 | —          |
 | Animations       | React Native Reanimated                          | 4.x        |
 | Health Data      | @kingstinct/react-native-healthkit               | 13.x       |
 | Testing          | Jest + jest-expo + @testing-library/react-native | —          |
@@ -27,19 +41,19 @@ These instructions capture Expo team best practices from Expo docs, GitHub issue
 
 ```
 src/
-  app/          # expo-router file-based routes
-    (tabs)/     # tab navigator group
-    details/    # detail screens
-  components/   # shared UI components
-  constants/    # design tokens (Colors.ts)
-  data/         # static data / fetch scripts
-  hooks/        # custom React hooks
-  lib/          # service clients (supabase.ts, healthkit.ts, env.ts)
-  stores/       # Zustand stores
-  types/        # TypeScript type definitions (models.ts)
-  utils/        # pure utility functions
-  shims/        # polyfill shims (ws.js for Supabase realtime)
-  assets/       # fonts, images
+  app/                  # expo-router file-based routes
+    index.tsx           #   the dashboard (root route)
+    settings.tsx        #   pushed from the dashboard header
+  components/
+    dashboard/          #   dashboard sections + the ring builder
+  constants/            # design tokens (Colors.ts, DesignSystem.ts)
+  hooks/                # custom React hooks
+  lib/
+    healthSnapshot/     #   the only data source
+    fitnessMetrics/     #   snapshot -> presentable metric mapping
+  stores/               # ThemeStore only
+  utils/                # pure utility functions
+  assets/               # fonts, images
 ```
 
 ### Import alias
@@ -47,19 +61,21 @@ src/
 Use the `@/*` path alias (mapped to `src/*` in tsconfig) for all project imports:
 
 ```ts
-import { supabase } from '@/lib/supabase'
-import { Exercise } from '@/types/models'
+import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
+import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 ```
 
 ## Platform Priority
 
-This project targets **iOS and Web as primary platforms**, with **minimal Android support**.
+This project targets **iOS as the primary platform**.
 
 ### Platform hierarchy
 
 1. **iOS** — First-class. HealthKit integration, native feel, App Store distribution.
-2. **Web** — First-class. Static output via Metro bundler, responsive layouts.
-3. **Android** — Best-effort. Do not break it, but do not block iOS/web work for Android parity.
+2. **Web** — Best-effort. HealthKit has no web equivalent, so web renders
+   deterministic mock data. It is a layout and design surface, not a way to see
+   real health data.
+3. **Android** — Best-effort. Mock data only. Do not break it, do not chase it.
 
 ### Development guidelines
 
@@ -76,22 +92,31 @@ This project targets **iOS and Web as primary platforms**, with **minimal Androi
 
 - All screens live under `src/app/` using file-based routing.
 - Typed routes are enabled (`experiments.typedRoutes: true`); use the generated route types.
-- Group layouts with `(group)/` folders; use `_layout.tsx` for navigators.
-- Dynamic routes use `[param].tsx` convention (e.g., `details/[id].tsx`).
+- The dashboard is the root route (`index.tsx`); everything else is pushed on
+  top of it via the root Stack in `_layout.tsx`. There is no tab bar.
+- Dynamic routes use the `[param].tsx` convention.
 
-## State Management (Zustand)
+## State Management
 
-- One store per domain in `src/stores/` (e.g., `ExerciseStore.ts`).
-- Use `create()` from Zustand; keep stores thin — business logic stays in the store, UI logic stays in components.
-- Prefer selectors to avoid unnecessary re-renders: `useExerciseStore(s => s.exercises)`.
+- `ThemeStore` is the only Zustand store, and it holds one thing: the user's
+  theme preference, persisted through AsyncStorage.
+- Health data is not state to be managed. It is read per-day through
+  `useHealthSnapshot(date)` and rendered. Do not cache it into a store.
+- If you find yourself adding a store, first check that you are not
+  reintroducing manual data entry.
 
-## Backend (Supabase)
+## Data (HealthKit)
 
-- Supabase client is initialized in `src/lib/supabase.ts` with SSR-safe AsyncStorage adapter.
-- Environment variables: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` resolved via `src/lib/env.ts`.
-- Never commit Supabase keys or secrets; use `.env` / EAS secrets for builds.
-- Metro config shims `ws` module for Supabase Realtime compatibility (`src/shims/ws.js`).
-- Generate DB types with: `bun run generate-types`.
+- `src/lib/healthSnapshot/` is the only data source. `HealthSnapshotSource` is
+  the interface every screen codes against.
+- `DailyHealthSnapshot` in `types.ts` is the contract. Every metric is nullable:
+  a day with no weigh-in reports `bodyMassKg: null` and renders `--`, never `0`.
+- `iosAdapter.ts` reads real HealthKit data; `mockAdapter.ts` serves every other
+  platform with deterministic seeded values.
+- New metrics are added in three places: `types.ts`, `iosAdapter.ts`, and
+  `mockAdapter.ts` — plus a matching read permission in `READ_PERMISSIONS`.
+- The app requests **read** permissions only and never writes to Health.
+- There are no environment variables. The app runs with no configuration.
 
 ## Dependency and Versioning Policy
 
