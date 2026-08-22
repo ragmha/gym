@@ -6,14 +6,13 @@ import {
 import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useMemo, useRef } from 'react'
-import { Alert, AppState } from 'react-native'
+import { useEffect, useMemo } from 'react'
+import { Alert } from 'react-native'
 import 'react-native-reanimated'
 
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
-import { useExerciseStoreBase } from '@/stores/ExerciseStore'
 
 // Show JS errors as alerts in Release mode (no red screen)
 if (!__DEV__) {
@@ -40,21 +39,6 @@ export default function RootLayout() {
       SplashScreen.hideAsync()
     }
   }, [loaded])
-
-  // Auto-sync unsynced exercise data when app returns to foreground
-  const appState = useRef(AppState.currentState)
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextState === 'active'
-      ) {
-        useExerciseStoreBase.getState().sync()
-      }
-      appState.current = nextState
-    })
-    return () => subscription.remove()
-  }, [])
 
   const navTheme = useMemo(() => {
     const navBaseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme
@@ -115,19 +99,6 @@ export default function RootLayout() {
             name="coach"
             options={{
               headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="details/[id]"
-            options={{
-              headerBackTitle: ' ',
-            }}
-          />
-          <Stack.Screen
-            name="exercise-edit"
-            options={{
-              headerShown: false,
-              presentation: 'modal',
             }}
           />
           <Stack.Screen name="+not-found" />
