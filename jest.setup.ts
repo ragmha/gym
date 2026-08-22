@@ -32,11 +32,6 @@ jest.mock('expo-font', () => ({
   isLoaded: jest.fn(() => true),
 }))
 
-// Mock expo-linear-gradient
-jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: 'LinearGradient',
-}))
-
 // Mock react-native-reanimated
 jest.mock('react-native-reanimated', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
