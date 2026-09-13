@@ -42,7 +42,7 @@ export function WeightCard({ bodyMassKg }: WeightCardProps) {
         <Text style={[styles.caption, { color: subtitleColor }]}>
           {bodyMassKg != null
             ? 'Latest weigh-in from Health'
-            : 'No weigh-in recorded'}
+            : 'No weigh-in available'}
         </Text>
       </View>
     </View>

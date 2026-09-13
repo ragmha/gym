@@ -40,7 +40,7 @@ describe('buildFitnessRings', () => {
       'Hydration',
       'Sleep',
       'Steps',
-      'Cardio',
+      'Workouts',
     ])
     expect(ringFor(rings, 'Calories').value).toBe(450)
     expect(ringFor(rings, 'Steps').value).toBe(8_000)
@@ -56,7 +56,7 @@ describe('buildFitnessRings', () => {
     expect(ringFor(rings, 'Sleep').value).toBe(7.3)
   })
 
-  it('sums workout durations into the cardio ring', () => {
+  it('labels all workout types as workouts, not cardio', () => {
     const rings = buildFitnessRings(
       snapshot({
         workouts: [
@@ -80,24 +80,68 @@ describe('buildFitnessRings', () => {
       }),
     )
 
-    expect(ringFor(rings, 'Cardio').value).toBe(60)
+    expect(ringFor(rings, 'Workouts').value).toBe(60)
   })
 
   it('renders empty rings rather than throwing when there is no snapshot', () => {
     const rings = buildFitnessRings(null)
 
     expect(rings).toHaveLength(5)
-    expect(rings.every((r) => r.value === 0)).toBe(true)
+    expect(rings.every((r) => r.value === null)).toBe(true)
     expect(rings.every((r) => r.goal > 0)).toBe(true)
   })
 
-  it('treats missing metrics as zero', () => {
+  it('preserves missing measurements without discarding available ones', () => {
     const rings = buildFitnessRings(
       snapshot({ calories: null, waterLiters: null, steps: null }),
     )
 
-    expect(ringFor(rings, 'Calories').value).toBe(0)
-    expect(ringFor(rings, 'Hydration').value).toBe(0)
-    expect(ringFor(rings, 'Steps').value).toBe(0)
+    expect(ringFor(rings, 'Calories').value).toBeNull()
+    expect(ringFor(rings, 'Hydration').value).toBeNull()
+    expect(ringFor(rings, 'Steps').value).toBeNull()
+    expect(ringFor(rings, 'Sleep').value).toBe(7.3)
+    expect(ringFor(rings, 'Workouts').value).toBeNull()
+  })
+
+  it('preserves measured zeros', () => {
+    const rings = buildFitnessRings(
+      snapshot({
+        calories: 0,
+        waterLiters: 0,
+        sleepHours: 0,
+        steps: 0,
+        workouts: [
+          {
+            activityName: 'Walking',
+            calories: 0,
+            distance: 0,
+            durationMinutes: 0,
+            startISO: '2025-03-04T07:00:00.000Z',
+            endISO: '2025-03-04T07:00:00.000Z',
+          },
+        ],
+      }),
+    )
+
+    expect(rings.every((ring) => ring.value === 0)).toBe(true)
+  })
+
+  it('does not sum invalid workout durations into a measured total', () => {
+    const rings = buildFitnessRings(
+      snapshot({
+        workouts: [
+          {
+            activityName: 'Walking',
+            calories: 0,
+            distance: 0,
+            durationMinutes: NaN,
+            startISO: '2025-03-04T07:00:00.000Z',
+            endISO: '2025-03-04T07:30:00.000Z',
+          },
+        ],
+      }),
+    )
+
+    expect(ringFor(rings, 'Workouts').value).toBeNull()
   })
 })

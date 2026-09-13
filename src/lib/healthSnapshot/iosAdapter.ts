@@ -3,20 +3,21 @@ import {
   isHealthDataAvailable,
   queryCategorySamples,
   queryQuantitySamples,
+  queryStatisticsCollectionForQuantity,
+  queryStatisticsForQuantity,
   queryWorkoutSamples,
   requestAuthorization,
-  saveWorkoutSample,
 } from '@kingstinct/react-native-healthkit'
 import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
 
+import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
   HealthSnapshotSource,
   HealthWorkout,
   IntensityMap,
-  SaveCardioWorkoutParams,
-} from './types'
+} from '@/lib/healthSnapshot/types'
 
 const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierStepCount',
@@ -32,17 +33,7 @@ const READ_PERMISSIONS = [
   'HKWorkoutTypeIdentifier',
 ] as const
 
-const WRITE_PERMISSIONS = [
-  'HKWorkoutTypeIdentifier',
-  'HKQuantityTypeIdentifierActiveEnergyBurned',
-] as const
-
 const ASLEEP_SLEEP_VALUES = new Set([1, 3, 4, 5])
-
-interface QuantityLike {
-  quantity?: number
-  startDate?: Date | string
-}
 
 interface DateRangeLike {
   startDate: Date | string
@@ -57,10 +48,6 @@ interface WorkoutLike extends DateRangeLike {
   workoutActivityType?: unknown
   totalEnergyBurned?: { quantity?: number }
   totalDistance?: { quantity?: number }
-}
-
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10)
 }
 
 function dayWindow(date: Date): { startDate: Date; endDate: Date } {
@@ -88,7 +75,7 @@ function sleepWindow(date: Date): { startDate: Date; endDate: Date } {
 function rangeWindow(daysBack: number): { startDate: Date; endDate: Date } {
   const endDate = new Date()
   const startDate = new Date(endDate)
-  startDate.setDate(startDate.getDate() - daysBack)
+  startDate.setDate(startDate.getDate() - (daysBack - 1))
   startDate.setHours(0, 0, 0, 0)
   return { startDate, endDate }
 }
@@ -101,12 +88,23 @@ function roundTenths(value: number): number {
   return Math.round(value * 10) / 10
 }
 
-function sumQuantities(samples: readonly QuantityLike[]): number {
-  return samples.reduce((sum, sample) => sum + (sample.quantity ?? 0), 0)
-}
-
 function toDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value)
+}
+
+function workoutActivityName(activityType: unknown): string {
+  const name =
+    typeof activityType === 'number'
+      ? WorkoutActivityType[activityType]
+      : undefined
+
+  if (name === undefined) {
+    warnHealthSnapshotFailure('workout activity type', new TypeError())
+    return 'Unknown workout'
+  }
+
+  const words = name.replace(/([a-z])([A-Z])/g, '$1 $2')
+  return words.charAt(0).toUpperCase() + words.slice(1).toLowerCase()
 }
 
 function mapWorkout(workout: WorkoutLike): HealthWorkout {
@@ -114,9 +112,12 @@ function mapWorkout(workout: WorkoutLike): HealthWorkout {
   const end = toDate(workout.endDate)
 
   return {
-    activityName: String(workout.workoutActivityType ?? 'Unknown'),
-    calories: roundInt(workout.totalEnergyBurned?.quantity ?? 0),
-    distance: workout.totalDistance?.quantity ?? 0,
+    activityName: workoutActivityName(workout.workoutActivityType),
+    calories:
+      workout.totalEnergyBurned?.quantity == null
+        ? null
+        : roundInt(workout.totalEnergyBurned.quantity),
+    distance: workout.totalDistance?.quantity ?? null,
     durationMinutes: roundInt((end.getTime() - start.getTime()) / 60_000),
     startISO: start.toISOString(),
     endISO: end.toISOString(),
@@ -144,46 +145,75 @@ async function readMetric<T>(
 }
 
 async function readQuantitySum(
-  identifier: Parameters<typeof queryQuantitySamples>[0],
+  identifier: Parameters<typeof queryStatisticsForQuantity>[0],
   date: Date,
   round: (value: number) => number,
   unit?: string,
-): Promise<number> {
+): Promise<number | null> {
+  const statistics = await queryStatisticsForQuantity(
+    identifier,
+    ['cumulativeSum'],
+    { unit, filter: { date: dayWindow(date) } },
+  )
+  const total = statistics.sumQuantity?.quantity
+  return total == null ? null : round(total)
+}
+
+async function readLatestForDay(
+  identifier: Parameters<typeof queryQuantitySamples>[0],
+  date: Date,
+  unit: string,
+): Promise<number | null> {
   const samples = await queryQuantitySamples(identifier, {
-    limit: 0,
+    limit: 1,
+    ascending: false,
     unit,
     filter: { date: dayWindow(date) },
   })
-  return round(sumQuantities(samples))
+  const quantity = samples[0]?.quantity
+  return quantity == null ? null : roundInt(quantity)
 }
 
-async function readMostRecent(
-  identifier: Parameters<typeof getMostRecentQuantitySample>[0],
-  unit?: string,
-  round: (value: number) => number = roundInt,
-): Promise<number> {
-  const sample = await getMostRecentQuantitySample(identifier, unit)
-  return round(sample?.quantity ?? 0)
-}
-
-async function readSleepHours(date: Date): Promise<number> {
+async function readSleepHours(date: Date): Promise<number | null> {
+  const window = sleepWindow(date)
   const samples = await queryCategorySamples(
     'HKCategoryTypeIdentifierSleepAnalysis',
     {
       limit: 0,
-      filter: { date: sleepWindow(date) },
+      filter: { date: window },
     },
   )
-  const totalMinutes = samples.reduce((sum, sample: CategoryLike) => {
-    if (!ASLEEP_SLEEP_VALUES.has(sample.value ?? -1)) return sum
-    return (
-      sum +
-      (toDate(sample.endDate).getTime() - toDate(sample.startDate).getTime()) /
-        60_000
+  const intervals = samples
+    .filter((sample: CategoryLike) =>
+      ASLEEP_SLEEP_VALUES.has(sample.value ?? -1),
     )
-  }, 0)
+    .map((sample: CategoryLike) => {
+      const start = toDate(sample.startDate).getTime()
+      const end = toDate(sample.endDate).getTime()
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+        throw new TypeError('Invalid sleep interval')
+      }
+      return {
+        start: Math.max(start, window.startDate.getTime()),
+        end: Math.min(end, window.endDate.getTime()),
+        observedZero: start === end,
+      }
+    })
+    .filter(({ start, end, observedZero }) =>
+      observedZero ? end === start : end > start,
+    )
+    .sort((left, right) => left.start - right.start)
+  if (intervals.length === 0) return null
 
-  return roundTenths(totalMinutes / 60)
+  let coveredUntil = intervals[0].start
+  let totalMilliseconds = 0
+  for (const { start, end } of intervals) {
+    if (end > coveredUntil) {
+      totalMilliseconds += end - Math.max(start, coveredUntil)
+      coveredUntil = end
+    }
+  }
+  return roundTenths(totalMilliseconds / 3_600_000)
 }
 
 async function readBodyMassKg(): Promise<number | null> {
@@ -191,7 +221,7 @@ async function readBodyMassKg(): Promise<number | null> {
     'HKQuantityTypeIdentifierBodyMass',
     'kg',
   )
-  // A missing sample means "never weighed in", which is not the same as 0 kg.
+  // An empty read may mean no samples or no read access; HealthKit hides which.
   if (sample?.quantity == null) return null
   return roundTenths(sample.quantity)
 }
@@ -210,6 +240,23 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
   },
 
   async getDailySnapshot(date: Date): Promise<DailyHealthSnapshot> {
+    if (!this.isAvailable()) {
+      return {
+        date: localDateKey(date),
+        steps: null,
+        calories: null,
+        sleepHours: null,
+        heartRate: null,
+        hrv: null,
+        restingHeartRate: null,
+        waterLiters: null,
+        flightsClimbed: null,
+        bodyMassKg: null,
+        dietaryCalories: null,
+        workouts: [],
+      }
+    }
+
     const [
       steps,
       calories,
@@ -241,13 +288,25 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       ),
       readMetric('sleep', () => readSleepHours(date)),
       readMetric('heart rate', () =>
-        readMostRecent('HKQuantityTypeIdentifierHeartRate'),
+        readLatestForDay(
+          'HKQuantityTypeIdentifierHeartRate',
+          date,
+          'count/min',
+        ),
       ),
       readMetric('HRV', () =>
-        readMostRecent('HKQuantityTypeIdentifierHeartRateVariabilitySDNN'),
+        readLatestForDay(
+          'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+          date,
+          'ms',
+        ),
       ),
       readMetric('resting heart rate', () =>
-        readMostRecent('HKQuantityTypeIdentifierRestingHeartRate'),
+        readLatestForDay(
+          'HKQuantityTypeIdentifierRestingHeartRate',
+          date,
+          'count/min',
+        ),
       ),
       readMetric('water', () =>
         readQuantitySum(
@@ -278,7 +337,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
     ])
 
     return {
-      date: isoDate(date),
+      date: localDateKey(date),
       steps,
       calories,
       sleepHours,
@@ -300,21 +359,21 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
     const filter = { date: rangeWindow(daysBack) }
 
     try {
-      const stepSamples = await queryQuantitySamples(
+      const dailySteps = await queryStatisticsCollectionForQuantity(
         'HKQuantityTypeIdentifierStepCount',
+        ['cumulativeSum'],
+        filter.date.startDate,
+        { day: 1 },
         {
-          limit: 0,
           unit: 'count',
           filter,
         },
       )
-      for (const sample of stepSamples) {
-        if (!sample.startDate) continue
-        const day = isoDate(toDate(sample.startDate))
-        intensity.set(
-          day,
-          (intensity.get(day) ?? 0) + roundInt(sample.quantity ?? 0),
-        )
+      for (const statistics of dailySteps) {
+        const quantity = statistics.sumQuantity?.quantity
+        if (!statistics.startDate || quantity == null) continue
+        const day = localDateKey(toDate(statistics.startDate))
+        intensity.set(day, roundInt(quantity))
       }
     } catch (err) {
       warnHealthSnapshotFailure('intensity steps read', err)
@@ -326,7 +385,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
         filter,
       })
       for (const workout of workoutSamples) {
-        const day = isoDate(toDate(workout.startDate))
+        const day = localDateKey(toDate(workout.startDate))
         intensity.set(day, (intensity.get(day) ?? 0) + 5_000)
       }
     } catch (err) {
@@ -334,38 +393,6 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
     }
 
     return intensity
-  },
-
-  async saveCardioWorkout(params: SaveCardioWorkoutParams): Promise<boolean> {
-    if (params.durationMinutes <= 0 || !this.isAvailable()) return false
-
-    try {
-      const { caloriesBurned, startDate, endDate } = params
-      const quantities = caloriesBurned
-        ? [
-            {
-              quantityType:
-                'HKQuantityTypeIdentifierActiveEnergyBurned' as const,
-              quantity: caloriesBurned,
-              unit: 'kcal',
-              startDate,
-              endDate,
-            },
-          ]
-        : []
-
-      await saveWorkoutSample(
-        WorkoutActivityType.mixedCardio,
-        quantities,
-        startDate,
-        endDate,
-        caloriesBurned ? { energyBurned: caloriesBurned } : {},
-      )
-      return true
-    } catch (err) {
-      warnHealthSnapshotFailure('save cardio workout', err)
-      return false
-    }
   },
 
   async requestAuthorization(): Promise<boolean> {
@@ -376,7 +403,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
 
     return requestAuthorization({
       toRead: [...READ_PERMISSIONS],
-      toShare: [...WRITE_PERMISSIONS],
+      toShare: [],
     })
   },
 }

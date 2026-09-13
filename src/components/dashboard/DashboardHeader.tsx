@@ -1,156 +1,111 @@
 import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
 
 interface DashboardHeaderProps {
-  /** Recovery score shown in the leading pill, 0-100. */
-  recoveryScore: number
-  recoveryColor: string
-  /** Label for the currently selected day, e.g. "TODAY" or "MAR 4, 2025". */
   dateLabel: string
-  onPreviousWeek: () => void
-  onNextWeek: () => void
+  calendarExpanded: boolean
+  onDatePress: () => void
   onCoachPress: () => void
   onSettingsPress: () => void
 }
 
 export function DashboardHeader({
-  recoveryScore,
-  recoveryColor,
   dateLabel,
-  onPreviousWeek,
-  onNextWeek,
+  calendarExpanded,
+  onDatePress,
   onCoachPress,
   onSettingsPress,
 }: DashboardHeaderProps) {
-  const {
-    cardBackground: cardBg,
-    text: textColor,
-    subtitleText: subtitleColor,
-    accent: accentColor,
-  } = useTheme()
+  const theme = useTheme()
 
   return (
     <View style={styles.header}>
-      <View style={styles.headerRow}>
-        <View style={styles.healthPill}>
-          <View
-            style={[styles.healthDot, { backgroundColor: recoveryColor }]}
-          />
-          <Text style={[styles.healthPillText, { color: recoveryColor }]}>
-            {recoveryScore}%
-          </Text>
-        </View>
+      <Pressable
+        style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+        onPress={onSettingsPress}
+        accessibilityRole="button"
+        accessibilityLabel="Settings"
+      >
+        <Ionicons name="settings-outline" size={24} color={theme.text} />
+      </Pressable>
 
-        <View style={styles.dateNav}>
-          <TouchableOpacity
-            onPress={onPreviousWeek}
-            hitSlop={12}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={18} color={subtitleColor} />
-          </TouchableOpacity>
-          <Text style={[styles.dateNavLabel, { color: textColor }]}>
-            {dateLabel}
-          </Text>
-          <TouchableOpacity
-            onPress={onNextWeek}
-            hitSlop={12}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
-          </TouchableOpacity>
-        </View>
+      <Pressable
+        style={({ pressed }) => [
+          styles.dateButton,
+          { backgroundColor: theme.homeSurface },
+          pressed && styles.pressed,
+        ]}
+        onPress={onDatePress}
+        accessibilityRole="button"
+        accessibilityLabel={`Choose date, ${dateLabel}`}
+        accessibilityState={{ expanded: calendarExpanded }}
+        aria-expanded={calendarExpanded}
+        accessibilityHint="Shows the week calendar"
+      >
+        <Text style={[styles.dateLabel, { color: theme.text }]}>
+          {dateLabel}
+        </Text>
+        <Ionicons
+          name={calendarExpanded ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={theme.subtitleText}
+        />
+      </Pressable>
 
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[styles.coachBtn, { backgroundColor: cardBg }]}
-            activeOpacity={0.7}
-            onPress={onCoachPress}
-            accessibilityRole="button"
-            accessibilityLabel="Open coach"
-            accessibilityHint="Opens your AI coach chat"
-          >
-            <Ionicons name="chatbubbles" size={16} color={accentColor} />
-            <Text style={[styles.coachBtnText, { color: textColor }]}>
-              Coach
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.settingsBtn, { backgroundColor: cardBg }]}
-            activeOpacity={0.7}
-            onPress={onSettingsPress}
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            accessibilityHint="Opens app settings"
-          >
-            <Ionicons name="settings-outline" size={18} color={textColor} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Pressable
+        testID="open-coach"
+        style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+        onPress={onCoachPress}
+        accessibilityRole="button"
+        accessibilityLabel="Open coach"
+        accessibilityHint="Opens your AI coach chat"
+      >
+        <Ionicons
+          name="chatbubbles-outline"
+          size={24}
+          color={theme.homeAccent}
+        />
+      </Pressable>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 8,
-  },
-  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
   },
-  healthPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  healthDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  healthPillText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  dateNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dateNavLabel: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  coachBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 36,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-  },
-  coachBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  iconButton: {
+    minWidth: 44,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dateButton: {
+    flex: 1,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+  },
+  dateLabel: {
+    ...Typography.labelLg,
+    flexShrink: 1,
+    textAlign: 'center',
+  },
+  pressed: {
+    opacity: 0.6,
   },
 })

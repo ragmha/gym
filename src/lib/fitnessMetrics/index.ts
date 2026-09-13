@@ -12,6 +12,7 @@ import {
   presentHrv,
   presentHydration,
   presentNutritionIntake,
+  presentRecovery,
   presentRestingHr,
   presentSleep,
   presentSteps,
@@ -24,14 +25,10 @@ export * from './types'
 export function useFitnessMetricsDashboard(): MetricPresentation[] {
   const { snapshot } = useHealthSnapshot()
 
-  const sleepHours = snapshot?.sleepHours ?? 0
-  const hrv = snapshot?.hrv ?? 0
-  const restingHeartRate = snapshot?.restingHeartRate ?? 0
-
   const recovery = useRecoveryPresentation({
-    hrv,
-    restingHR: restingHeartRate,
-    sleepHours,
+    hrv: snapshot?.hrv ?? null,
+    restingHR: snapshot?.restingHeartRate ?? null,
+    sleepHours: snapshot?.sleepHours ?? null,
     hrvBaseline: null,
     rhrBaseline: null,
     sleepGoalHours: DASHBOARD_GOALS.sleepGoalHours,
@@ -39,22 +36,7 @@ export function useFitnessMetricsDashboard(): MetricPresentation[] {
 
   return useMemo(
     () => [
-      {
-        id: 'recovery',
-        label: 'Recovery Score',
-        value: `${recovery.score}`,
-        unit: '%',
-        subtitle: recovery.label,
-        iconName: 'shield-checkmark',
-        accentColorToken: recovery.accentColorToken,
-        progress: Math.min(Math.max(recovery.score / 100, 0), 1),
-        status:
-          recovery.score <= 0
-            ? 'empty'
-            : recovery.score >= 100
-              ? 'reached'
-              : 'progress',
-      },
+      presentRecovery(recovery),
       presentSteps(snapshot),
       presentCalories(snapshot),
       presentNutritionIntake(snapshot),

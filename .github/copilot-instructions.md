@@ -124,12 +124,17 @@ This project targets **iOS as the primary platform**.
 - `src/lib/healthSnapshot/` is the only data source. `HealthSnapshotSource` is
   the interface every screen codes against.
 - `DailyHealthSnapshot` in `types.ts` is the contract. Every metric is nullable:
-  a day with no weigh-in reports `bodyMassKg: null` and renders `--`, never `0`.
+  missing or inaccessible measurements render `--`, never an invented `0`.
+  Preserve observed zeroes. Body mass uses the latest available weigh-in.
 - `iosAdapter.ts` reads real HealthKit data; `mockAdapter.ts` serves every other
   platform with deterministic seeded values.
 - New metrics are added in three places: `types.ts`, `iosAdapter.ts`, and
   `mockAdapter.ts` — plus a matching read permission in `READ_PERMISSIONS`.
 - The app requests **read** permissions only and never writes to Health.
+  Fetch readiness and authorization-request completion do not prove read
+  permission; HealthKit keeps read grants private.
+- Recovery is unavailable without its required valid measurements. Display
+  `--` and omit the assessment from coach context rather than substituting zeroes.
 - There are no environment variables. The app runs with no configuration.
 
 ## Dependency and Versioning Policy
@@ -161,8 +166,10 @@ This project targets **iOS as the primary platform**.
 ## EAS Update and Runtime Safety
 
 - Use EAS Update for JavaScript/UI/assets changes only.
-- Ship a new binary build for native code or native dependency changes.
-- Maintain `runtimeVersion` strategy (`appVersion` policy) to prevent incompatible over-the-air updates.
+- Any native code, dependency, or native configuration change requires a higher app version in `app.json` and `package.json` plus a new native binary, including native patch-package updates and module removals.
+- Keep `runtimeVersion: { "policy": "appVersion" }`. Build numbers alone do not isolate runtimes; never reuse an old app version for incompatible native code.
+- Publish through the fingerprint-gated GitHub workflows. Native changes skip preview OTA and require runtime isolation before production can dispatch a build; missing or failed detector evidence blocks release.
+- Subsequent JS-only updates use the isolated runtime and cannot reach older binaries. They need a compatible new binary to be usable; passing JavaScript tests or simulator smoke checks is not proof of compatibility with an installed binary.
 - Prefer staged rollouts and preview channels before full production rollout.
 - Roll back or republish quickly if update health degrades.
 

@@ -39,9 +39,10 @@ export function formatDailyContextForPrompt(ctx: DailyCoachContext): string {
   if (ctx.snapshot.workouts.length > 0) {
     const summaries = ctx.snapshot.workouts
       .slice(0, 3)
-      .map(
-        (workout) =>
-          `${workout.activityName} ${Math.round(workout.durationMinutes)}min`,
+      .map((workout) =>
+        Number.isFinite(workout.durationMinutes) && workout.durationMinutes >= 0
+          ? `${workout.activityName} ${Math.round(workout.durationMinutes)}min`
+          : `${workout.activityName} (duration unavailable)`,
       )
       .join('; ')
     lines.push(`- healthWorkouts: ${summaries}`)
@@ -53,9 +54,9 @@ export function formatDailyContextForPrompt(ctx: DailyCoachContext): string {
 function appendMetric(
   lines: string[],
   label: string,
-  value: number | string | null,
+  value: number | null,
 ): void {
-  if (value !== null) {
+  if (value !== null && Number.isFinite(value)) {
     lines.push(`- ${label}: ${value}`)
   }
 }

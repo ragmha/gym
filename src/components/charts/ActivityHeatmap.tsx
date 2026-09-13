@@ -3,6 +3,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { useTheme } from '@/hooks/useThemeColor'
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
+import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 
 const WEEKS = 15
 const DAYS_IN_WEEK = 7
@@ -122,7 +123,7 @@ export function ActivityHeatmap({ title = 'Activity' }: ActivityHeatmapProps) {
   const getColor = useCallback(
     (date: Date | null): string => {
       if (!date) return 'transparent'
-      const level = toLevel(intensity.get(date.toISOString().slice(0, 10)))
+      const level = toLevel(intensity.get(localDateKey(date)))
       return level === 0 ? emptyColor : INTENSITY_COLORS[level - 1]
     },
     [intensity, emptyColor],

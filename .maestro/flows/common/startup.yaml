@@ -8,4 +8,4 @@ onFlowStart:
 # Wait for the app to load
 - waitForAnimationToEnd
 # The dashboard is the root route; its first section header proves it rendered.
-- assertVisible: 'Fitness Metrics' 
+- assertVisible: 'Recovery'

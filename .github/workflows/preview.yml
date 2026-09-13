@@ -2,6 +2,7 @@ name: preview
 
 on:
   pull_request:
+    branches: [main]
     types: [opened, synchronize, reopened]
 
 concurrency:
@@ -15,9 +16,14 @@ jobs:
   test:
     name: PR Quality Gates
     runs-on: ubuntu-latest
+    outputs:
+      release-action: ${{ steps.runtime.outputs.action }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -47,9 +53,50 @@ jobs:
       - name: Run unit tests
         run: bun run test:unit -- --runInBand --no-watchman
 
+      - name: Resolve runtime anchor
+        id: baseline
+        env:
+          HISTORY_COMMIT: ${{ github.event.pull_request.base.sha }}
+          CURRENT_COMMIT: ${{ github.sha }}
+          RELEASE_EVENT: pull_request
+        run: bun scripts/fingerprint-release.ts --resolve-baseline
+
+      - name: Checkout fingerprint baseline
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.baseline.outputs.baseline-commit }}
+          path: .expo/release-baseline
+          persist-credentials: false
+
+      - name: Compare verified native fingerprints
+        id: fingerprint
+        env:
+          HISTORY_COMMIT: ${{ github.event.pull_request.base.sha }}
+          BASE_COMMIT: ${{ steps.baseline.outputs.baseline-commit }}
+          CURRENT_COMMIT: ${{ github.sha }}
+          RELEASE_EVENT: pull_request
+          BASE_DIRECTORY: .expo/release-baseline
+          EXPO_NO_DOTENV: '1'
+        run: bun scripts/fingerprint-release.ts
+
+      - name: Enforce runtime isolation
+        id: runtime
+        env:
+          HISTORY_COMMIT: ${{ github.event.pull_request.base.sha }}
+          BASE_COMMIT: ${{ steps.baseline.outputs.baseline-commit }}
+          CURRENT_COMMIT: ${{ github.sha }}
+          RELEASE_EVENT: pull_request
+          FINGERPRINT_BASE_COMMIT: ${{ steps.fingerprint.outputs.previous-git-commit }}
+          FINGERPRINT_CURRENT_COMMIT: ${{ steps.fingerprint.outputs.current-git-commit }}
+          PREVIOUS_FINGERPRINT: ${{ steps.fingerprint.outputs.previous-fingerprint }}
+          CURRENT_FINGERPRINT: ${{ steps.fingerprint.outputs.current-fingerprint }}
+          FINGERPRINT_DIFF: ${{ steps.fingerprint.outputs.fingerprint-diff }}
+        run: bun scripts/check-release-safety.ts
+
   preview:
     name: EAS Update (Preview)
     needs: test
+    if: needs.test.outputs.release-action == 'update' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -66,6 +113,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -85,14 +134,6 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Check for native changes
-        id: fingerprint
-        uses: expo/expo-github-action/fingerprint@main
-
-      - name: Warn on native changes
-        if: steps.fingerprint.outputs.fingerprint-diff != '[]'
-        run: echo "::warning::Native changes detected. An OTA update alone may not be sufficient — consider a new build."
 
       - name: Create preview update
         run: eas update --auto

@@ -1,6 +1,7 @@
 import {
   computeRecoveryScore,
   presentRecoveryScore,
+  type RecoveryInput,
   type RecoveryResult,
 } from '../recovery'
 
@@ -20,23 +21,91 @@ describe('computeRecoveryScore', () => {
       sleepHours: 8,
     })
 
-    expect(result.score).toBe(85)
-    expect(result.label).toBe('Primed to Perform')
-    expect(result.description).toContain('Your HRV is close to your baseline.')
+    expect(result).toMatchObject({ score: 85, label: 'Primed to Perform' })
+    expect(result?.description).toContain('Your HRV is close to your baseline.')
   })
 
-  it('does not crash for zero or negative inputs', () => {
-    expect(() =>
+  it('does not manufacture a score from missing measurements', () => {
+    expect(
       computeRecoveryScore({
-        hrv: -10,
-        restingHR: 0,
-        sleepHours: -2,
-        hrvBaseline: 0,
-        rhrBaseline: -1,
-        sleepGoalHours: 0,
+        hrv: null,
+        restingHR: null,
+        sleepHours: null,
       }),
-    ).not.toThrow()
+    ).toBeNull()
   })
+
+  it.each(['hrv', 'restingHR', 'sleepHours'] as const)(
+    'cannot assess recovery without %s even when the other measurements exist',
+    (missingMetric) => {
+      expect(
+        computeRecoveryScore({
+          hrv: 50,
+          restingHR: 65,
+          sleepHours: 8,
+          [missingMetric]: null,
+        }),
+      ).toBeNull()
+    },
+  )
+
+  it.each<Partial<RecoveryInput>>([
+    { hrv: -1 },
+    { hrv: NaN },
+    { hrv: Infinity },
+    { restingHR: 0 },
+    { restingHR: -1 },
+    { restingHR: NaN },
+    { restingHR: Infinity },
+    { sleepHours: -1 },
+    { sleepHours: NaN },
+    { sleepHours: Infinity },
+    { hrvBaseline: 0 },
+    { hrvBaseline: -1 },
+    { hrvBaseline: NaN },
+    { hrvBaseline: Infinity },
+    { rhrBaseline: 0 },
+    { rhrBaseline: -1 },
+    { rhrBaseline: NaN },
+    { rhrBaseline: Infinity },
+    { sleepGoalHours: 0 },
+    { sleepGoalHours: -1 },
+    { sleepGoalHours: NaN },
+    { sleepGoalHours: Infinity },
+  ])('returns unavailable for invalid inputs: %j', (invalidInput) => {
+    expect(
+      computeRecoveryScore({
+        hrv: 50,
+        restingHR: 65,
+        sleepHours: 8,
+        ...invalidInput,
+      }),
+    ).toBeNull()
+  })
+
+  it.each([
+    [{ hrv: 50, restingHR: 65, sleepHours: 8 }, 85],
+    [{ hrv: 25, restingHR: 78, sleepHours: 4 }, 44],
+    [{ hrv: 40, restingHR: 78, sleepHours: 2 }, 49],
+    [{ hrv: 0, restingHR: 65, sleepHours: 0 }, 15],
+    [{ hrv: 0, restingHR: 100, sleepHours: 0 }, 0],
+    [
+      {
+        hrv: 30,
+        restingHR: 60,
+        sleepHours: 6,
+        hrvBaseline: 60,
+        rhrBaseline: 60,
+        sleepGoalHours: 6,
+      },
+      65,
+    ],
+  ] as const)(
+    'preserves the original formula for complete measurements %j',
+    (input, score) => {
+      expect(computeRecoveryScore(input)?.score).toBe(score)
+    },
+  )
 
   it('caps inputs above baseline at a 100 score', () => {
     const result = computeRecoveryScore({
@@ -48,12 +117,15 @@ describe('computeRecoveryScore', () => {
       sleepGoalHours: 8,
     })
 
-    expect(result.score).toBe(100)
-    expect(result.label).toBe('Primed to Perform')
+    expect(result).toMatchObject({ score: 100, label: 'Primed to Perform' })
   })
 })
 
 describe('presentRecoveryScore', () => {
+  it('has no tone or training label when recovery is unavailable', () => {
+    expect(presentRecoveryScore(null)).toBeNull()
+  })
+
   it.each([
     [0, 'under', 'danger', 'Under-recovered'],
     [33, 'under', 'danger', 'Under-recovered'],

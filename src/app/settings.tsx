@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { useRouter } from 'expo-router'
 import {
+  Alert,
   Linking,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -15,7 +16,6 @@ import Header from '@/components/common/Header'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
-import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import { type ThemePreference, useThemeStore } from '@/stores/ThemeStore'
 import { StatusBar } from 'expo-status-bar'
 
@@ -39,30 +39,41 @@ export default function SettingsScreen() {
     icon: subtextColor,
     accent: accentColor,
     success: successColor,
+    danger: dangerColor,
     border: borderColor,
     separator: separatorColor,
     surfaceElevated,
     selectedText,
     shadow: shadowColor,
   } = useTheme()
-  const { status, requestAuthorization } = useHealthSnapshot()
-  const isAuthorized = status === 'ready'
+  const {
+    isDemoMode,
+    authorizationStatus,
+    authorizationError,
+    requestAuthorization,
+  } = useHealthSnapshot()
+  const isRequestingAccess = authorizationStatus === 'requesting'
   const preference = useThemeStore((s) => s.preference)
   const setPreference = useThemeStore((s) => s.setPreference)
 
-  const showHealthKit = Platform.OS === 'ios' && healthSnapshot.isAvailable()
+  const showHealthKit = Platform.OS === 'ios' && !isDemoMode
 
-  const handleToggle = async () => {
-    if (!isAuthorized) {
-      await requestAuthorization()
-    } else {
-      // HealthKit permissions can only be revoked in iOS Settings
-      Linking.openURL('x-apple-health://')
+  const openHealth = async () => {
+    try {
+      await Linking.openURL('x-apple-health://')
+    } catch {
+      Alert.alert(
+        'Unable to open Health',
+        'Review this app’s Health access in iOS Settings instead.',
+      )
     }
   }
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <ScrollView
+      style={{ backgroundColor }}
+      contentContainerStyle={styles.container}
+    >
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Header>Settings</Header>
       <TouchableOpacity
@@ -75,50 +86,82 @@ export default function SettingsScreen() {
         <Ionicons name="chevron-back" size={22} color={textColor} />
       </TouchableOpacity>
 
-      {showHealthKit && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>
-            Health
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>Health</Text>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: cardBg, borderColor, shadowColor },
+          ]}
+        >
+          <Text style={[styles.rowTitle, { color: textColor }]}>
+            Apple Health
           </Text>
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: cardBg, borderColor, shadowColor },
-            ]}
-          >
-            <View style={styles.row}>
-              <View style={styles.rowTextContainer}>
-                <Text style={[styles.rowTitle, { color: textColor }]}>
-                  Apple Health
+          <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
+            {showHealthKit
+              ? 'Read-only access to your health data. Apple does not disclose which read permissions you have enabled.'
+              : 'Apple Health is unavailable here. The dashboard shows demo data, not your health records.'}
+          </Text>
+          {showHealthKit && (
+            <>
+              <Pressable
+                testID="review-health-access"
+                accessibilityRole="button"
+                accessibilityState={{
+                  disabled: isRequestingAccess,
+                  busy: isRequestingAccess,
+                }}
+                disabled={isRequestingAccess}
+                onPress={() => void requestAuthorization()}
+                style={[
+                  styles.accessButton,
+                  { backgroundColor: accentColor },
+                  isRequestingAccess && styles.disabledButton,
+                ]}
+              >
+                <Text
+                  style={[styles.accessButtonText, { color: selectedText }]}
+                >
+                  {isRequestingAccess
+                    ? 'Requesting Health access…'
+                    : 'Connect / Review Health access'}
                 </Text>
-                <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
-                  {isAuthorized
-                    ? 'Connected — reading steps, calories, workouts'
-                    : 'Connect to see health data on the home screen'}
+              </Pressable>
+              {authorizationStatus === 'completed' && (
+                <Text
+                  selectable
+                  style={[styles.accessMessage, { color: successColor }]}
+                >
+                  Access request completed. Read permissions remain private to
+                  you.
                 </Text>
-              </View>
-              <Switch
-                testID="apple-health-switch"
-                value={isAuthorized}
-                onValueChange={handleToggle}
-                trackColor={{ false: separatorColor, true: successColor }}
-                disabled={isAuthorized}
-              />
-            </View>
-
-            {isAuthorized && (
+              )}
+              {authorizationError && (
+                <Text
+                  selectable
+                  accessibilityRole="alert"
+                  style={[styles.accessMessage, { color: dangerColor }]}
+                >
+                  {authorizationError}
+                </Text>
+              )}
+              <Text style={[styles.accessMessage, { color: subtextColor }]}>
+                New permissions may show a prompt. To change previously denied
+                access, review this app’s permissions in Health or iOS Settings.
+              </Text>
               <TouchableOpacity
                 style={[styles.manageLink, { borderTopColor: separatorColor }]}
-                onPress={() => Linking.openURL('x-apple-health://')}
+                accessibilityRole="button"
+                onPress={() => void openHealth()}
               >
                 <Text style={[styles.manageLinkText, { color: accentColor }]}>
                   {'Manage in Health app →'}
                 </Text>
               </TouchableOpacity>
-            )}
-          </View>
+            </>
+          )}
         </View>
-      )}
+      </View>
 
       {/* Appearance */}
       <View style={styles.section}>
@@ -170,14 +213,15 @@ export default function SettingsScreen() {
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingTop: 50,
+    paddingBottom: 24,
   },
   backBtn: {
     position: 'absolute',
@@ -210,21 +254,29 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  rowTextContainer: {
-    flex: 1,
-    marginRight: 12,
-  },
   rowTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
   },
   rowSubtitle: {
+    fontSize: 13,
+  },
+  accessButton: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  accessButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  accessMessage: {
+    marginTop: 12,
     fontSize: 13,
   },
   manageLink: {

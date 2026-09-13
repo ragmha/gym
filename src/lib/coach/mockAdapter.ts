@@ -31,9 +31,12 @@ export const mockCoachEngine: CoachEngine = {
   async generateDailyInsight(ctx: DailyCoachContext): Promise<CoachInsight> {
     const seed = dailySeed(ctx)
     const tone = toneFromRecovery(ctx.recovery?.score ?? null)
-    const headline = DAILY_HEADLINES[hash(seed) % DAILY_HEADLINES.length]
-    const suggestion =
-      DAILY_SUGGESTIONS[hash(`${seed}:s`) % DAILY_SUGGESTIONS.length]
+    const headline = ctx.recovery
+      ? DAILY_HEADLINES[hash(seed) % DAILY_HEADLINES.length]
+      : 'Recovery data unavailable'
+    const suggestion = ctx.recovery
+      ? DAILY_SUGGESTIONS[hash(`${seed}:s`) % DAILY_SUGGESTIONS.length]
+      : 'Use the available Health metrics; recovery readiness cannot be assessed yet.'
     const body = buildDailyBody(ctx)
 
     return coachInsightSchema.parse({ headline, body, suggestion, tone })
@@ -52,7 +55,7 @@ export const mockCoachEngine: CoachEngine = {
       `${prefix}I would keep this practical. `,
       metric
         ? `${metric}. `
-        : 'Use today’s logged metrics as the source of truth. ',
+        : 'Not enough Health data is available to assess recovery. ',
       'Choose a load that keeps reps crisp. ',
       'If pain or injury shows up, pause and speak with a professional.',
     ]
@@ -80,6 +83,8 @@ function buildDailyBody(ctx: DailyCoachContext): string {
 
   if (ctx.recovery) {
     parts.push(`Recovery is ${ctx.recovery.score}/100 (${ctx.recovery.label}).`)
+  } else {
+    parts.push('Not enough Health data is available to assess recovery.')
   }
 
   if (ctx.snapshot.sleepHours !== null) {
@@ -90,9 +95,7 @@ function buildDailyBody(ctx: DailyCoachContext): string {
     parts.push(`Steps are at ${ctx.snapshot.steps}.`)
   }
 
-  return parts.length > 0
-    ? parts.join(' ')
-    : 'No recovery metrics are available, so keep intensity conservative.'
+  return parts.join(' ')
 }
 
 function toneFromRecovery(score: number | null): CoachInsight['tone'] {

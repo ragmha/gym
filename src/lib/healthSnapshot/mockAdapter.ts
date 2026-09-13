@@ -1,27 +1,15 @@
+import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
   HealthSnapshotSource,
   HealthWorkout,
   IntensityMap,
-  SaveCardioWorkoutParams,
-} from './types'
+} from '@/lib/healthSnapshot/types'
 
 function seededRand(seed: number, min: number, max: number): number {
   const x = Math.sin(seed) * 10000
   const r = x - Math.floor(x)
   return Math.round(min + r * (max - min))
-}
-
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  )
 }
 
 function seedForDate(date: Date): number {
@@ -36,16 +24,6 @@ function decimalFromSeed(seed: number, min: number, max: number): number {
   )
 }
 
-/**
- * Seed for "today's" demo snapshot. Derived from `Date.now()` so each
- * pull-to-refresh produces a slightly different number, but never uses
- * Math.random() (which CodeQL flags as cryptographically insecure even
- * though this is demo data, not a security context).
- */
-function nowSeed(): number {
-  return Date.now()
-}
-
 function createMockWorkout(
   date: Date,
   seed: number,
@@ -56,15 +34,10 @@ function createMockWorkout(
   const end = new Date(date)
   end.setHours(8, 15, 0, 0)
 
-  const today = isSameDay(date, new Date())
-  const distance = today
-    ? decimalFromSeed(nowSeed() + 100, 2, 8)
-    : decimalFromSeed(seed + 10, 2, 8)
-
   return {
     activityName: 'Running',
     calories: rand(180, 400, 9),
-    distance,
+    distance: decimalFromSeed(seed + 10, 2, 8),
     durationMinutes: rand(20, 60, 11),
     startISO: start.toISOString(),
     endISO: end.toISOString(),
@@ -74,13 +47,12 @@ function createMockWorkout(
 export function createDeterministicMockSnapshot(
   date: Date = new Date(),
 ): DailyHealthSnapshot {
-  const today = isSameDay(date, new Date())
-  const seed = today ? nowSeed() : seedForDate(date)
+  const seed = seedForDate(date)
   const rand = (min: number, max: number, offset: number) =>
     seededRand(seed + offset, min, max)
 
   return {
-    date: isoDate(date),
+    date: localDateKey(date),
     steps: rand(3_000, 12_000, 1),
     calories: rand(150, 800, 2),
     sleepHours: decimalFromSeed(seed + 3, 4, 9),
@@ -105,20 +77,14 @@ export const deterministicMockAdapter: HealthSnapshotSource = {
   async getRangeIntensity(daysBack: number): Promise<IntensityMap> {
     const intensity = new Map<string, number>()
     const today = new Date()
-    const seed = daysBack * 10_000
-
     for (let i = 0; i < daysBack; i++) {
       const date = new Date(today)
       date.setDate(today.getDate() - i)
-      const steps = seededRand(seed + i, 0, 14_000)
-      intensity.set(isoDate(date), steps)
+      const { steps } = createDeterministicMockSnapshot(date)
+      if (steps !== null) intensity.set(localDateKey(date), steps)
     }
 
     return intensity
-  },
-
-  async saveCardioWorkout(params: SaveCardioWorkoutParams): Promise<boolean> {
-    return params.durationMinutes > 0
   },
 
   async requestAuthorization(): Promise<boolean> {

@@ -43,6 +43,9 @@ export const Colors = {
     metricFlights: '#6366F1',
     metricNutrition: '#22c55e',
     metricWeight: '#14B8A6',
+    homeBackground: '#F8FAFC',
+    homeSurface: '#EDF1F5',
+    homeAccent: '#0878C9',
   },
   dark: {
     text: '#F8FAFC',
@@ -85,6 +88,9 @@ export const Colors = {
     metricFlights: '#6366F1',
     metricNutrition: '#22c55e',
     metricWeight: '#14B8A6',
+    homeBackground: '#101416',
+    homeSurface: '#20282D',
+    homeAccent: '#46A6FF',
   },
 } as const
 

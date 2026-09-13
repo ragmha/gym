@@ -181,13 +181,40 @@ describe('CoachScreen', () => {
     expect(ctx.snapshot).toBeNull()
     expect(ctx.recovery).toBeNull()
   })
+
+  it.each(['hrv', 'restingHeartRate', 'sleepHours'] as const)(
+    'does not send a recovery score when %s is missing',
+    async (missingMetric) => {
+      mockSnapshotState = { ...mockSnapshot, [missingMetric]: null }
+      render(<CoachScreen />)
+
+      fireEvent.press(screen.getByText('Am I recovered enough to train?'))
+
+      await waitFor(() => expect(activeCoachEngine.chat).toHaveBeenCalled())
+      const ctx = getLastChatContext()
+      expect(ctx.snapshot).toEqual(mockSnapshotState)
+      expect(ctx.recovery).toBeNull()
+    },
+  )
+
+  it('preserves an actual zero recovery assessment with complete measurements', async () => {
+    mockSnapshotState = {
+      ...mockSnapshot,
+      hrv: 0,
+      restingHeartRate: 100,
+      sleepHours: 0,
+    }
+    render(<CoachScreen />)
+
+    fireEvent.press(screen.getByText('Am I recovered enough to train?'))
+
+    await waitFor(() => expect(activeCoachEngine.chat).toHaveBeenCalled())
+    expect(getLastChatContext().recovery).toMatchObject({ score: 0 })
+  })
 })
 
 function getLastChatContext(): CoachChatContext {
-  const chat = activeCoachEngine.chat as jest.MockedFunction<
-    typeof activeCoachEngine.chat
-  >
-  const lastCall = chat.mock.calls[chat.mock.calls.length - 1]
-  expect(lastCall).toBeDefined()
-  return lastCall?.[1] as CoachChatContext
+  const lastCall = jest.mocked(activeCoachEngine.chat).mock.lastCall
+  if (!lastCall) throw new Error('No coach chat call was recorded')
+  return lastCall[1]
 }

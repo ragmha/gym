@@ -40,6 +40,21 @@ const recovery: RecoveryResult = {
   description: 'Recovered well.',
 }
 
+const missingSnapshot: DailyHealthSnapshot = {
+  date: snapshot.date,
+  steps: null,
+  calories: null,
+  sleepHours: null,
+  heartRate: null,
+  hrv: null,
+  restingHeartRate: null,
+  waterLiters: null,
+  flightsClimbed: null,
+  bodyMassKg: null,
+  dietaryCalories: null,
+  workouts: [],
+}
+
 describe('coach context builders', () => {
   it('builds daily context and omits null metrics from the prompt block', () => {
     const ctx = buildDailyContext({ dateISO: '2026-06-12', snapshot, recovery })
@@ -55,6 +70,50 @@ describe('coach context builders', () => {
     expect(formatted).not.toContain('heartRate')
     expect(formatted.split(/\s+/).length).toBeLessThanOrEqual(150)
   })
+
+  it('omits all unavailable measurements and recovery instead of sending zeros', () => {
+    const ctx = buildDailyContext({
+      dateISO: snapshot.date,
+      snapshot: missingSnapshot,
+      recovery: null,
+    })
+
+    expect(ctx.recovery).toBeNull()
+    expect(formatDailyContextForPrompt(ctx)).toBe(`- date: ${snapshot.date}`)
+  })
+
+  it('retains actual zeros in a partial snapshot without a recovery assessment', () => {
+    const ctx = buildDailyContext({
+      dateISO: snapshot.date,
+      snapshot: { ...missingSnapshot, steps: 0, calories: 0, sleepHours: 0 },
+      recovery: null,
+    })
+    const formatted = formatDailyContextForPrompt(ctx)
+
+    expect(formatted).toContain('- steps: 0')
+    expect(formatted).toContain('- calories: 0')
+    expect(formatted).toContain('- sleepHours: 0')
+    expect(formatted).not.toContain('hrv')
+    expect(formatted).not.toContain('restingHeartRate')
+    expect(formatted).not.toContain('recoveryScore')
+    expect(formatted).not.toContain('recoveryLabel')
+  })
+
+  it('preserves the 150-word context budget even with long workout summaries', () => {
+    const ctx = buildDailyContext({
+      dateISO: snapshot.date,
+      snapshot: {
+        ...snapshot,
+        workouts: Array.from({ length: 5 }, () => ({
+          ...snapshot.workouts[0],
+          activityName: 'Workout '.repeat(100),
+        })),
+      },
+      recovery: null,
+    })
+
+    expect(formatDailyContextForPrompt(ctx).split(/\s+/)).toHaveLength(150)
+  })
 })
 
 describe('coach prompts', () => {
@@ -66,6 +125,9 @@ describe('coach prompts', () => {
     expect(prompt.system).toContain('Return JSON only')
     expect(prompt.system).toContain('headline')
     expect(prompt.system).toContain('No medical advice')
+    expect(prompt.system).toContain('Missing metrics are unknown, not zero')
+    expect(prompt.system).toContain('use a steady tone')
+    expect(prompt.system).toContain('do not assess training readiness')
   })
 
   it('uses plain-text chat instructions', () => {
@@ -73,6 +135,8 @@ describe('coach prompts', () => {
 
     expect(prompt.system).toContain('plain text')
     expect(prompt.system).toContain('Never invent numbers')
+    expect(prompt.system).toContain('Missing metrics are unknown, not zero')
+    expect(prompt.system).toContain('acknowledge unavailable recovery')
   })
 })
 
@@ -98,6 +162,41 @@ describe('mockCoachEngine', () => {
     ).toBe(true)
   })
 
+  it('keeps an all-missing snapshot neutral instead of claiming good or poor recovery', async () => {
+    const result = await mockCoachEngine.generateDailyInsight(
+      buildDailyContext({
+        dateISO: snapshot.date,
+        snapshot: missingSnapshot,
+        recovery: null,
+      }),
+    )
+
+    expect(result).toMatchObject({
+      headline: 'Recovery data unavailable',
+      tone: 'steady',
+    })
+    expect(result.body).toContain('Not enough Health data')
+    expect(result.body).not.toContain('/100')
+    expect(result.body).not.toContain('Steps are')
+    expect(result.body).not.toContain('Sleep was')
+    expect(result.suggestion).toContain('cannot be assessed')
+  })
+
+  it('can describe measured zero without turning missing recovery into a score', async () => {
+    const result = await mockCoachEngine.generateDailyInsight(
+      buildDailyContext({
+        dateISO: snapshot.date,
+        snapshot: { ...missingSnapshot, steps: 0, sleepHours: 0 },
+        recovery: null,
+      }),
+    )
+
+    expect(result.tone).toBe('steady')
+    expect(result.body).toContain('Sleep was 0h.')
+    expect(result.body).toContain('Steps are at 0.')
+    expect(result.body).not.toContain('/100')
+  })
+
   it('streams chat chunks referencing a real metric', async () => {
     const chunks: string[] = []
 
@@ -111,6 +210,26 @@ describe('mockCoachEngine', () => {
     expect(chunks.length).toBeGreaterThanOrEqual(3)
     expect(chunks.join('')).toContain('72/100')
   })
+
+  it.each([null, missingSnapshot])(
+    'acknowledges unavailable health data in chat without fabricated metrics: %j',
+    async (snapshot) => {
+      const chunks: string[] = []
+
+      for await (const chunk of mockCoachEngine.chat([], {
+        dateISO: '2026-06-12',
+        snapshot,
+        recovery: null,
+      })) {
+        chunks.push(chunk)
+      }
+
+      expect(chunks.join('')).toContain('Not enough Health data')
+      expect(chunks.join('')).not.toContain('/100')
+      expect(chunks.join('')).not.toContain('Your sleep is')
+      expect(chunks.join('')).not.toContain('Your steps are')
+    },
+  )
 
   it('reports available mock availability', async () => {
     await expect(mockCoachEngine.availability()).resolves.toBe('available')

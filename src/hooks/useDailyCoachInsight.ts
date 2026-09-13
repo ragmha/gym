@@ -30,14 +30,17 @@ export function useDailyCoachInsight({
     () => (snapshot ? buildCacheKey(snapshot, recovery) : null),
     [recovery, snapshot],
   )
-  const [state, setState] = useState<DailyCoachInsightState>({
+  const [state, setState] = useState<
+    DailyCoachInsightState & { cacheKey: string | null }
+  >({
+    cacheKey: null,
     insight: null,
     status: 'idle',
   })
 
   useEffect(() => {
     if (!snapshot || !cacheKey) {
-      setState({ insight: null, status: 'idle' })
+      setState({ cacheKey, insight: null, status: 'idle' })
       return
     }
 
@@ -45,11 +48,11 @@ export function useDailyCoachInsight({
     let cancelled = false
 
     if (cached && !isPromise(cached)) {
-      setState({ insight: cached, status: 'ready' })
+      setState({ cacheKey, insight: cached, status: 'ready' })
       return
     }
 
-    setState({ insight: null, status: 'loading' })
+    setState({ cacheKey, insight: null, status: 'loading' })
 
     const existingRequest = cached && isPromise(cached) ? cached : null
     const request = existingRequest ?? generateInsight(snapshot, recovery)
@@ -64,7 +67,7 @@ export function useDailyCoachInsight({
           setInsightCacheEntry(cacheKey, insight)
         }
         if (!cancelled) {
-          setState({ insight, status: 'ready' })
+          setState({ cacheKey, insight, status: 'ready' })
         }
       })
       .catch(() => {
@@ -72,7 +75,7 @@ export function useDailyCoachInsight({
           insightCache.delete(cacheKey)
         }
         if (!cancelled) {
-          setState({ insight: null, status: 'error' })
+          setState({ cacheKey, insight: null, status: 'error' })
         }
       })
 
@@ -84,7 +87,9 @@ export function useDailyCoachInsight({
     }
   }, [cacheKey, recovery, snapshot])
 
-  return state
+  return state.cacheKey === cacheKey
+    ? { insight: state.insight, status: state.status }
+    : { insight: null, status: cacheKey ? 'loading' : 'idle' }
 }
 
 async function generateInsight(
@@ -107,6 +112,13 @@ function buildCacheKey(
   // Bucket volatile intra-day metrics so the on-device model regenerates only
   // when coaching inputs meaningfully change, not on every HealthKit refresh.
   return `${snapshot.date}:${JSON.stringify({
+    // Permission/data loss must invalidate even metrics outside the buckets.
+    availableMetrics: Object.entries(snapshot)
+      .filter(
+        ([, value]) => typeof value === 'number' && Number.isFinite(value),
+      )
+      .map(([key]) => key)
+      .sort(),
     workouts: snapshot.workouts.length,
     stepsBucket: bucketNumber(snapshot.steps, 2000),
     sleepHoursBucket: bucketNumber(snapshot.sleepHours, 0.5),

@@ -4,6 +4,7 @@ import React from 'react'
 // Mock expo-router
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ push: jest.fn(), back: jest.fn() })),
+  useFocusEffect: jest.fn(),
   useLocalSearchParams: jest.fn(() => ({})),
   useNavigation: jest.fn(() => ({ setOptions: jest.fn() })),
   Link: ({ children }: { children: React.ReactNode }) => children,

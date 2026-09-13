@@ -5,18 +5,29 @@ name: HealthKit Home Screen Test
 - runFlow:
     file: ../common/startup.yaml
 
-# The dashboard is read-only: rings, weight and the activity heatmap all
-# render from HealthKit, so there is nothing to tap to enter data.
-- assertVisible: 'Fitness Metrics'
-- assertVisible: 'Weight'
+# The default overview is read-only and keeps secondary data collapsed.
+- assertVisible: 'Recovery'
+- assertVisible: 'More health data'
+- assertNotVisible: 'Weight'
 - takeScreenshot: healthkit_home_initial
 
-# Without HealthKit authorization the rings render at zero rather than blank.
-- assertVisible: 'Steps'
-- assertVisible: 'Sleep'
-- takeScreenshot: healthkit_home_rings
+# Missing HealthKit measurements render as -- rather than invented zeroes.
+- assertVisible: 'Steps.*'
+- assertVisible: 'Sleep.*'
+- takeScreenshot: healthkit_home_overview
 
-# "See All" opens the full metric breakdown.
-- tapOn: 'See All'
+- tapOn: 'More health data'
+- waitForAnimationToEnd
+- assertVisible: 'Weight'
+- scrollUntilVisible:
+    element: 'RECENT ACTIVITY'
+    direction: DOWN
+- takeScreenshot: healthkit_home_details
+
+# The existing full metric breakdown remains reachable.
+- scrollUntilVisible:
+    element: 'See all metrics'
+    direction: DOWN
+- tapOn: 'See all metrics'
 - waitForAnimationToEnd
 - takeScreenshot: healthkit_fitness_metrics

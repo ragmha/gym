@@ -24,6 +24,7 @@ import {
   presentRestingHr,
   presentHydration,
   presentNutritionIntake,
+  presentRecovery,
   presentSleep,
   presentSteps,
   type MetricPresentation,
@@ -35,29 +36,21 @@ function clamp(val: number, min: number, max: number) {
   return Math.min(Math.max(val, min), max)
 }
 
-// ── Mini bar chart ───────────────────────────────────────────────────
+// ── Mini progress bars ───────────────────────────────────────────────
 
-function MiniBars({
-  progress,
-  color,
-  pattern,
-}: {
-  progress: number
-  color: string
-  pattern?: number[]
-}) {
-  const bars = pattern ?? [0.35, 0.55, 0.45, 0.7, 0.5, 0.8, 0.6, 0.75, 0.65]
+function MiniBars({ progress, color }: { progress: number; color: string }) {
+  const barCount = 9
   return (
     <View style={miniBarStyles.row}>
-      {bars.map((h, i) => {
-        const filled = (i + 1) / bars.length <= progress
+      {Array.from({ length: barCount }, (_, i) => {
+        const filled = (i + 1) / barCount <= progress
         return (
           <View
             key={i}
             style={[
               miniBarStyles.bar,
               {
-                height: h * 32,
+                height: 32,
                 backgroundColor: filled ? `${color}CC` : `${color}30`,
               },
             ]}
@@ -179,47 +172,21 @@ export default function FitnessMetricsScreen() {
   const borderColor = useThemeColor({}, 'border')
   const backgroundColor = useThemeColor({}, 'background')
   const { snapshot } = useHealthSnapshot()
-  const sleepHours = snapshot?.sleepHours ?? 0
-  const hrv = snapshot?.hrv ?? 0
-  const restingHeartRate = snapshot?.restingHeartRate ?? 0
-  const recoveryPresentation = useRecoveryPresentation({
-    hrv,
-    restingHR: restingHeartRate,
-    sleepHours,
+  const recovery = useRecoveryPresentation({
+    hrv: snapshot?.hrv ?? null,
+    restingHR: snapshot?.restingHeartRate ?? null,
+    sleepHours: snapshot?.sleepHours ?? null,
     hrvBaseline: null,
     rhrBaseline: null,
     sleepGoalHours: DASHBOARD_GOALS.sleepGoalHours,
   })
-  const recovery = snapshot ? recoveryPresentation : null
   const { insight, status: insightStatus } = useDailyCoachInsight({
     snapshot,
     recovery,
   })
   const metrics = useMemo<MetricPresentation[]>(
     () => [
-      {
-        id: 'recovery',
-        label: 'Recovery Score',
-        value: snapshot ? `${recoveryPresentation.score}` : '--',
-        unit: '%',
-        subtitle: snapshot
-          ? recoveryPresentation.label
-          : 'Health data not loaded yet',
-        iconName: 'shield-checkmark',
-        accentColorToken: snapshot
-          ? recoveryPresentation.accentColorToken
-          : 'disabled',
-        progress: snapshot
-          ? Math.min(Math.max(recoveryPresentation.score / 100, 0), 1)
-          : 0,
-        status: snapshot
-          ? recoveryPresentation.score <= 0
-            ? 'empty'
-            : recoveryPresentation.score >= 100
-              ? 'reached'
-              : 'progress'
-          : 'empty',
-      },
+      presentRecovery(recovery),
       presentSteps(snapshot),
       presentCalories(snapshot),
       presentNutritionIntake(snapshot),
@@ -230,7 +197,7 @@ export default function FitnessMetricsScreen() {
       presentRestingHr(snapshot),
       presentFlightsClimbed(snapshot),
     ],
-    [snapshot, recoveryPresentation],
+    [snapshot, recovery],
   )
 
   const createMetricPressHandler = (route?: MetricRoute) => {

@@ -1,71 +1,74 @@
-import { useRouter } from 'expo-router'
-import React, { useCallback, useMemo, useState } from 'react'
+import { Ionicons } from '@expo/vector-icons'
+import { useFocusEffect, useRouter } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
-  StatusBar,
   StyleSheet,
-  Text,
-  TouchableOpacity,
-  UIManager,
   View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap'
 import { CalendarStrip } from '@/components/dashboard/CalendarStrip'
+import { DailyActivityRows } from '@/components/dashboard/DailyActivityRows'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
-import {
-  SLEEP_GOAL_HOURS,
-  buildFitnessRings,
-} from '@/components/dashboard/fitnessRings'
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { RecoveryOverview } from '@/components/dashboard/RecoveryOverview'
 import { WeightCard } from '@/components/dashboard/WeightCard'
-import { FitnessRingsCard } from '@/components/dashboard/WorkoutXPCard'
+import { Spacing, Typography } from '@/constants/DesignSystem'
+import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
-import { computeRecoveryScore } from '@/utils/recovery'
-
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true)
-}
 
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate()
 
-function recoveryColorFor(score: number) {
-  if (score >= 67) return '#30D158'
-  if (score >= 34) return '#E8C558'
-  return '#E8707A'
-}
-
 export default function HomeScreen() {
   const router = useRouter()
-  const {
-    background: backgroundColor,
-    text: textColor,
-    accent: accentColor,
-  } = useTheme()
+  const theme = useTheme()
+  const colorScheme = useColorScheme()
+  const insets = useSafeAreaInsets()
 
   const [focusDate, setFocusDate] = useState(() => new Date())
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const [refreshing, setRefreshing] = useState(false)
+  const [calendarExpanded, setCalendarExpanded] = useState(false)
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
 
   const handleDateSelected = useCallback((date: Date) => {
     setSelectedDate(date)
     setFocusDate(date)
+    setCalendarExpanded(false)
   }, [])
 
-  const { snapshot, refresh } = useHealthSnapshot(selectedDate)
+  const { snapshot, status, error, isDemoMode, refresh } =
+    useHealthSnapshot(selectedDate)
+  const hasFocused = useRef(false)
+
+  useFocusEffect(
+    useCallback(() => {
+      // The snapshot hook already loads the selected day on mount.
+      if (hasFocused.current) {
+        void refresh()
+      }
+      hasFocused.current = true
+    }, [refresh]),
+  )
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await refresh()
-    setRefreshing(false)
+    try {
+      await refresh()
+    } finally {
+      setRefreshing(false)
+    }
   }, [refresh])
 
   const shiftWeek = useCallback(
@@ -74,22 +77,9 @@ export default function HomeScreen() {
       next.setDate(next.getDate() + weeks * 7)
       if (weeks > 0 && next > new Date()) return
       setFocusDate(next)
-      handleDateSelected(next)
+      setSelectedDate(next)
     },
-    [focusDate, handleDateSelected],
-  )
-
-  const recovery = useMemo(
-    () =>
-      computeRecoveryScore({
-        hrv: snapshot?.hrv ?? 0,
-        restingHR: snapshot?.restingHeartRate ?? 0,
-        sleepHours: snapshot?.sleepHours ?? 0,
-        hrvBaseline: null,
-        rhrBaseline: null,
-        sleepGoalHours: SLEEP_GOAL_HOURS,
-      }),
-    [snapshot?.hrv, snapshot?.restingHeartRate, snapshot?.sleepHours],
+    [focusDate],
   )
 
   const dateLabel = useMemo(() => {
@@ -103,59 +93,165 @@ export default function HomeScreen() {
       .toUpperCase()
   }, [selectedDate])
 
-  const fitnessMetrics = useMemo(() => buildFitnessRings(snapshot), [snapshot])
-
-  const openFitnessMetrics = useCallback(
-    () => router.push('/fitness-metrics'),
-    [router],
-  )
+  const nextWeek = new Date(focusDate)
+  nextWeek.setDate(nextWeek.getDate() + 7)
+  const canGoForward = nextWeek <= new Date()
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor }]}
-      contentContainerStyle={styles.content}
+      testID="home-screen"
+      style={[styles.container, { backgroundColor: theme.homeBackground }]}
+      contentContainerStyle={[
+        styles.content,
+        Platform.OS !== 'ios' && {
+          paddingTop: insets.top + Spacing.xs,
+          paddingBottom: insets.bottom + Spacing.xxl,
+        },
+      ]}
+      contentInsetAdjustmentBehavior="automatic"
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          testID="home-refresh"
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.homeAccent}
+        />
       }
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
       <DashboardHeader
-        recoveryScore={recovery.score}
-        recoveryColor={recoveryColorFor(recovery.score)}
         dateLabel={dateLabel}
-        onPreviousWeek={() => shiftWeek(-1)}
-        onNextWeek={() => shiftWeek(1)}
+        calendarExpanded={calendarExpanded}
+        onDatePress={() => setCalendarExpanded((expanded) => !expanded)}
         onCoachPress={() => router.push('/coach')}
         onSettingsPress={() => router.push('/settings')}
       />
 
-      <CalendarStrip
-        focusDate={focusDate}
-        selectedDate={selectedDate}
-        onFocusDateChange={setFocusDate}
-        onDateSelected={handleDateSelected}
-        compact
-      />
+      {calendarExpanded && (
+        <View>
+          <View style={styles.weekNavigation}>
+            <Pressable
+              onPress={() => shiftWeek(-1)}
+              style={styles.weekButton}
+              accessibilityRole="button"
+              accessibilityLabel="Previous week"
+            >
+              <Ionicons name="chevron-back" size={20} color={theme.text} />
+            </Pressable>
+            <Text style={[styles.month, { color: theme.text }]}>
+              {focusDate.toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric',
+              })}
+            </Text>
+            <Pressable
+              onPress={() => shiftWeek(1)}
+              disabled={!canGoForward}
+              style={styles.weekButton}
+              accessibilityRole="button"
+              accessibilityLabel="Next week"
+              accessibilityState={{ disabled: !canGoForward }}
+            >
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={canGoForward ? theme.text : theme.disabled}
+              />
+            </Pressable>
+          </View>
+          <CalendarStrip
+            focusDate={focusDate}
+            selectedDate={selectedDate}
+            onFocusDateChange={setFocusDate}
+            onDateSelected={handleDateSelected}
+            compact
+          />
+        </View>
+      )}
 
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: textColor }]}>
-          Fitness Metrics
+      {isDemoMode && (
+        <Text style={[styles.demo, { color: theme.subtitleText }]}>
+          Demo data - Apple Health is available on iOS.
         </Text>
-        <TouchableOpacity
-          onPress={openFitnessMetrics}
-          hitSlop={8}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.seeAll, { color: accentColor }]}>See All</Text>
-        </TouchableOpacity>
-      </View>
+      )}
 
-      <FitnessRingsCard metrics={fitnessMetrics} onPress={openFitnessMetrics} />
+      {status === 'loading' && !snapshot ? (
+        <View style={styles.loadState}>
+          <ActivityIndicator color={theme.homeAccent} />
+          <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+            Loading health data...
+          </Text>
+        </View>
+      ) : status === 'error' ? (
+        <View style={styles.loadState}>
+          <Text
+            selectable
+            accessibilityRole="alert"
+            style={[styles.error, { color: theme.text }]}
+          >
+            {error ?? 'Unable to load health data'}
+          </Text>
+          <Pressable
+            onPress={onRefresh}
+            style={styles.weekButton}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading health data"
+          >
+            <Text style={[Typography.labelLg, { color: theme.homeAccent }]}>
+              Try again
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <RecoveryOverview snapshot={snapshot} />
+          <DailyActivityRows snapshot={snapshot} />
+          <View>
+            <Pressable
+              onPress={() => setDetailsExpanded((expanded) => !expanded)}
+              style={({ pressed }) => [
+                styles.detailsButton,
+                { borderColor: theme.separator, opacity: pressed ? 0.6 : 1 },
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: detailsExpanded }}
+              aria-expanded={detailsExpanded}
+              accessibilityLabel="More health data"
+            >
+              <Text style={[styles.linkLabel, { color: theme.text }]}>
+                More health data
+              </Text>
+              <Ionicons
+                name={detailsExpanded ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={theme.subtitleText}
+              />
+            </Pressable>
+            {detailsExpanded && (
+              <>
+                <WeightCard bodyMassKg={snapshot?.bodyMassKg ?? null} />
+                <ActivityHeatmap title="Recent activity" />
+              </>
+            )}
+          </View>
+        </>
+      )}
 
-      <WeightCard bodyMassKg={snapshot?.bodyMassKg ?? null} />
-
-      <ActivityHeatmap />
+      <Pressable
+        onPress={() => router.push('/fitness-metrics')}
+        style={({ pressed }) => [
+          styles.metricsLink,
+          { opacity: pressed ? 0.6 : 1 },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="See all metrics"
+      >
+        <Text style={[styles.linkLabel, { color: theme.homeAccent }]}>
+          See all metrics
+        </Text>
+        <Ionicons name="chevron-forward" size={20} color={theme.homeAccent} />
+      </Pressable>
     </ScrollView>
   )
 }
@@ -165,21 +261,62 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 40,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xxl,
+    gap: Spacing.lg,
   },
-  sectionHeader: {
+  weekNavigation: {
+    marginHorizontal: Spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 10,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
+  weekButton: {
+    minWidth: 44,
+    minHeight: 44,
+    padding: Spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  seeAll: {
-    fontSize: 13,
-    fontWeight: '600',
+  month: {
+    ...Typography.labelLg,
+    flexShrink: 1,
+    textAlign: 'center',
+  },
+  demo: {
+    ...Typography.bodySm,
+    marginHorizontal: Spacing.lg,
+    textAlign: 'center',
+  },
+  loadState: {
+    minHeight: 240,
+    padding: Spacing.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  error: {
+    ...Typography.bodyMd,
+    textAlign: 'center',
+  },
+  detailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingVertical: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    minHeight: 48,
+  },
+  metricsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: 44,
+    marginHorizontal: Spacing.lg,
+  },
+  linkLabel: {
+    ...Typography.labelLg,
+    flex: 1,
   },
 })

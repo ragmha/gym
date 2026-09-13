@@ -11,6 +11,12 @@ An on-device AI coach reads the same snapshot and nothing else. It runs through
 Apple Foundation Models on supported iOS devices and a deterministic mock
 everywhere else, so no health data leaves the phone.
 
+Home puts recovery, steps, active calories, sleep, and the selected day's
+workouts first. Tap the date to reveal the week calendar, or expand **More
+health data** for the latest weigh-in and recent activity heatmap. **See all
+metrics**, Coach, and Settings remain available. The overview follows the
+saved light/dark preference and keeps unavailable readings as `--`.
+
 ## 1) Quick Start
 
 ### Prerequisites
@@ -137,10 +143,21 @@ One data source, one shape, two adapters.
 └───────────────────────────────┘   └────────────────────────────────┘
 ```
 
-`DailyHealthSnapshot` is the contract. Every metric is nullable — a day with no
-weigh-in reports `bodyMassKg: null` and renders `--`, not `0`.
+`DailyHealthSnapshot` is the contract. Missing or inaccessible measurements
+remain `null` and render `--`; a genuinely measured zero stays numeric. Body
+mass uses the latest available weigh-in, not a same-day-only reading.
+Snapshot and heatmap keys use local calendar dates. Cumulative measurements use
+HealthKit statistics instead of summing overlapping device samples; cardiac
+readings belong to the selected day. Sleep intervals are clipped to the selected
+night and merged before totaling them. Mock readings stay stable for each date,
+including today and across overlapping heatmap ranges.
 
 The app requests **read** permissions only. It never writes to Health.
+Finishing a fetch or an authorization request does not establish read access:
+HealthKit keeps individual read grants private. Settings always offers
+**Connect / Review Health access** on supported iOS devices, except while a
+request is in progress. Returning to Home rereads the selected day, including
+after reviewing Health access, without assuming that read permission was granted.
 
 ### The coach
 
@@ -153,6 +170,9 @@ without a model.
 the only context a prompt ever sees. There is no other input — no history, no
 profile, no free-form notes — which keeps the prompt small enough to stay under
 the on-device token budget and keeps the coach honest about what it knows.
+If required recovery measurements are unavailable or invalid, there is no
+recovery assessment to display or send to the coach. Missing data must not
+become a zero measurement or a fabricated recovery percentage.
 
 Output is parsed through the zod schemas in `src/lib/validators/coach.ts`. A
 malformed response is retried once and then fails loudly rather than rendering
@@ -164,14 +184,120 @@ GitHub Actions workflows in `.github/workflows/`:
 
 | Workflow    | Trigger         | Description                                                  |
 | ----------- | --------------- | ------------------------------------------------------------ |
-| **preview** | Pull request    | Expo compatibility, lint, typecheck, unit tests, EAS preview |
-| **update**  | Push to `main`  | EAS Update production (aborts on native changes)             |
+| **preview** | Pull request    | Quality gates, runtime isolation, JS-only EAS preview       |
+| **update**  | Push to `main`  | JS-only OTA; isolated native changes dispatch EAS Build      |
 | **build**   | Manual dispatch | EAS Build (iOS/Android, any profile)                         |
 
 The **preview** workflow runs on every PR and gates merges on `bun run expo:check`,
 `bun run expo:doctor`, `bun run lint`, `bun run typecheck`, and `bun run test:unit`.
 This keeps the PR Interface aligned with Expo SDK compatibility without forcing
 device/simulator-only Adapters into GitHub-hosted runners.
+
+### Native releases and OTA safety
+
+`runtimeVersion` uses the **`appVersion` policy**. Any native code, native
+dependency, config-plugin, or native app configuration change requires both:
+
+1. Increase `expo.version` in `app.json` and the matching `package.json` version.
+   Never reuse a previous version for a different native runtime. Increasing
+   only an iOS build number or Android version code does **not** isolate OTA.
+2. Create and install/distribute a new native binary before using updates for
+   that runtime. Use the existing manual **build** workflow with the appropriate
+   profile (`preview` for internal testing, `production` for store releases).
+
+Automatic native releases build iOS only. Android remains available through a
+manual **build** workflow dispatch.
+
+This includes native **patch** updates within an Expo SDK or React Native
+version and removing native modules, not just major/minor SDK upgrades.
+The HealthKit-only refactor now uses app version/runtime **1.0.2** after SDK 55
+patch alignment; existing **1.0.0** and **1.0.1** binaries must not receive its
+JavaScript. Users need a matching native binary before receiving updates for
+this runtime. Green JS tests, a static web export, or simulator smoke tests do not
+establish compatibility with previously installed binaries.
+
+Both publishing workflows compare native fingerprints with the same explicitly
+pinned `@expo/fingerprint` **0.16.8** implementation and then run
+`scripts/check-release-safety.ts`:
+
+| Fingerprint evidence vs. runtime anchor | Runtime history | Release decision |
+| --- | --- | --- |
+| Known, unchanged | Existing isolated namespace at the version high-water mark | Allow JS-only OTA |
+| Known, unchanged | Newly introduced namespace above all prior versions | Skip preview OTA; production dispatches a native build |
+| Known, changed | Same runtime as its anchor, including within a multi-commit push | Fail: use a genuinely higher version |
+| Any | Below historical high-water, no isolated anchor, invalid, or inconsistent | Fail |
+| Missing, failed, malformed, or inconsistent | Any | Fail closed; no OTA or automatic build |
+
+**An event's previous commit is not acceptance evidence.** The immutable anchor
+is the first **first-parent** commit introducing a valid `appVersion` runtime
+strictly above every earlier manifest version. Later commits using that version
+never replace its anchor. Production resolves this from the full first-parent
+release history; `github.event.before` only identifies the start of the push.
+The version high-water mark never decreases, even after a rejected rollback.
+
+PRs use only the target branch's first-parent history, not the feature branch's
+version bumps. The tested revision must be the PR merge commit with the event
+base as its first parent. A genuinely new PR runtime is a build-only candidate,
+not an accepted branch anchor. Preview OTA also requires a same-repository PR
+targeting `main`. Concurrent PRs choosing the same version cannot substitute
+their own native implementation for the one that first landed on `main`.
+
+For example, if A established `1.0.2`, B changes native code without bumping
+that version, and C only changes JS, **both B and C compare against A and fail**,
+including a preview targeting B. Recover by increasing both versions above the
+historical high-water mark (for example `1.0.3`) and building that new runtime.
+A complete native revert to A's fingerprint is also safe at `1.0.2`. A rollback
+to an older version followed by a small increase cannot reclaim an old namespace.
+
+A newly introduced runtime requires a build, including when its anchor is in
+the middle of a multi-commit push. Subsequent same-runtime JS updates compare
+to that original anchor without requiring a completed build or any acceptance
+cache. If the build is pending or failed, no older runtime can receive those
+updates; finish the matching binary rather than resetting the version.
+
+Fingerprint comparison is **nonpublishing and independent of the fingerprint
+cache**. `scripts/fingerprint-release.ts --resolve-baseline` selects the anchor
+before the workflow checks that exact SHA out under `.expo/release-baseline`.
+Both the comparison CLI and the decision CLI independently rederive it from
+Git and reject any substituted baseline. For a newly introduced runtime, the
+anchor can be the release SHA itself; it still needs a separate checkout and
+can only authorize a build. The fingerprint CLI verifies both checkout SHAs,
+their ancestry, and committed, unchanged manifests/lockfiles; installs
+each revision's own dependencies with `bun install --frozen-lockfile`; then
+fingerprints both using the same pinned library and SHA-1 algorithm. A cold or
+evicted cache therefore does not need manual seeding or a release to recover.
+Package download caches only speed installation and are never compatibility
+evidence. No unvalidated head is saved as a trusted baseline.
+
+Missing commits/lockfiles, checkout drift, failed frozen installs, or invalid
+fingerprint evidence still block OTA and automatic builds. Correct the checkout
+or dependency-install failure and rerun; never interpret a failure as an empty
+diff. Keep release publication in these guarded workflows, not ad-hoc
+`eas update` commands. Both new fingerprints are recomputed on every run, so
+fingerprint algorithm/version changes cannot mix old cached hashes with new ones.
+
+History must be complete and statically readable; missing/invalid JSON, version
+mismatches, platform runtime overrides, and alternate `app.config.*` files
+anywhere in the inspected history block release without evaluating old config
+code. The original pre-OTA scaffold prefix is supported only with no
+`runtimeVersion`, `sdkVersion`, or `updates` settings: its strictly validated
+app/package versions are **reserved**, never accepted as anchors. Enabling
+`appVersion` at a reserved version therefore requires a higher version first.
+
+For missing refs or shallow history, fetch the complete event history and rerun
+from the exact clean release SHA. Fix unsafe current PR configuration before
+merging. If unsafe/unknown configuration is already committed in the target
+history, a version bump alone cannot prove isolation: stop releases and plan an
+audited migration to a distinct EAS Update project with a clean, validated
+release lineage and new binaries. Do not erase history, seed a trust cache, or
+bypass the guard. These guarantees cover the guarded lineage, not binaries or
+updates manually published from unrelated branches using the same runtime.
+
+Run the release decision regression tests locally with:
+
+```bash
+bun run test:unit -- --runInBand --no-watchman --bail scripts/__tests__
+```
 
 ## 6) Native Workflow (CNG)
 
@@ -294,12 +420,23 @@ storage this app deliberately does not have.
 
 1. HealthKit is iOS-only. On web and Android you will see deterministic mock
    data by design.
-2. Open Settings in the app and check the Apple Health toggle is on.
+2. Open Settings in the app and choose **Connect / Review Health access**.
+   Completion means the request finished, not that every read scope was granted.
 3. Check iOS Settings → Privacy & Security → Health → gym and confirm the
    individual read permissions are granted. Denying one metric silently returns
    nothing for that metric only.
 4. Metrics like weight and dietary energy are only present if some other app or
    device is writing them to Health.
+
+### Web renders but buttons do not respond
+
+An `import.meta` syntax error can prevent hydration even when Metro serves the
+page successfully. The web-only `unstable_transformImportMeta` option in
+`babel.config.js` lets Expo handle ESM dependencies such as Zustand inside
+Metro's classic-script bundles. Native Babel behavior is unchanged.
+
+After changing Babel configuration, stop the existing Metro server with Ctrl+C
+and restart it with `bun run start --clear`.
 
 ### Expo start exits or hangs
 

@@ -17,9 +17,9 @@ const RHR_WEIGHT = 0.3
 const SLEEP_WEIGHT = 0.3
 
 export interface RecoveryInput {
-  hrv: number // Today's HRV in ms
-  restingHR: number // Today's resting HR in bpm
-  sleepHours: number // Hours slept last night
+  hrv: number | null // Today's HRV in ms
+  restingHR: number | null // Today's resting HR in bpm
+  sleepHours: number | null // Hours slept last night
   hrvBaseline?: number | null // 30-day HRV average (null = use default)
   rhrBaseline?: number | null // 30-day RHR average (null = use default)
   sleepGoalHours?: number | null // Target sleep hours (null = use default)
@@ -41,9 +41,11 @@ export interface RecoveryPresentation extends RecoveryResult {
  * Compute a recovery score from health metrics.
  *
  * @param input - Today's metrics + optional baselines
- * @returns Score (0–100), label, and descriptive explanation
+ * @returns Score (0–100), label, and explanation, or null without valid inputs.
  */
-export function computeRecoveryScore(input: RecoveryInput): RecoveryResult {
+export function computeRecoveryScore(
+  input: RecoveryInput,
+): RecoveryResult | null {
   const {
     hrv,
     restingHR,
@@ -56,6 +58,26 @@ export function computeRecoveryScore(input: RecoveryInput): RecoveryResult {
   const hrvBaseline = hrvBaselineRaw ?? DEFAULT_HRV_BASELINE
   const rhrBaseline = rhrBaselineRaw ?? DEFAULT_RHR_BASELINE
   const sleepGoal = sleepGoalRaw ?? DEFAULT_SLEEP_GOAL_HOURS
+
+  if (
+    hrv == null ||
+    restingHR == null ||
+    sleepHours == null ||
+    !Number.isFinite(hrv) ||
+    !Number.isFinite(restingHR) ||
+    !Number.isFinite(sleepHours) ||
+    hrv < 0 ||
+    restingHR <= 0 ||
+    sleepHours < 0 ||
+    !Number.isFinite(hrvBaseline) ||
+    !Number.isFinite(rhrBaseline) ||
+    !Number.isFinite(sleepGoal) ||
+    hrvBaseline <= 0 ||
+    rhrBaseline <= 0 ||
+    sleepGoal <= 0
+  ) {
+    return null
+  }
 
   // Above baseline → bonus, below → penalty. Normalized to 0–100.
   const hrvRatio = hrvBaseline > 0 ? hrv / hrvBaseline : 1
@@ -88,8 +110,10 @@ export function computeRecoveryScore(input: RecoveryInput): RecoveryResult {
 }
 
 export function presentRecoveryScore(
-  result: RecoveryResult,
-): RecoveryPresentation {
+  result: RecoveryResult | null,
+): RecoveryPresentation | null {
+  if (result === null) return null
+
   const tone = getRecoveryTone(result.score)
 
   return {
@@ -103,7 +127,7 @@ export function presentRecoveryScore(
 
 export function useRecoveryPresentation(
   input: RecoveryInput,
-): RecoveryPresentation {
+): RecoveryPresentation | null {
   const {
     hrv,
     restingHR,

@@ -183,6 +183,40 @@ describe('appleFMCoachEngine availability', () => {
 })
 
 describe('appleFMCoachEngine structured output', () => {
+  it('omits unavailable recovery while preserving measured zeros in the native prompt', async () => {
+    setPlatform('ios')
+    const nativeSession = makeSession()
+    nativeSession.generateStructuredOutput?.mockResolvedValue({
+      headline: 'Recovery unavailable',
+      body: 'More data is needed to assess recovery.',
+      suggestion: 'Use available Health metrics.',
+      tone: 'steady',
+    })
+    mockedAppleLLMSession.mockImplementation(() => nativeSession)
+
+    await appleFMCoachEngine.generateDailyInsight(
+      buildDailyContext({
+        dateISO: snapshot.date,
+        snapshot: { ...snapshot, hrv: null, restingHeartRate: null, steps: 0 },
+        recovery: null,
+      }),
+    )
+
+    expect(nativeSession.generateStructuredOutput).toHaveBeenCalledWith({
+      structure: expect.any(Object),
+      prompt: expect.stringContaining('- steps: 0'),
+    })
+    expect(nativeSession.generateStructuredOutput).toHaveBeenCalledWith({
+      structure: expect.any(Object),
+      prompt: expect.not.stringMatching(
+        /recoveryScore|recoveryLabel|hrv:|restingHeartRate:/,
+      ),
+    })
+    expect(nativeSession.configure).toHaveBeenCalledWith({
+      instructions: expect.stringContaining('use a steady tone'),
+    })
+  })
+
   it('validates a structured daily insight through Zod', async () => {
     setPlatform('ios')
     const nativeSession = makeSession()
@@ -289,6 +323,59 @@ describe('appleFMCoachEngine structured output', () => {
 })
 
 describe('appleFMCoachEngine chat', () => {
+  it.each([null, { ...snapshot, sleepHours: null, steps: null }])(
+    'does not substitute zero for unavailable chat metrics: %j',
+    async (snapshot) => {
+      setPlatform('ios')
+      const nativeSession = makeSession()
+      nativeSession.generateTextStream.mockReturnValue(
+        cumulativeChunks(['Recovery is unavailable.']),
+      )
+      mockedAppleLLMSession.mockImplementation(() => nativeSession)
+
+      for await (const chunk of appleFMCoachEngine.chat([], {
+        dateISO: '2026-06-12',
+        snapshot,
+        recovery: null,
+      })) {
+        expect(chunk).toBe('Recovery is unavailable.')
+      }
+
+      expect(nativeSession.generateTextStream).toHaveBeenCalledWith({
+        prompt: expect.not.stringMatching(/Recovery:|Sleep:|Steps:/),
+      })
+      expect(nativeSession.configure).toHaveBeenCalledWith({
+        instructions: expect.stringContaining(
+          'acknowledge unavailable recovery',
+        ),
+      })
+    },
+  )
+
+  it('keeps actual zero steps and sleep in a native chat prompt', async () => {
+    setPlatform('ios')
+    const nativeSession = makeSession()
+    nativeSession.generateTextStream.mockReturnValue(
+      cumulativeChunks(['Hello']),
+    )
+    mockedAppleLLMSession.mockImplementation(() => nativeSession)
+
+    for await (const chunk of appleFMCoachEngine.chat([], {
+      dateISO: snapshot.date,
+      snapshot: { ...snapshot, sleepHours: 0, steps: 0 },
+      recovery: null,
+    })) {
+      expect(chunk).toBe('Hello')
+    }
+
+    expect(nativeSession.generateTextStream).toHaveBeenCalledWith({
+      prompt: expect.stringContaining('Sleep: 0h\nSteps: 0'),
+    })
+    expect(nativeSession.generateTextStream).toHaveBeenCalledWith({
+      prompt: expect.not.stringContaining('Recovery:'),
+    })
+  })
+
   it('yields deltas from cumulative native stream chunks', async () => {
     setPlatform('ios')
     const nativeSession = makeSession()
