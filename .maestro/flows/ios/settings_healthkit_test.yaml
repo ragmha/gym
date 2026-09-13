@@ -5,27 +5,29 @@ name: Settings HealthKit Test
 - runFlow:
     file: ../common/startup.yaml
 
-# Navigate to Settings tab
+# Settings is pushed from the dashboard header, not a tab.
 - tapOn: 'Settings'
 - waitForAnimationToEnd
 
-# Verify Settings screen loaded
 - assertVisible: 'Settings'
 - takeScreenshot: settings_screen
 
 # Apple Health section should be visible on iOS
-- assertVisible: 'Health'
+- assertVisible: 'HEALTH'
 - assertVisible: 'Apple Health'
-- assertVisible: 'Connect to see health data on the home screen'
+- assertVisible: '.*Apple does not disclose which read permissions you have enabled.*'
+- assertNotVisible: 'Connected.*'
+- assertVisible:
+    id: 'review-health-access'
+    enabled: true
+- assertVisible: 'Connect / Review Health access'
 - takeScreenshot: settings_healthkit_section
 
-# Tap the Apple Health switch to trigger authorization
-- tapOn:
-    id: 'Apple Health'
-- waitForAnimationToEnd
+# Permission-sheet interaction is checked separately; this smoke preserves
+# the simulator's existing Health grants.
 
-# Navigate back to Home to verify integration
-- tapOn: 'Home'
+# Back to the dashboard to verify the app still renders after the round trip.
+- tapOn: 'Back'
 - waitForAnimationToEnd
-- assertVisible: 'Workout Progress'
+- assertVisible: 'Recovery'
 - takeScreenshot: settings_back_to_home

@@ -1,12 +1,7 @@
 /**
  * Zod schemas — single barrel re-export for `@/lib/validators`.
  *
- * Each domain lives in its own file. Import from this barrel to preserve
- * the existing `@/lib/validators` path everywhere in the codebase, or
- * import from the per-domain module directly for tighter coupling.
+ * The app reads from HealthKit and stores nothing, so the only values that
+ * still need runtime validation are the ones the on-device coach generates.
  */
-export * from './exercises'
-export * from './healthSnapshots'
-export * from './meals'
 export * from './coach'
-export * from './workoutSessions'

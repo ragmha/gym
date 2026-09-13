@@ -5,21 +5,29 @@ name: HealthKit Home Screen Test
 - runFlow:
     file: ../common/startup.yaml
 
-# Verify core Home screen elements are present
-- assertVisible: 'Workout Progress'
+# The default overview is read-only and keeps secondary data collapsed.
+- assertVisible: 'Recovery'
+- assertVisible: 'More health data'
+- assertNotVisible: 'Weight'
 - takeScreenshot: healthkit_home_initial
 
-# HealthKit connect prompt should be visible when not authorized
-- scrollUntilVisible:
-    element: 'Apple Health'
-    direction: DOWN
-- assertVisible: 'Connect Apple Health'
-- assertVisible: 'View your steps, calories, and workouts'
-- takeScreenshot: healthkit_connect_prompt
+# Missing HealthKit measurements render as -- rather than invented zeroes.
+- assertVisible: 'Steps.*'
+- assertVisible: 'Sleep.*'
+- takeScreenshot: healthkit_home_overview
 
-# Tap connect prompt — this triggers HealthKit auth dialog
-# Note: native HealthKit permission sheet cannot be automated by Maestro;
-# on devices with HealthKit already authorized, the metrics will appear instead.
-- tapOn: 'Connect Apple Health'
+- tapOn: 'More health data'
 - waitForAnimationToEnd
-- takeScreenshot: healthkit_after_connect_tap
+- assertVisible: 'Weight'
+- scrollUntilVisible:
+    element: 'RECENT ACTIVITY'
+    direction: DOWN
+- takeScreenshot: healthkit_home_details
+
+# The existing full metric breakdown remains reachable.
+- scrollUntilVisible:
+    element: 'See all metrics'
+    direction: DOWN
+- tapOn: 'See all metrics'
+- waitForAnimationToEnd
+- takeScreenshot: healthkit_fitness_metrics

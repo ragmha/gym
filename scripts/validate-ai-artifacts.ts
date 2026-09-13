@@ -25,16 +25,12 @@ const requiredSkills: RequiredSkill[] = [
     requiredTerms: ['create<State>()', 'partialize', 'useShallow'],
   },
   {
-    name: 'supabase-migration',
-    requiredTerms: ['RLS', 'generate-types', 'validators'],
-  },
-  {
     name: 'eas-release',
     requiredTerms: ['eas update --auto', 'build.yml', 'runtimeVersion'],
   },
   {
     name: 'new-screen-route',
-    requiredTerms: ['(tabs)', '_layout.tsx', 'typed routes'],
+    requiredTerms: ['_layout.tsx', 'typed routes'],
   },
   {
     name: 'platform-gate',
@@ -56,12 +52,6 @@ const requiredAgents: RequiredAgent[] = [
       'generateMockData',
       'READ_PERMISSIONS',
     ],
-  },
-  {
-    file: 'supabase-schema-reviewer.agent.md',
-    name: 'Supabase Schema Reviewer',
-    readOnly: true,
-    requiredTerms: ['RLS', 'database.types.ts', 'validators.ts'],
   },
   {
     file: 'expo-dependency-auditor.agent.md',

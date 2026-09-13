@@ -1,7 +1,8 @@
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { useTheme } from '@/hooks/useThemeColor'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 interface CalendarStripProps {
   /** The date around which to generate the calendar strip. */
@@ -131,8 +132,12 @@ export function CalendarStrip({
 
   if (compact) {
     return (
-      <View style={styles.compactContainer}>
-        <View style={styles.dayRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.compactContainer}
+      >
+        <View style={styles.compactWeek}>
           {days.map((date, i) => {
             const isSelected = isSameDay(date, selectedDate)
             const isToday = isSameDay(date, today)
@@ -150,6 +155,19 @@ export function CalendarStrip({
                 onPress={() => handlePress(date)}
                 activeOpacity={isFuture ? 1 : 0.7}
                 disabled={isFuture}
+                accessibilityRole="button"
+                accessibilityLabel={date.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+                accessibilityState={{
+                  selected: isSelected,
+                  disabled: isFuture,
+                }}
+                aria-selected={isSelected}
+                aria-disabled={isFuture}
               >
                 <Text
                   style={[
@@ -174,7 +192,7 @@ export function CalendarStrip({
             )
           })}
         </View>
-      </View>
+      </ScrollView>
     )
   }
 
@@ -257,7 +275,7 @@ export function CalendarStrip({
 }
 
 const CIRCLE_SIZE = 36
-const COMPACT_SIZE = 40
+const COMPACT_SIZE = 44
 
 const styles = StyleSheet.create({
   container: {
@@ -269,12 +287,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   compactContainer: {
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
+  compactWeek: {
+    flexGrow: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
   compactDay: {
-    width: COMPACT_SIZE,
-    height: COMPACT_SIZE,
+    minWidth: COMPACT_SIZE,
+    minHeight: COMPACT_SIZE,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
     borderRadius: COMPACT_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',

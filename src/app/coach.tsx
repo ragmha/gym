@@ -32,10 +32,10 @@ export default function CoachScreen() {
   const router = useRouter()
   const theme = useTheme()
   const { snapshot } = useHealthSnapshot()
-  const recoveryPresentation = useRecoveryPresentation({
-    hrv: snapshot?.hrv ?? 0,
-    restingHR: snapshot?.restingHeartRate ?? 0,
-    sleepHours: snapshot?.sleepHours ?? 0,
+  const recovery = useRecoveryPresentation({
+    hrv: snapshot?.hrv ?? null,
+    restingHR: snapshot?.restingHeartRate ?? null,
+    sleepHours: snapshot?.sleepHours ?? null,
     hrvBaseline: null,
     rhrBaseline: null,
     sleepGoalHours: 8,
@@ -49,7 +49,7 @@ export default function CoachScreen() {
   contextRef.current = {
     dateISO: new Date().toISOString(),
     snapshot,
-    recovery: snapshot ? recoveryPresentation : null,
+    recovery,
   }
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -275,6 +275,7 @@ export default function CoachScreen() {
           ]}
         >
           <TextInput
+            testID="coach-input"
             value={input}
             onChangeText={setInput}
             placeholder="Ask about training, recovery, or tomorrow…"

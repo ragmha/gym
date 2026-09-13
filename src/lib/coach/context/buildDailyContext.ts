@@ -1,17 +1,11 @@
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
-import { computeWorkoutEfficiency } from '@/lib/workoutEfficiency'
-import type { WorkoutSession, WorkoutTemplate } from '@/types/models'
 import type { RecoveryResult } from '@/utils/recovery'
-import type { DailyCoachContext, RecentWorkoutSummary } from '../types'
+import type { DailyCoachContext } from '../types'
 
 export interface BuildDailyContextInput {
   dateISO: string
   snapshot: DailyHealthSnapshot
   recovery: RecoveryResult | null
-  recentWorkouts?: readonly {
-    session: WorkoutSession
-    template: WorkoutTemplate
-  }[]
 }
 
 export function buildDailyContext(
@@ -21,9 +15,6 @@ export function buildDailyContext(
     dateISO: input.dateISO,
     snapshot: input.snapshot,
     recovery: input.recovery,
-    recentWorkouts: (input.recentWorkouts ?? [])
-      .filter((entry) => entry.session.completedAt !== null)
-      .map(toRecentWorkoutSummary),
   }
 }
 
@@ -31,12 +22,14 @@ export function formatDailyContextForPrompt(ctx: DailyCoachContext): string {
   const lines = [`- date: ${ctx.dateISO}`]
   appendMetric(lines, 'steps', ctx.snapshot.steps)
   appendMetric(lines, 'calories', ctx.snapshot.calories)
+  appendMetric(lines, 'dietaryCalories', ctx.snapshot.dietaryCalories)
   appendMetric(lines, 'sleepHours', ctx.snapshot.sleepHours)
   appendMetric(lines, 'heartRate', ctx.snapshot.heartRate)
   appendMetric(lines, 'hrv', ctx.snapshot.hrv)
   appendMetric(lines, 'restingHeartRate', ctx.snapshot.restingHeartRate)
   appendMetric(lines, 'waterLiters', ctx.snapshot.waterLiters)
   appendMetric(lines, 'flightsClimbed', ctx.snapshot.flightsClimbed)
+  appendMetric(lines, 'bodyMassKg', ctx.snapshot.bodyMassKg)
 
   if (ctx.recovery) {
     lines.push(`- recoveryScore: ${ctx.recovery.score}`)
@@ -44,41 +37,26 @@ export function formatDailyContextForPrompt(ctx: DailyCoachContext): string {
   }
 
   if (ctx.snapshot.workouts.length > 0) {
-    lines.push(`- healthWorkouts: ${ctx.snapshot.workouts.length}`)
-  }
-
-  if (ctx.recentWorkouts.length > 0) {
-    const summaries = ctx.recentWorkouts
+    const summaries = ctx.snapshot.workouts
       .slice(0, 3)
-      .map(
-        (workout) =>
-          `${workout.templateTitle} ${Math.round(workout.totalVolumeKg)}kg on ${workout.completedAt}`,
+      .map((workout) =>
+        Number.isFinite(workout.durationMinutes) && workout.durationMinutes >= 0
+          ? `${workout.activityName} ${Math.round(workout.durationMinutes)}min`
+          : `${workout.activityName} (duration unavailable)`,
       )
       .join('; ')
-    lines.push(`- recentStrength: ${summaries}`)
+    lines.push(`- healthWorkouts: ${summaries}`)
   }
 
   return limitWords(lines.join('\n'), 150)
 }
 
-function toRecentWorkoutSummary(entry: {
-  session: WorkoutSession
-  template: WorkoutTemplate
-}): RecentWorkoutSummary {
-  return {
-    templateTitle: entry.template.title,
-    completedAt: entry.session.completedAt ?? '',
-    totalVolumeKg: computeWorkoutEfficiency(entry.session, entry.template)
-      .totalVolumeKg,
-  }
-}
-
 function appendMetric(
   lines: string[],
   label: string,
-  value: number | string | null,
+  value: number | null,
 ): void {
-  if (value !== null) {
+  if (value !== null && Number.isFinite(value)) {
     lines.push(`- ${label}: ${value}`)
   }
 }

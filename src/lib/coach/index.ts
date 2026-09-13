@@ -68,16 +68,8 @@ export const activeCoachEngine: CoachEngine = {
     return (await resolveActiveEngine()).generateDailyInsight(ctx)
   },
 
-  async narrateWorkout(ctx) {
-    return (await resolveActiveEngine()).narrateWorkout(ctx)
-  },
-
   async *chat(messages, ctx) {
     yield* (await resolveActiveEngine()).chat(messages, ctx)
-  },
-
-  async parseMealText(text) {
-    return (await resolveActiveEngine()).parseMealText(text)
   },
 }
 
@@ -87,14 +79,8 @@ export {
   formatDailyContextForPrompt,
   type BuildDailyContextInput,
 } from './context/buildDailyContext'
-export {
-  buildWorkoutContext,
-  formatWorkoutContextForPrompt,
-  type BuildWorkoutContextInput,
-} from './context/buildWorkoutContext'
 export { buildCoachChatPrompt } from './prompts/chat'
 export { buildDailyInsightPrompt } from './prompts/dailyInsight'
-export { buildPostWorkoutPrompt } from './prompts/postWorkout'
 export { appleFMCoachEngine } from './appleFMAdapter'
 export { mockCoachEngine } from './mockAdapter'
 export type {
@@ -103,6 +89,4 @@ export type {
   CoachChatMessage,
   CoachEngine,
   DailyCoachContext,
-  RecentWorkoutSummary,
-  WorkoutCoachContext,
 } from './types'

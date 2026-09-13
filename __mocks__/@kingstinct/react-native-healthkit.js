@@ -5,6 +5,13 @@ const mock = {
   isHealthDataAvailable: jest.fn(() => Promise.resolve(true)),
   requestAuthorization: jest.fn(() => Promise.resolve(true)),
   queryQuantitySamples: jest.fn(() => Promise.resolve([{ quantity: 5432 }])),
+  queryStatisticsForQuantity: jest.fn(() =>
+    Promise.resolve({
+      sumQuantity: { quantity: 5432, unit: 'count' },
+      sources: [],
+    }),
+  ),
+  queryStatisticsCollectionForQuantity: jest.fn(() => Promise.resolve([])),
   queryCategorySamples: jest.fn(() => {
     const end = new Date()
     const start = new Date(end.getTime() - 6 * 60 * 60_000)
@@ -22,7 +29,7 @@ const mock = {
   queryWorkoutSamples: jest.fn(() =>
     Promise.resolve([
       {
-        workoutActivityType: 'TraditionalStrengthTraining',
+        workoutActivityType: 50,
         totalEnergyBurned: { quantity: 280 },
         totalDistance: { quantity: 0 },
         startDate: new Date().toISOString(),

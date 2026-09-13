@@ -4,6 +4,7 @@ import React from 'react'
 // Mock expo-router
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ push: jest.fn(), back: jest.fn() })),
+  useFocusEffect: jest.fn(),
   useLocalSearchParams: jest.fn(() => ({})),
   useNavigation: jest.fn(() => ({ setOptions: jest.fn() })),
   Link: ({ children }: { children: React.ReactNode }) => children,
@@ -30,17 +31,6 @@ jest.mock('expo-status-bar', () => ({
 jest.mock('expo-font', () => ({
   useFonts: jest.fn(() => [true]),
   isLoaded: jest.fn(() => true),
-}))
-
-// Mock expo-linear-gradient
-jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: 'LinearGradient',
-}))
-
-// Mock react-native-webview
-jest.mock('react-native-webview', () => ({
-  WebView: 'WebView',
-  default: 'WebView',
 }))
 
 // Mock react-native-reanimated
@@ -71,32 +61,6 @@ jest.mock('react-native-worklets', () => ({
   scheduleOnRN: jest.fn((fn: any, ...args: any[]) => fn(...args)),
 }))
 
-// Mock Supabase client
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        order: jest.fn(() => Promise.resolve({ data: [], error: null })),
-        eq: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      })),
-      insert: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      delete: jest.fn(() => ({
-        eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
-      })),
-    })),
-    channel: jest.fn(() => ({
-      on: jest.fn(() => ({
-        subscribe: jest.fn(() => ({
-          unsubscribe: jest.fn(),
-        })),
-      })),
-    })),
-  },
-}))
-
 // Mock useThemeColor
 jest.mock('@/hooks/useThemeColor', () => ({
   useThemeColor: jest.fn((_props: any, colorName: string) => {
@@ -119,81 +83,6 @@ jest.mock('@/hooks/useThemeColor', () => ({
 jest.mock('@/hooks/useColorScheme', () => ({
   useColorScheme: jest.fn(() => 'light'),
 }))
-
-// Mock ExerciseStore
-jest.mock('@/stores/ExerciseStore', () => {
-  const mockExercises: Record<string, any> = {
-    'exercise-1': {
-      id: '1',
-      localId: 'exercise-1',
-      title: 'Push Day',
-      videoURL: 'https://example.com/video',
-      date: '2026-02-15',
-      color: 'hsl(200, 50%, 87.5%)',
-      completed: false,
-      cardio: { morning: 30, evening: 20 },
-      exercises: [
-        {
-          id: '1',
-          title: 'Bench Press',
-          sets: 4,
-          reps: 12,
-          variation: null,
-          completed: false,
-          selectedSets: [false, false, false, false],
-        },
-      ],
-      synced: true,
-    },
-    'exercise-2': {
-      id: '2',
-      localId: 'exercise-2',
-      title: 'Pull Day',
-      videoURL: 'https://example.com/video2',
-      date: '2026-02-16',
-      color: 'hsl(100, 50%, 87.5%)',
-      completed: true,
-      cardio: { morning: 25, evening: 15 },
-      exercises: [
-        {
-          id: '4',
-          title: 'Deadlifts',
-          sets: 4,
-          reps: 8,
-          variation: null,
-          completed: true,
-          selectedSets: [true, true, true, true],
-        },
-      ],
-      synced: true,
-    },
-  }
-
-  return {
-    useExerciseStore: jest.fn((selector?: any) => {
-      const state = {
-        exercises: mockExercises,
-        error: null,
-        loading: false,
-        initialized: true,
-        completedCount: 1,
-        activeExercises: [mockExercises['exercise-1']],
-        completedExercises: [mockExercises['exercise-2']],
-        initialize: jest.fn(),
-        completeExercise: jest.fn(),
-        completeExerciseDetail: jest.fn(),
-        getSelectedSets: jest.fn(() => []),
-        getExercise: jest.fn((id: string) => mockExercises[id]),
-        getDetail: jest.fn(() => []),
-        sync: jest.fn(),
-      }
-      if (typeof selector === 'function') {
-        return selector(state)
-      }
-      return state
-    }),
-  }
-})
 
 // Silence console warnings in tests
 const originalWarn = console.warn

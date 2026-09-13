@@ -1,20 +1,14 @@
-import { coachInsightSchema, workoutNarrationSchema } from '@/lib/validators'
+import { coachInsightSchema } from '@/lib/validators'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
-import type { WorkoutSession, WorkoutTemplate } from '@/types/models'
 import type { RecoveryResult } from '@/utils/recovery'
 import { resolveCoachAvailability, selectEngineId } from '../availability'
 import {
   buildDailyContext,
   formatDailyContextForPrompt,
 } from '../context/buildDailyContext'
-import {
-  buildWorkoutContext,
-  formatWorkoutContextForPrompt,
-} from '../context/buildWorkoutContext'
 import { mockCoachEngine } from '../mockAdapter'
 import { buildCoachChatPrompt } from '../prompts/chat'
 import { buildDailyInsightPrompt } from '../prompts/dailyInsight'
-import { buildPostWorkoutPrompt } from '../prompts/postWorkout'
 
 const snapshot: DailyHealthSnapshot = {
   date: '2026-06-12',
@@ -26,7 +20,18 @@ const snapshot: DailyHealthSnapshot = {
   restingHeartRate: 62,
   waterLiters: null,
   flightsClimbed: 8,
-  workouts: [],
+  bodyMassKg: 81.4,
+  dietaryCalories: null,
+  workouts: [
+    {
+      activityName: 'Traditional Strength Training',
+      calories: 320,
+      distance: 0,
+      durationMinutes: 48,
+      startISO: '2026-06-12T08:00:00.000Z',
+      endISO: '2026-06-12T08:48:00.000Z',
+    },
+  ],
 }
 
 const recovery: RecoveryResult = {
@@ -35,77 +40,79 @@ const recovery: RecoveryResult = {
   description: 'Recovered well.',
 }
 
-function template(): WorkoutTemplate {
-  return {
-    id: 'template-a',
-    day: 'Day 1',
-    week: 'Week 1',
-    title: 'Full Body Strength',
-    videoURL: null,
-    cardio: { morning: 0, evening: 0 },
-    color: '#000000',
-    exercises: [
-      { id: 'squat', title: 'Back Squat', sets: 2, reps: 5, variation: null },
-    ],
-  }
-}
-
-function session(): WorkoutSession {
-  return {
-    id: 'session-a',
-    templateId: 'template-a',
-    startedAt: '2026-06-12T08:00:00.000Z',
-    completedAt: '2026-06-12T08:30:00.000Z',
-    exerciseProgress: {
-      squat: {
-        detailId: 'squat',
-        selectedSets: [true, true],
-        weightPerSet: [100, 110],
-      },
-    },
-    cardio: { morning: 0, evening: 0 },
-    cardioCompleted: { morning: false, evening: false },
-    status: 'complete',
-  }
+const missingSnapshot: DailyHealthSnapshot = {
+  date: snapshot.date,
+  steps: null,
+  calories: null,
+  sleepHours: null,
+  heartRate: null,
+  hrv: null,
+  restingHeartRate: null,
+  waterLiters: null,
+  flightsClimbed: null,
+  bodyMassKg: null,
+  dietaryCalories: null,
+  workouts: [],
 }
 
 describe('coach context builders', () => {
   it('builds daily context and omits null metrics from the prompt block', () => {
-    const ctx = buildDailyContext({
-      dateISO: '2026-06-12',
-      snapshot,
-      recovery,
-      recentWorkouts: [{ session: session(), template: template() }],
-    })
+    const ctx = buildDailyContext({ dateISO: '2026-06-12', snapshot, recovery })
     const formatted = formatDailyContextForPrompt(ctx)
 
-    expect(ctx.recentWorkouts).toEqual([
-      {
-        templateTitle: 'Full Body Strength',
-        completedAt: '2026-06-12T08:30:00.000Z',
-        totalVolumeKg: 1050,
-      },
-    ])
     expect(formatted).toContain('- steps: 8200')
+    expect(formatted).toContain('- bodyMassKg: 81.4')
+    expect(formatted).toContain(
+      '- healthWorkouts: Traditional Strength Training 48min',
+    )
+    expect(formatted).not.toContain('dietaryCalories')
     expect(formatted).toContain('- recoveryScore: 72')
     expect(formatted).not.toContain('heartRate')
     expect(formatted.split(/\s+/).length).toBeLessThanOrEqual(150)
   })
 
-  it('builds workout context with precomputed metrics for prompts', () => {
-    const ctx = buildWorkoutContext({
-      session: session(),
-      template: template(),
-      recovery,
+  it('omits all unavailable measurements and recovery instead of sending zeros', () => {
+    const ctx = buildDailyContext({
+      dateISO: snapshot.date,
+      snapshot: missingSnapshot,
+      recovery: null,
     })
-    const formatted = formatWorkoutContextForPrompt(ctx)
 
-    expect(ctx.efficiency.totalVolumeKg).toBe(1050)
-    expect(formatted).toContain('- volumeKg: 1050')
-    expect(formatted).toContain('- completionRate: 100%')
-    expect(formatted).toContain('- recoveryLabel: Primed to Perform')
-    expect(formatted).not.toContain('weekOverWeek')
-    expect(formatted.split(/\s+/).length).toBeLessThanOrEqual(150)
+    expect(ctx.recovery).toBeNull()
+    expect(formatDailyContextForPrompt(ctx)).toBe(`- date: ${snapshot.date}`)
+  })
+
+  it('retains actual zeros in a partial snapshot without a recovery assessment', () => {
+    const ctx = buildDailyContext({
+      dateISO: snapshot.date,
+      snapshot: { ...missingSnapshot, steps: 0, calories: 0, sleepHours: 0 },
+      recovery: null,
+    })
+    const formatted = formatDailyContextForPrompt(ctx)
+
+    expect(formatted).toContain('- steps: 0')
+    expect(formatted).toContain('- calories: 0')
+    expect(formatted).toContain('- sleepHours: 0')
+    expect(formatted).not.toContain('hrv')
+    expect(formatted).not.toContain('restingHeartRate')
+    expect(formatted).not.toContain('recoveryScore')
+    expect(formatted).not.toContain('recoveryLabel')
+  })
+
+  it('preserves the 150-word context budget even with long workout summaries', () => {
+    const ctx = buildDailyContext({
+      dateISO: snapshot.date,
+      snapshot: {
+        ...snapshot,
+        workouts: Array.from({ length: 5 }, () => ({
+          ...snapshot.workouts[0],
+          activityName: 'Workout '.repeat(100),
+        })),
+      },
+      recovery: null,
+    })
+
+    expect(formatDailyContextForPrompt(ctx).split(/\s+/)).toHaveLength(150)
   })
 })
 
@@ -118,19 +125,9 @@ describe('coach prompts', () => {
     expect(prompt.system).toContain('Return JSON only')
     expect(prompt.system).toContain('headline')
     expect(prompt.system).toContain('No medical advice')
-  })
-
-  it('includes formatted context and JSON instructions for post-workout narration', () => {
-    const ctx = buildWorkoutContext({
-      session: session(),
-      template: template(),
-      recovery,
-    })
-    const prompt = buildPostWorkoutPrompt(ctx)
-
-    expect(prompt.prompt).toContain('- workout: Full Body Strength')
-    expect(prompt.system).toContain('Return JSON only')
-    expect(prompt.system).toContain('nextSessionTip')
+    expect(prompt.system).toContain('Missing metrics are unknown, not zero')
+    expect(prompt.system).toContain('use a steady tone')
+    expect(prompt.system).toContain('do not assess training readiness')
   })
 
   it('uses plain-text chat instructions', () => {
@@ -138,6 +135,8 @@ describe('coach prompts', () => {
 
     expect(prompt.system).toContain('plain text')
     expect(prompt.system).toContain('Never invent numbers')
+    expect(prompt.system).toContain('Missing metrics are unknown, not zero')
+    expect(prompt.system).toContain('acknowledge unavailable recovery')
   })
 })
 
@@ -156,22 +155,46 @@ describe('mockCoachEngine', () => {
       snapshot,
       recovery,
     })
-    const workoutCtx = buildWorkoutContext({
-      session: session(),
-      template: template(),
-      recovery,
-    })
-
     expect(
       coachInsightSchema.safeParse(
         await mockCoachEngine.generateDailyInsight(dailyCtx),
       ).success,
     ).toBe(true)
-    expect(
-      workoutNarrationSchema.safeParse(
-        await mockCoachEngine.narrateWorkout(workoutCtx),
-      ).success,
-    ).toBe(true)
+  })
+
+  it('keeps an all-missing snapshot neutral instead of claiming good or poor recovery', async () => {
+    const result = await mockCoachEngine.generateDailyInsight(
+      buildDailyContext({
+        dateISO: snapshot.date,
+        snapshot: missingSnapshot,
+        recovery: null,
+      }),
+    )
+
+    expect(result).toMatchObject({
+      headline: 'Recovery data unavailable',
+      tone: 'steady',
+    })
+    expect(result.body).toContain('Not enough Health data')
+    expect(result.body).not.toContain('/100')
+    expect(result.body).not.toContain('Steps are')
+    expect(result.body).not.toContain('Sleep was')
+    expect(result.suggestion).toContain('cannot be assessed')
+  })
+
+  it('can describe measured zero without turning missing recovery into a score', async () => {
+    const result = await mockCoachEngine.generateDailyInsight(
+      buildDailyContext({
+        dateISO: snapshot.date,
+        snapshot: { ...missingSnapshot, steps: 0, sleepHours: 0 },
+        recovery: null,
+      }),
+    )
+
+    expect(result.tone).toBe('steady')
+    expect(result.body).toContain('Sleep was 0h.')
+    expect(result.body).toContain('Steps are at 0.')
+    expect(result.body).not.toContain('/100')
   })
 
   it('streams chat chunks referencing a real metric', async () => {
@@ -188,14 +211,25 @@ describe('mockCoachEngine', () => {
     expect(chunks.join('')).toContain('72/100')
   })
 
-  it('parses meal text deterministically and validates the parsed meal shape', async () => {
-    const first = await mockCoachEngine.parseMealText('chicken lunch')
-    const second = await mockCoachEngine.parseMealText('chicken lunch')
+  it.each([null, missingSnapshot])(
+    'acknowledges unavailable health data in chat without fabricated metrics: %j',
+    async (snapshot) => {
+      const chunks: string[] = []
 
-    expect(first).toEqual(second)
-    expect(first.name).toBe('chicken lunch')
-    expect(first.ai_confidence).toBeGreaterThan(0)
-  })
+      for await (const chunk of mockCoachEngine.chat([], {
+        dateISO: '2026-06-12',
+        snapshot,
+        recovery: null,
+      })) {
+        chunks.push(chunk)
+      }
+
+      expect(chunks.join('')).toContain('Not enough Health data')
+      expect(chunks.join('')).not.toContain('/100')
+      expect(chunks.join('')).not.toContain('Your sleep is')
+      expect(chunks.join('')).not.toContain('Your steps are')
+    },
+  )
 
   it('reports available mock availability', async () => {
     await expect(mockCoachEngine.availability()).resolves.toBe('available')

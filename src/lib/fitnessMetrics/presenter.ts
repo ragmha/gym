@@ -1,4 +1,5 @@
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
+import type { RecoveryPresentation } from '@/utils/recovery'
 
 import type { MetricPresentation, MetricStatus } from './types'
 import { METRIC_IDS } from './types'
@@ -13,6 +14,8 @@ export const DASHBOARD_GOALS = {
   restingHrMin: 40,
   restingHrMax: 100,
   flightsGoal: 20,
+  dietaryCaloriesGoal: 2_200,
+  waterLitersGoal: 2.5,
 } as const
 
 export const FITNESS_METRIC_ORDER = METRIC_IDS
@@ -26,7 +29,82 @@ type SnapshotMetric = keyof Pick<
   | 'hrv'
   | 'restingHeartRate'
   | 'flightsClimbed'
+  | 'waterLiters'
+  | 'dietaryCalories'
+  | 'bodyMassKg'
 >
+
+export function presentRecovery(
+  recovery: RecoveryPresentation | null,
+): MetricPresentation {
+  return {
+    id: 'recovery',
+    label: 'Recovery Score',
+    value: recovery ? `${recovery.score}` : '--',
+    unit: '%',
+    subtitle: recovery?.label ?? 'Not enough recovery data',
+    iconName: 'shield-checkmark',
+    accentColorToken: recovery?.accentColorToken ?? 'disabled',
+    progress: recovery ? clamp(recovery.score / 100) : 0,
+    status: recovery === null ? 'empty' : goalStatus(recovery.score, 100),
+  }
+}
+
+export function presentNutritionIntake(
+  snapshot: DailyHealthSnapshot | null,
+): MetricPresentation {
+  const eaten = readMetric(snapshot, 'dietaryCalories')
+
+  return goalMetric({
+    id: 'nutrition-intake',
+    label: 'Calories Eaten',
+    value: formatWhole(eaten),
+    unit: 'kcal',
+    subtitle: `Goal: ${DASHBOARD_GOALS.dietaryCaloriesGoal.toLocaleString()} kcal`,
+    iconName: 'restaurant',
+    accentColorToken: 'metricNutrition',
+    actual: eaten,
+    goal: DASHBOARD_GOALS.dietaryCaloriesGoal,
+  })
+}
+
+export function presentHydration(
+  snapshot: DailyHealthSnapshot | null,
+): MetricPresentation {
+  const liters = readMetric(snapshot, 'waterLiters')
+
+  return goalMetric({
+    id: 'hydration',
+    label: 'Hydration',
+    value: liters !== null ? liters.toFixed(1) : '--',
+    unit: 'L',
+    subtitle: `Goal: ${DASHBOARD_GOALS.waterLitersGoal} L`,
+    iconName: 'water',
+    accentColorToken: 'metricHydration',
+    actual: liters,
+    goal: DASHBOARD_GOALS.waterLitersGoal,
+  })
+}
+
+export function presentBodyMass(
+  snapshot: DailyHealthSnapshot | null,
+): MetricPresentation {
+  const bodyMassKg = snapshot?.bodyMassKg ?? null
+
+  return {
+    id: 'body-mass',
+    label: 'Weight',
+    value: bodyMassKg != null ? bodyMassKg.toFixed(1) : '--',
+    unit: 'kg',
+    subtitle: 'Latest weigh-in',
+    iconName: 'body',
+    accentColorToken: 'metricWeight',
+    // Weight has no universal goal, so the ring stays neutral rather than
+    // implying a target the user never set.
+    progress: 0,
+    status: bodyMassKg == null ? 'empty' : 'progress',
+  }
+}
 
 export function presentSteps(
   snapshot: DailyHealthSnapshot | null,
@@ -72,7 +150,7 @@ export function presentSleep(
   return goalMetric({
     id: 'sleep',
     label: 'Sleep',
-    value: sleepHours > 0 ? sleepHours.toFixed(1) : '--',
+    value: sleepHours !== null ? sleepHours.toFixed(1) : '--',
     unit: 'hrs',
     subtitle: `Goal: ${DASHBOARD_GOALS.sleepGoalHours} hrs`,
     iconName: 'moon',
@@ -91,13 +169,15 @@ export function presentHeartRate(
   return {
     id: 'heart-rate',
     label: 'Heart Rate',
-    value: heartRate > 0 ? `${heartRate}` : '--',
+    value: heartRate !== null ? `${heartRate}` : '--',
     unit: 'bpm',
     subtitle: 'Latest reading',
     iconName: 'heart',
     accentColorToken: 'metricHeart',
     progress:
-      heartRate > 0 ? clamp(1 - (heartRate - hrMin) / (hrMax - hrMin)) : 0,
+      heartRate !== null && heartRate > 0
+        ? clamp(1 - (heartRate - hrMin) / (hrMax - hrMin))
+        : 0,
     status: bandStatus(heartRate, hrMin, hrMax),
   }
 }
@@ -110,7 +190,7 @@ export function presentHrv(
   return goalMetric({
     id: 'hrv',
     label: 'HRV',
-    value: hrv > 0 ? `${hrv}` : '--',
+    value: hrv !== null ? `${hrv}` : '--',
     unit: 'ms',
     subtitle: 'Heart rate variability',
     iconName: 'pulse',
@@ -129,13 +209,13 @@ export function presentRestingHr(
   return {
     id: 'resting-hr',
     label: 'Resting HR',
-    value: restingHeartRate > 0 ? `${restingHeartRate}` : '--',
+    value: restingHeartRate !== null ? `${restingHeartRate}` : '--',
     unit: 'bpm',
     subtitle: 'Resting heart rate',
     iconName: 'heart-half',
     accentColorToken: 'metricRestingHr',
     progress:
-      restingHeartRate > 0
+      restingHeartRate !== null && restingHeartRate > 0
         ? clamp(
             1 -
               (restingHeartRate - restingHrMin) / (restingHrMax - restingHrMin),
@@ -153,7 +233,7 @@ export function presentFlightsClimbed(
   return goalMetric({
     id: 'flights-climbed',
     label: 'Flights Climbed',
-    value: flightsClimbed > 0 ? `${flightsClimbed}` : '--',
+    value: flightsClimbed !== null ? `${flightsClimbed}` : '--',
     subtitle: 'Floors climbed today',
     iconName: 'trending-up',
     accentColorToken: 'metricFlights',
@@ -164,7 +244,7 @@ export function presentFlightsClimbed(
 
 function goalMetric(
   params: Omit<MetricPresentation, 'progress' | 'status'> & {
-    actual: number
+    actual: number | null
     goal: number
   },
 ): MetricPresentation {
@@ -172,13 +252,13 @@ function goalMetric(
 
   return {
     ...presentation,
-    progress: goal > 0 ? clamp(actual / goal) : 0,
+    progress: actual !== null && goal > 0 ? clamp(actual / goal) : 0,
     status: goalStatus(actual, goal),
   }
 }
 
-function goalStatus(actual: number, goal: number): MetricStatus {
-  if (actual <= 0) {
+function goalStatus(actual: number | null, goal: number): MetricStatus {
+  if (actual === null) {
     return 'empty'
   }
 
@@ -193,9 +273,17 @@ function goalStatus(actual: number, goal: number): MetricStatus {
   return 'progress'
 }
 
-function bandStatus(actual: number, min: number, max: number): MetricStatus {
-  if (actual <= 0) {
+function bandStatus(
+  actual: number | null,
+  min: number,
+  max: number,
+): MetricStatus {
+  if (actual === null) {
     return 'empty'
+  }
+
+  if (actual <= 0) {
+    return 'progress'
   }
 
   if (actual > max) {
@@ -212,12 +300,12 @@ function bandStatus(actual: number, min: number, max: number): MetricStatus {
 function readMetric(
   snapshot: DailyHealthSnapshot | null,
   key: SnapshotMetric,
-): number {
-  return snapshot?.[key] ?? 0
+): number | null {
+  return snapshot?.[key] ?? null
 }
 
-function formatWhole(value: number): string {
-  return value > 0 ? value.toLocaleString() : '--'
+function formatWhole(value: number | null): string {
+  return value !== null ? value.toLocaleString() : '--'
 }
 
 function clamp(value: number): number {

@@ -9,13 +9,5 @@ export const coachInsightSchema = z.object({
   tone: coachToneSchema,
 })
 
-export const workoutNarrationSchema = z.object({
-  headline: z.string().min(1),
-  summary: z.string().min(1),
-  nextSessionTip: z.string().min(1),
-  tone: coachToneSchema,
-})
-
 export type CoachTone = z.infer<typeof coachToneSchema>
 export type CoachInsight = z.infer<typeof coachInsightSchema>
-export type WorkoutNarration = z.infer<typeof workoutNarrationSchema>

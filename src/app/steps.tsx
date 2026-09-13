@@ -36,15 +36,14 @@ const TEXT_PRIMARY = '#FFFFFF'
 const TEXT_SECONDARY = '#8A8E96'
 
 const CALORIES_TARGET = 600 // kcal reference for ring
-const DISTANCE_TARGET = 8 // km reference for ring
 
 // ── Component ───────────────────────────────────────────────────────
 
 export default function StepsScreen() {
   const router = useRouter()
   const { snapshot } = useHealthSnapshot()
-  const steps = snapshot?.steps ?? 0
-  const calories = snapshot?.calories ?? 0
+  const steps = snapshot?.steps ?? null
+  const calories = snapshot?.calories ?? null
   const [stepsGoal, setStepsGoal] = useState(DEFAULT_STEPS_GOAL)
   const [showGoalModal, setShowGoalModal] = useState(false)
   const [goalInput, setGoalInput] = useState('')
@@ -81,19 +80,15 @@ export default function StepsScreen() {
     Keyboard.dismiss()
   }, [goalInput])
 
-  // Derived metrics
-  const distanceKm = parseFloat((steps * 0.000762).toFixed(1))
-  const activeMinutes = Math.round(steps / 100)
-  const caloriesVal = calories > 0 ? calories : Math.round(steps * 0.04)
-
   // Ring progress (0–1)
-  const stepsProgress = Math.min(steps / stepsGoal, 1)
-  const caloriesProgress = Math.min(caloriesVal / CALORIES_TARGET, 1)
-  const distanceProgress = Math.min(distanceKm / DISTANCE_TARGET, 1)
+  const stepsProgress = steps === null ? 0 : Math.min(steps / stepsGoal, 1)
+  const caloriesProgress =
+    calories === null ? 0 : Math.min(calories / CALORIES_TARGET, 1)
 
   const rings = [
     { progress: stepsProgress, color: ORANGE, bgColor: RING_BG },
-    { progress: distanceProgress, color: GRAY_RING, bgColor: RING_BG },
+    // Walking distance is not part of the snapshot; never estimate it from steps.
+    { progress: 0, color: GRAY_RING, bgColor: RING_BG },
     { progress: caloriesProgress, color: BLUE, bgColor: RING_BG },
   ]
 
@@ -147,8 +142,13 @@ export default function StepsScreen() {
           </View>
 
           {/* Step count */}
-          <Text style={styles.heroSteps}>
-            {steps > 0 ? steps.toLocaleString() : '0'}
+          <Text
+            style={styles.heroSteps}
+            accessibilityLabel={
+              steps === null ? 'Steps unavailable' : `${steps} steps`
+            }
+          >
+            {steps === null ? '--' : steps.toLocaleString()}
           </Text>
           <Text style={styles.heroLabel}>total steps</Text>
 
@@ -158,7 +158,16 @@ export default function StepsScreen() {
               <View style={[styles.statIcon, { backgroundColor: ORANGE }]}>
                 <Ionicons name="flame" size={22} color={TEXT_PRIMARY} />
               </View>
-              <Text style={styles.statValue}>{caloriesVal}</Text>
+              <Text
+                style={styles.statValue}
+                accessibilityLabel={
+                  calories === null
+                    ? 'Calories unavailable'
+                    : `${calories} kcal`
+                }
+              >
+                {calories === null ? '--' : calories}
+              </Text>
               <Text style={styles.statLabel}>kcal</Text>
             </View>
 
@@ -166,7 +175,12 @@ export default function StepsScreen() {
               <View style={[styles.statIcon, { backgroundColor: '#5A5C62' }]}>
                 <Ionicons name="location" size={22} color={TEXT_PRIMARY} />
               </View>
-              <Text style={styles.statValue}>{distanceKm}</Text>
+              <Text
+                style={styles.statValue}
+                accessibilityLabel="Walking distance unavailable"
+              >
+                --
+              </Text>
               <Text style={styles.statLabel}>kilometer</Text>
             </View>
 
@@ -174,7 +188,12 @@ export default function StepsScreen() {
               <View style={[styles.statIcon, { backgroundColor: BLUE }]}>
                 <Ionicons name="time" size={22} color={TEXT_PRIMARY} />
               </View>
-              <Text style={styles.statValue}>{activeMinutes}</Text>
+              <Text
+                style={styles.statValue}
+                accessibilityLabel="Active minutes unavailable"
+              >
+                --
+              </Text>
               <Text style={styles.statLabel}>minute</Text>
             </View>
           </View>

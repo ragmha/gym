@@ -13,10 +13,11 @@ export const METRIC_IDS = [
   'hrv',
   'resting-hr',
   'flights-climbed',
+  'body-mass',
 ] as const
 
 export type MetricId = (typeof METRIC_IDS)[number]
-export type MetricRoute = '/steps' | '/hydration' | '/nutrition'
+export type MetricRoute = '/steps'
 export type MetricStatus = 'empty' | 'progress' | 'reached' | 'over'
 export type MetricIconName = keyof typeof Ionicons.glyphMap
 

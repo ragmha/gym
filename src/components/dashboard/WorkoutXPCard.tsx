@@ -6,7 +6,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
-import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
+import Svg, { Circle } from 'react-native-svg'
 
 import { useTheme } from '@/hooks/useThemeColor'
 
@@ -14,26 +14,12 @@ function clamp(val: number, min: number, max: number) {
   return Math.min(Math.max(val, min), max)
 }
 
-/** Deterministic seeded PRNG (mulberry32) — same seed → same pattern */
-function seededRandom(seed: string): () => number {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) {
-    h = (Math.imul(31, h) + seed.charCodeAt(i)) | 0
-  }
-  return () => {
-    h |= 0
-    h = (h + 0x6d2b79f5) | 0
-    let t = Math.imul(h ^ (h >>> 15), 1 | h)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
 // ── Types ──────────────────────────────────────────────────────────────
 
 export interface MetricRing {
   label: string
-  value: number
+  /** Null is unavailable; zero is a recorded measurement. */
+  value: number | null
   goal: number
   unit: string
   color: string
@@ -101,57 +87,6 @@ function AnimatedRing({
   )
 }
 
-// ── Mini area chart ────────────────────────────────────────────────────
-
-function MiniAreaChart({
-  color,
-  width,
-  height,
-}: {
-  color: string
-  width: number
-  height: number
-}) {
-  const rand = seededRandom('xp-chart')
-  const points = 12
-  const raw = Array.from({ length: points }, (_, i) => {
-    const base = 0.3 + rand() * 0.4
-    const wave = Math.sin((i / (points - 1)) * Math.PI * 1.5) * 0.25
-    return clamp(base + wave, 0.05, 1)
-  })
-  const min = Math.min(...raw)
-  const max = Math.max(...raw)
-  const range = max - min || 1
-  const pts = raw.map((v, i) => ({
-    x: (i / (raw.length - 1)) * width,
-    y: height - ((v - min) / range) * (height - 6) - 3,
-  }))
-
-  const linePath = pts
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-    .join(' ')
-  const areaPath = `${linePath} L ${width} ${height} L 0 ${height} Z`
-
-  return (
-    <Svg width={width} height={height}>
-      <Defs>
-        <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={color} stopOpacity="0.3" />
-          <Stop offset="1" stopColor={color} stopOpacity="0.02" />
-        </LinearGradient>
-      </Defs>
-      <Path d={areaPath} fill="url(#areaGrad)" />
-      <Path
-        d={linePath}
-        stroke={color}
-        strokeWidth={2}
-        fill="none"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  )
-}
-
 // ── Main component ─────────────────────────────────────────────────────
 
 export function FitnessRingsCard({ metrics, onPress }: FitnessRingsCardProps) {
@@ -165,6 +100,14 @@ export function FitnessRingsCard({ metrics, onPress }: FitnessRingsCardProps) {
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
       disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={metrics
+        .map((metric) =>
+          metric.value === null
+            ? `${metric.label} unavailable`
+            : `${metric.label} ${formatMetricValue(metric.value, metric.unit)}`,
+        )
+        .join('. ')}
     >
       {/* Top row: rings + legend */}
       <View style={styles.topRow}>
@@ -174,7 +117,8 @@ export function FitnessRingsCard({ metrics, onPress }: FitnessRingsCardProps) {
             {metrics.map((m, i) => {
               const r = center - RING_STROKE / 2 - i * (RING_STROKE + RING_GAP)
               const circumference = 2 * Math.PI * r
-              const progress = m.goal > 0 ? m.value / m.goal : 0
+              const progress =
+                m.value !== null && m.goal > 0 ? m.value / m.goal : 0
               return (
                 <React.Fragment key={m.label}>
                   {/* Background track */}
@@ -230,22 +174,14 @@ export function FitnessRingsCard({ metrics, onPress }: FitnessRingsCardProps) {
           })}
         </View>
       </View>
-
-      {/* Mini area chart */}
-      <View style={styles.chartContainer}>
-        <MiniAreaChart
-          color={metrics[0]?.color ?? '#3B82F6'}
-          width={280}
-          height={52}
-        />
-      </View>
     </TouchableOpacity>
   )
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-function formatMetricValue(value: number, unit: string): string {
+function formatMetricValue(value: number | null, unit: string): string {
+  if (value === null) return '--'
   if (value >= 10_000) return `${(value / 1000).toFixed(1)}k ${unit}`
   if (value >= 1_000) return `${value.toLocaleString()} ${unit}`
   if (Number.isInteger(value)) return `${value} ${unit}`
@@ -296,11 +232,5 @@ const styles = StyleSheet.create({
   legendValue: {
     fontSize: 12,
     marginTop: 1,
-  },
-  chartContainer: {
-    marginTop: 14,
-    alignItems: 'center',
-    overflow: 'hidden',
-    borderRadius: 8,
   },
 })
