@@ -29,6 +29,10 @@ on:
         description: 'EAS build profile'
         type: string
         default: production
+      auto_submit:
+        description: 'Submit a production iOS build after the calling workflow verifies release safety'
+        type: boolean
+        default: false
     secrets:
       EXPO_TOKEN:
         required: true
@@ -56,6 +60,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -70,6 +76,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Check production release readiness
+        if: inputs.profile == 'production'
+        run: bun scripts/check-production-release.ts
+
       - name: Setup EAS
         uses: expo/expo-github-action@v8
         with:
@@ -80,4 +90,18 @@ jobs:
         run: bunx expo-doctor@latest
 
       - name: Build app
-        run: eas build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive
+        shell: bash
+        env:
+          BUILD_PLATFORM: ${{ inputs.platform }}
+          BUILD_PROFILE: ${{ inputs.profile }}
+          AUTO_SUBMIT: ${{ inputs.auto_submit || false }}
+        run: |
+          args=(--platform "$BUILD_PLATFORM" --profile "$BUILD_PROFILE" --non-interactive)
+          if [[ "$AUTO_SUBMIT" == "true" ]]; then
+            if [[ "$BUILD_PLATFORM" != "ios" || "$BUILD_PROFILE" != "production" ]]; then
+              echo "::error::Automatic TestFlight submission requires the production iOS profile." >&2
+              exit 1
+            fi
+            args+=(--auto-submit)
+          fi
+          eas build "${args[@]}"
