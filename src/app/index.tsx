@@ -18,12 +18,14 @@ import { CalendarStrip } from '@/components/dashboard/CalendarStrip'
 import { DailyActivityRows } from '@/components/dashboard/DailyActivityRows'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
-import { RecoveryOverview } from '@/components/dashboard/RecoveryOverview'
+import { StepsOverview } from '@/components/dashboard/StepsOverview'
 import { WeightCard } from '@/components/dashboard/WeightCard'
+import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
+import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
@@ -31,22 +33,32 @@ const isSameDay = (a: Date, b: Date) =>
   a.getDate() === b.getDate()
 
 export default function HomeScreen() {
+  return (
+    <HealthDateRoute>
+      {(date) => <HomeForDate selectedDate={date} />}
+    </HealthDateRoute>
+  )
+}
+
+function HomeForDate({ selectedDate }: { selectedDate: Date }) {
   const router = useRouter()
   const theme = useTheme()
   const colorScheme = useColorScheme()
   const insets = useSafeAreaInsets()
 
-  const [focusDate, setFocusDate] = useState(() => new Date())
-  const [selectedDate, setSelectedDate] = useState(() => new Date())
+  const [focusDate, setFocusDate] = useState(selectedDate)
   const [refreshing, setRefreshing] = useState(false)
   const [calendarExpanded, setCalendarExpanded] = useState(false)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
 
-  const handleDateSelected = useCallback((date: Date) => {
-    setSelectedDate(date)
-    setFocusDate(date)
-    setCalendarExpanded(false)
-  }, [])
+  const handleDateSelected = useCallback(
+    (date: Date) => {
+      router.setParams({ date: localDateKey(date) })
+      setFocusDate(date)
+      setCalendarExpanded(false)
+    },
+    [router],
+  )
 
   const { snapshot, status, error, isDemoMode, refresh } =
     useHealthSnapshot(selectedDate)
@@ -75,11 +87,11 @@ export default function HomeScreen() {
     (weeks: number) => {
       const next = new Date(focusDate)
       next.setDate(next.getDate() + weeks * 7)
-      if (weeks > 0 && next > new Date()) return
+      if (weeks > 0 && localDateKey(next) > localDateKey(new Date())) return
       setFocusDate(next)
-      setSelectedDate(next)
+      router.setParams({ date: localDateKey(next) })
     },
-    [focusDate],
+    [focusDate, router],
   )
 
   const dateLabel = useMemo(() => {
@@ -95,7 +107,7 @@ export default function HomeScreen() {
 
   const nextWeek = new Date(focusDate)
   nextWeek.setDate(nextWeek.getDate() + 7)
-  const canGoForward = nextWeek <= new Date()
+  const canGoForward = localDateKey(nextWeek) <= localDateKey(new Date())
 
   return (
     <ScrollView
@@ -123,7 +135,10 @@ export default function HomeScreen() {
       <DashboardHeader
         dateLabel={dateLabel}
         calendarExpanded={calendarExpanded}
-        onDatePress={() => setCalendarExpanded((expanded) => !expanded)}
+        onDatePress={() => {
+          setFocusDate(selectedDate)
+          setCalendarExpanded((expanded) => !expanded)
+        }}
         onCoachPress={() => router.push('/coach')}
         onSettingsPress={() => router.push('/settings')}
       />
@@ -205,8 +220,32 @@ export default function HomeScreen() {
         </View>
       ) : (
         <>
-          <RecoveryOverview snapshot={snapshot} />
+          <StepsOverview
+            snapshot={snapshot}
+            onPress={() =>
+              router.push({
+                pathname: '/steps',
+                params: { date: localDateKey(selectedDate) },
+              })
+            }
+          />
           <DailyActivityRows snapshot={snapshot} />
+          {!isDemoMode &&
+            (snapshot?.steps == null ||
+              (snapshot.calories === null &&
+                snapshot.sleepHours === null &&
+                snapshot.workouts.length === 0)) && (
+              <Pressable
+                onPress={() => router.push('/settings')}
+                style={styles.metricsLink}
+                accessibilityRole="button"
+                accessibilityLabel="Review Health access"
+              >
+                <Text style={[Typography.bodySm, { color: theme.homeAccent }]}>
+                  Missing readings? Review Health access
+                </Text>
+              </Pressable>
+            )}
           <View>
             <Pressable
               onPress={() => setDetailsExpanded((expanded) => !expanded)}
@@ -239,7 +278,12 @@ export default function HomeScreen() {
       )}
 
       <Pressable
-        onPress={() => router.push('/fitness-metrics')}
+        onPress={() =>
+          router.push({
+            pathname: '/fitness-metrics',
+            params: { date: localDateKey(selectedDate) },
+          })
+        }
         style={({ pressed }) => [
           styles.metricsLink,
           { opacity: pressed ? 0.6 : 1 },

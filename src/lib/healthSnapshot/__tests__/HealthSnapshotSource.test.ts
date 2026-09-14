@@ -78,6 +78,7 @@ describe('HealthSnapshotSource adapters', () => {
     hk.queryWorkoutSamples.mockResolvedValue([
       {
         workoutActivityType: 37,
+        duration: { quantity: 2700, unit: 's' },
         totalEnergyBurned: { quantity: 250.4 },
         totalDistance: { quantity: 5.25 },
         startDate: '2026-02-15T08:00:00.000Z',
@@ -148,6 +149,7 @@ describe('HealthSnapshotSource adapters', () => {
       hk.queryWorkoutSamples.mockResolvedValue([
         {
           workoutActivityType: activityType,
+          duration: { quantity: 1800, unit: 's' },
           startDate: '2026-02-15T08:00:00.000Z',
           endDate: '2026-02-15T08:30:00.000Z',
         },
@@ -174,6 +176,7 @@ describe('HealthSnapshotSource adapters', () => {
       hk.queryWorkoutSamples.mockResolvedValue([
         {
           workoutActivityType: activityType,
+          duration: { quantity: 1800, unit: 's' },
           startDate: '2026-02-15T08:00:00.000Z',
           endDate: '2026-02-15T08:30:00.000Z',
         },
@@ -252,6 +255,7 @@ describe('HealthSnapshotSource adapters', () => {
     hk.queryWorkoutSamples.mockResolvedValue([
       {
         workoutActivityType: 37,
+        duration: { quantity: 0, unit: 's' },
         totalEnergyBurned: { quantity: 0 },
         totalDistance: { quantity: 0 },
         startDate: '2026-02-15T08:00:00.000Z',
@@ -280,7 +284,7 @@ describe('HealthSnapshotSource adapters', () => {
           activityName: 'Running',
           calories: 0,
           distance: 0,
-          durationMinutes: 30,
+          durationMinutes: 0,
           startISO: '2026-02-15T08:00:00.000Z',
           endISO: '2026-02-15T08:30:00.000Z',
         },
@@ -292,6 +296,7 @@ describe('HealthSnapshotSource adapters', () => {
     hk.queryWorkoutSamples.mockResolvedValue([
       {
         workoutActivityType: 37,
+        duration: { quantity: 1800, unit: 's' },
         startDate: '2026-02-15T08:00:00.000Z',
         endDate: '2026-02-15T08:30:00.000Z',
       },
@@ -311,6 +316,27 @@ describe('HealthSnapshotSource adapters', () => {
         endISO: '2026-02-15T08:30:00.000Z',
       },
     ])
+  })
+
+  it('uses recorded workout duration instead of counting pauses as activity', async () => {
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 37,
+        duration: { quantity: 1800, unit: 's' },
+        startDate: '2026-02-15T08:00:00.000Z',
+        endDate: '2026-02-15T08:45:00.000Z',
+      },
+    ])
+
+    const snapshot = await iosHealthKitAdapter.getDailySnapshot(
+      new Date('2026-02-15T12:00:00.000Z'),
+    )
+
+    expect(snapshot.workouts[0]).toMatchObject({
+      durationMinutes: 30,
+      startISO: '2026-02-15T08:00:00.000Z',
+      endISO: '2026-02-15T08:45:00.000Z',
+    })
   })
 
   it('keeps rejected reads unavailable and logs error kinds without sensitive error details', async () => {

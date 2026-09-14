@@ -1,6 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import { useDailyCoachInsight } from '@/hooks/useDailyCoachInsight'
+import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 
 import FitnessMetricsScreen from '../fitness-metrics'
@@ -39,10 +41,10 @@ const completeSnapshot: DailyHealthSnapshot = {
 let mockSnapshot: DailyHealthSnapshot | null = null
 
 jest.mock('@/hooks/useHealthSnapshot', () => ({
-  useHealthSnapshot: () => ({
+  useHealthSnapshot: jest.fn(() => ({
     snapshot: mockSnapshot,
     refresh: jest.fn(),
-  }),
+  })),
 }))
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -95,17 +97,19 @@ jest.mock('@/hooks/useThemeColor', () => {
 beforeEach(() => {
   mockSnapshot = null
   jest.clearAllMocks()
+  jest.mocked(useLocalSearchParams).mockReturnValue({})
 })
 
 describe('HomeScreen health data', () => {
   it.each([null, missingSnapshot])(
-    'shows unavailable recovery and daily metrics while data is absent: %j',
+    'keeps missing steps honest without filling home with empty metrics: %j',
     (snapshot) => {
       mockSnapshot = snapshot
-      const { getByLabelText, getByText, queryByText } = render(<HomeScreen />)
+      const { getByLabelText, getByText, queryByText, queryByLabelText } =
+        render(<HomeScreen />)
 
-      expect(getByLabelText('Recovery unavailable')).toBeTruthy()
-      expect(getByLabelText('Active calories unavailable')).toBeTruthy()
+      expect(queryByLabelText('Recovery unavailable')).toBeNull()
+      expect(queryByLabelText('Active calories unavailable')).toBeNull()
       expect(getByLabelText('Steps unavailable')).toBeTruthy()
       fireEvent.press(getByLabelText('More health data'))
       expect(getByText('No weigh-in available')).toBeTruthy()
@@ -115,42 +119,104 @@ describe('HomeScreen health data', () => {
 
   it('preserves partial measurements without inventing recovery', () => {
     mockSnapshot = { ...completeSnapshot, restingHeartRate: null }
-    const { getByLabelText, getByText } = render(<HomeScreen />)
+    const { getByLabelText, getByText, queryByText } = render(<HomeScreen />)
 
-    expect(getByLabelText('Recovery unavailable')).toBeTruthy()
+    expect(queryByText(/Recovery/i)).toBeNull()
     expect(getByLabelText('Steps 8,000')).toBeTruthy()
     fireEvent.press(getByLabelText('More health data'))
     expect(getByText('78.4')).toBeTruthy()
   })
 
-  it('updates from unavailable to complete data and clears the score when data disappears', () => {
+  it('adds and removes secondary readings as data becomes available or disappears', () => {
     const { getByLabelText, getByText, queryByText, rerender } = render(
       <HomeScreen />,
     )
-    expect(getByLabelText('Recovery unavailable')).toBeTruthy()
+    expect(getByLabelText('Steps unavailable')).toBeTruthy()
+    expect(queryByText('Sleep')).toBeNull()
 
     mockSnapshot = completeSnapshot
     rerender(<HomeScreen />)
-    expect(getByLabelText('Recovery 85%')).toBeTruthy()
-    expect(getByText('85%')).toBeTruthy()
+    expect(getByLabelText('Steps 8,000')).toBeTruthy()
+    expect(getByText('Sleep')).toBeTruthy()
 
     mockSnapshot = null
     rerender(<HomeScreen />)
-    expect(getByLabelText('Recovery unavailable')).toBeTruthy()
-    expect(queryByText('85%')).toBeNull()
+    expect(getByLabelText('Steps unavailable')).toBeTruthy()
+    expect(queryByText('Sleep')).toBeNull()
   })
 
-  it('displays a genuine zero recovery score', () => {
+  it('displays measured zeroes without promoting a recovery assessment', () => {
     mockSnapshot = {
       ...completeSnapshot,
       hrv: 0,
       restingHeartRate: 100,
       sleepHours: 0,
+      steps: 0,
     }
-    const { getByLabelText, getByText } = render(<HomeScreen />)
+    const { getByLabelText, queryByText } = render(<HomeScreen />)
 
-    expect(getByLabelText('Recovery 0%')).toBeTruthy()
-    expect(getByText('0%')).toBeTruthy()
+    expect(getByLabelText('Steps 0')).toBeTruthy()
+    expect(getByLabelText('Sleep 0.0 hrs')).toBeTruthy()
+    expect(queryByText('0%')).toBeNull()
+  })
+
+  describe('Selected-day health routes', () => {
+    it.each([
+      { name: 'steps', Screen: StepsScreen },
+      { name: 'all metrics', Screen: FitnessMetricsScreen },
+    ])(
+      'reads $name for the requested local date instead of today',
+      ({ Screen }) => {
+        jest
+          .mocked(useLocalSearchParams)
+          .mockReturnValue({ date: '2026-09-11' })
+        mockSnapshot = completeSnapshot
+        const { rerender } = render(<Screen />)
+
+        expect(
+          jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
+        ).toBe(new Date(2026, 8, 11).toDateString())
+
+        jest
+          .mocked(useLocalSearchParams)
+          .mockReturnValue({ date: '2026-09-10' })
+        rerender(<Screen />)
+        expect(
+          jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.getDate(),
+        ).toBe(10)
+      },
+    )
+
+    it('passes the same date from all metrics to step details', () => {
+      const push = jest.fn()
+      jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
+      jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-11' })
+      const { getByText } = render(<FitnessMetricsScreen />)
+
+      fireEvent.press(getByText('Steps'))
+
+      expect(push).toHaveBeenCalledWith({
+        pathname: '/steps',
+        params: { date: '2026-09-11' },
+      })
+    })
+
+    it.each([
+      { date: 'invalid' },
+      { date: '2026-02-31' },
+      { date: '' },
+      { date: ['2026-09-11', '2026-09-12'] },
+    ])(
+      'rejects an invalid or ambiguous date without silently showing today: $date',
+      ({ date }) => {
+        jest.mocked(useLocalSearchParams).mockReturnValue({ date })
+        const { getByRole, getByText } = render(<FitnessMetricsScreen />)
+
+        expect(getByRole('alert')).toBeTruthy()
+        expect(getByText('Back to home')).toBeTruthy()
+        expect(useHealthSnapshot).not.toHaveBeenCalled()
+      },
+    )
   })
 })
 

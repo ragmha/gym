@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
-import { presentSleep } from '@/lib/fitnessMetrics/presenter'
+import { presentCalories, presentSleep } from '@/lib/fitnessMetrics/presenter'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 
 export function DailyActivityRows({
@@ -15,6 +15,10 @@ export function DailyActivityRows({
 }) {
   const theme = useTheme()
   const sleep = presentSleep(snapshot)
+  const calories = presentCalories(snapshot)
+  const metrics = [{ ...calories, label: 'Active calories' }, sleep].filter(
+    (metric) => metric.status !== 'empty',
+  )
   const workouts = useMemo(
     () =>
       [...(snapshot?.workouts ?? [])].sort(
@@ -23,30 +27,38 @@ export function DailyActivityRows({
     [snapshot?.workouts],
   )
 
+  if (metrics.length === 0 && workouts.length === 0) return null
+
   return (
     <View style={styles.container}>
-      <Text
-        accessibilityRole="header"
-        style={[styles.heading, { color: theme.subtitleText }]}
-      >
-        This day
-      </Text>
-      <View
-        style={[styles.row, { backgroundColor: theme.homeSurface }]}
-        accessible
-        accessibilityLabel={
-          sleep.status === 'empty'
-            ? 'Sleep unavailable'
-            : `Sleep ${sleep.value} ${sleep.unit}`
-        }
-      >
-        <Ionicons name="moon-outline" size={24} color={theme.metricSleep} />
-        <Text style={[styles.name, { color: theme.text }]}>Sleep</Text>
-        <Text selectable style={[styles.value, { color: theme.text }]}>
-          {sleep.value}
-          {sleep.status !== 'empty' ? ` ${sleep.unit}` : ''}
+      {metrics.map((metric) => (
+        <View
+          key={metric.id}
+          style={[styles.row, { backgroundColor: theme.homeSurface }]}
+          accessible
+          accessibilityLabel={`${metric.label} ${metric.value} ${metric.unit}`}
+        >
+          <Ionicons
+            name={metric.iconName}
+            size={24}
+            color={theme[metric.accentColorToken]}
+          />
+          <Text style={[styles.name, { color: theme.text }]}>
+            {metric.label}
+          </Text>
+          <Text selectable style={[styles.value, { color: theme.text }]}>
+            {metric.value} {metric.unit}
+          </Text>
+        </View>
+      ))}
+      {workouts.length > 0 && (
+        <Text
+          accessibilityRole="header"
+          style={[styles.heading, { color: theme.subtitleText }]}
+        >
+          Workouts
         </Text>
-      </View>
+      )}
       {workouts.map((workout, index) => {
         const start = new Date(workout.startISO).toLocaleTimeString([], {
           hour: 'numeric',
@@ -97,11 +109,6 @@ export function DailyActivityRows({
           </View>
         )
       })}
-      {workouts.length === 0 && (
-        <Text style={[styles.empty, { color: theme.subtitleText }]}>
-          No workouts available for this day
-        </Text>
-      )}
     </View>
   )
 }
@@ -114,7 +121,7 @@ const styles = StyleSheet.create({
   heading: {
     ...Typography.labelMd,
     textTransform: 'uppercase',
-    marginBottom: Spacing.xxs,
+    marginTop: Spacing.sm,
   },
   row: {
     flexDirection: 'row',
@@ -141,9 +148,5 @@ const styles = StyleSheet.create({
   value: {
     ...Typography.labelLg,
     fontVariant: ['tabular-nums'],
-  },
-  empty: {
-    ...Typography.bodySm,
-    paddingVertical: Spacing.xs,
   },
 })

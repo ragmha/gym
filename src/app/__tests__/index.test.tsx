@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
-import { useFocusEffect, useRouter } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
 import { Platform, StyleSheet, type RefreshControlProps } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -12,14 +13,24 @@ import HomeScreen from '../index'
 
 let mockTheme: ThemeName = 'light'
 let mockState: ReturnType<typeof useHealthSnapshot>
+let mockInitialParams: Record<string, string> = {}
 const mockRefresh = jest.fn<Promise<void>, []>()
 const mockPush = jest.fn()
+const mockSetParams = jest.fn()
 const originalPlatform = Platform.OS
 
 function focusHome(): void {
   const callback = jest.mocked(useFocusEffect).mock.lastCall?.[0]
   if (!callback) throw new Error('Home did not register a focus effect')
   callback()
+}
+
+function useTestSearchParams() {
+  const [params, setParams] = useState(mockInitialParams)
+  mockSetParams.mockImplementation((next: Record<string, string>) =>
+    setParams((current) => ({ ...current, ...next })),
+  )
+  return params
 }
 
 jest.mock('@/hooks/useHealthSnapshot', () => ({
@@ -67,6 +78,7 @@ describe('HomeScreen', () => {
     jest.clearAllMocks()
     mockRefresh.mockReset().mockResolvedValue(undefined)
     mockTheme = 'light'
+    mockInitialParams = {}
     jest
       .mocked(useSafeAreaInsets)
       .mockReturnValue({ top: 0, bottom: 0, left: 0, right: 0 })
@@ -80,7 +92,12 @@ describe('HomeScreen', () => {
       refresh: mockRefresh,
       requestAuthorization: jest.fn(async () => true),
     }
-    jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push: mockPush })
+    jest.mocked(useLocalSearchParams).mockImplementation(useTestSearchParams)
+    jest.mocked(useRouter).mockReturnValue({
+      ...useRouter(),
+      push: mockPush,
+      setParams: mockSetParams,
+    })
   })
 
   afterEach(() => {
@@ -94,7 +111,7 @@ describe('HomeScreen', () => {
   it('shows the daily essentials with secondary content collapsed', () => {
     render(<HomeScreen />)
 
-    expect(screen.getByLabelText('Recovery 85%')).toBeTruthy()
+    expect(screen.queryByText(/Recovery/i)).toBeNull()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
     expect(screen.getByLabelText('Active calories 300 kcal')).toBeTruthy()
     expect(screen.getByLabelText('Sleep 8.0 hrs')).toBeTruthy()
@@ -105,6 +122,42 @@ describe('HomeScreen', () => {
       screen.getByRole('button', { name: 'More health data' }).props
         .accessibilityState,
     ).toMatchObject({ expanded: false })
+  })
+
+  it('keeps a steps-only day useful without empty metric cards', () => {
+    mockState = {
+      ...mockState,
+      snapshot: makeSnapshot({
+        calories: null,
+        sleepHours: null,
+        hrv: null,
+        restingHeartRate: null,
+      }),
+    }
+    render(<HomeScreen />)
+
+    expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
+    expect(screen.queryByText('Sleep')).toBeNull()
+    expect(screen.queryByText('Active calories')).toBeNull()
+    expect(screen.queryByText(/Recovery|No workouts/i)).toBeNull()
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Review Health access' }),
+    )
+    expect(mockPush).toHaveBeenCalledWith('/settings')
+  })
+
+  it('does not treat measured zero activity as missing data', () => {
+    mockState = {
+      ...mockState,
+      snapshot: makeSnapshot({ steps: 0, calories: 0, sleepHours: null }),
+    }
+    render(<HomeScreen />)
+
+    expect(screen.getByLabelText('Steps 0')).toBeTruthy()
+    expect(screen.getByLabelText('Active calories 0 kcal')).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: 'Review Health access' }),
+    ).toBeNull()
   })
 
   it('reveals weight and mounts the heatmap only after expansion', () => {
@@ -146,6 +199,7 @@ describe('HomeScreen', () => {
     expect(
       jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
     ).toBe(new Date(2026, 8, 11).toDateString())
+    expect(mockSetParams).toHaveBeenCalledWith({ date: '2026-09-11' })
     expect(
       screen.getByRole('button', { name: 'Choose date, SEP 11, 2026' }).props
         .accessibilityState,
@@ -178,6 +232,22 @@ describe('HomeScreen', () => {
     ).toMatchObject({ expanded: true })
   })
 
+  it('allows returning to the current week before local noon', () => {
+    jest.setSystemTime(new Date(2026, 8, 12, 7))
+    mockInitialParams = { date: '2026-09-05' }
+    render(<HomeScreen />)
+    fireEvent.press(screen.getByRole('button', { name: /Choose date/ }))
+
+    expect(
+      screen.getByRole('button', { name: 'Next week' }).props
+        .accessibilityState,
+    ).toMatchObject({ disabled: false })
+    fireEvent.press(screen.getByRole('button', { name: 'Next week' }))
+    expect(
+      jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
+    ).toBe(new Date(2026, 8, 12).toDateString())
+  })
+
   it('does not present an empty day while its data is still loading', () => {
     mockState = { ...mockState, status: 'loading', snapshot: null }
     const { rerender } = render(<HomeScreen />)
@@ -188,7 +258,7 @@ describe('HomeScreen', () => {
 
     mockState = { ...mockState, status: 'ready', snapshot: makeSnapshot() }
     rerender(<HomeScreen />)
-    expect(screen.getByLabelText('Recovery 85%')).toBeTruthy()
+    expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
   })
 
   it('shows a read error and lets the user retry successfully', async () => {
@@ -222,7 +292,7 @@ describe('HomeScreen', () => {
 
     expect(mockRefresh).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('alert')).toBeNull()
-    expect(screen.getByLabelText('Recovery 85%')).toBeTruthy()
+    expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
   })
 
   it('stops the refresh indicator when the hook reports a read failure', async () => {
@@ -263,8 +333,38 @@ describe('HomeScreen', () => {
     expect(mockPush.mock.calls).toEqual([
       ['/settings'],
       ['/coach'],
-      ['/fitness-metrics'],
+      [{ pathname: '/fitness-metrics', params: { date: '2026-09-12' } }],
     ])
+  })
+
+  it('carries the selected day into steps and the full metric breakdown', () => {
+    render(<HomeScreen />)
+    fireEvent.press(screen.getByRole('button', { name: 'Choose date, TODAY' }))
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Friday, September 11, 2026' }),
+    )
+
+    fireEvent.press(screen.getByRole('button', { name: 'Steps 5,000' }))
+    fireEvent.press(screen.getByRole('button', { name: 'See all metrics' }))
+
+    expect(mockPush.mock.calls).toEqual([
+      [{ pathname: '/steps', params: { date: '2026-09-11' } }],
+      [{ pathname: '/fitness-metrics', params: { date: '2026-09-11' } }],
+    ])
+  })
+
+  it('restores the selected day from the home URL after a browser back navigation', () => {
+    jest
+      .mocked(useLocalSearchParams)
+      .mockImplementation(() => ({ date: '2026-09-11' }))
+    render(<HomeScreen />)
+
+    expect(
+      jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
+    ).toBe(new Date(2026, 8, 11).toDateString())
+    expect(
+      screen.getByRole('button', { name: 'Choose date, SEP 11, 2026' }),
+    ).toBeTruthy()
   })
 
   it('refreshes the selected day after returning from Health access settings', async () => {
@@ -306,8 +406,11 @@ describe('HomeScreen', () => {
     await act(async () => focusHome())
 
     expect(mockRefresh).toHaveBeenCalledTimes(1)
-    expect(screen.getByLabelText('Recovery unavailable')).toBeTruthy()
+    expect(screen.queryByLabelText('Recovery unavailable')).toBeNull()
     expect(screen.getByLabelText('Steps unavailable')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Review Health access' }),
+    ).toBeTruthy()
     expect(mockState.requestAuthorization).not.toHaveBeenCalled()
   })
 
@@ -318,6 +421,9 @@ describe('HomeScreen', () => {
     expect(
       screen.getByText('Demo data - Apple Health is available on iOS.'),
     ).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: 'Review Health access' }),
+    ).toBeNull()
   })
 
   it.each([
@@ -366,7 +472,7 @@ describe('HomeScreen', () => {
         Colors[theme].homeBackground,
       )
       expect(scroll.props.contentInsetAdjustmentBehavior).toBe('automatic')
-      expect(screen.getByLabelText('Recovery 85%')).toBeTruthy()
+      expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
     },
   )
 })
