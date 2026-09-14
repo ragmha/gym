@@ -46,6 +46,7 @@ interface CategoryLike extends DateRangeLike {
 
 interface WorkoutLike extends DateRangeLike {
   workoutActivityType?: unknown
+  duration: { quantity: number }
   totalEnergyBurned?: { quantity?: number }
   totalDistance?: { quantity?: number }
 }
@@ -118,7 +119,7 @@ function mapWorkout(workout: WorkoutLike): HealthWorkout {
         ? null
         : roundInt(workout.totalEnergyBurned.quantity),
     distance: workout.totalDistance?.quantity ?? null,
-    durationMinutes: roundInt((end.getTime() - start.getTime()) / 60_000),
+    durationMinutes: roundInt(workout.duration.quantity / 60),
     startISO: start.toISOString(),
     endISO: end.toISOString(),
   }

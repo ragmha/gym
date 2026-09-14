@@ -55,13 +55,26 @@ describe('DailyActivityRows', () => {
     expect(screen.queryAllByRole('button')).toHaveLength(0)
   })
 
-  it('does not imply permission denial or zero sleep for unavailable data', () => {
-    render(<DailyActivityRows snapshot={null} />)
+  it('omits the entire section when no secondary readings are available', () => {
+    const { toJSON } = render(<DailyActivityRows snapshot={null} />)
 
-    expect(screen.getByLabelText('Sleep unavailable')).toBeTruthy()
-    expect(screen.getByText('No workouts available for this day')).toBeTruthy()
-    expect(screen.queryByText('0.0 hrs')).toBeNull()
-    expect(screen.queryByText(/denied/i)).toBeNull()
+    expect(toJSON()).toBeNull()
+  })
+
+  it('shows available calories without an empty sleep or workout row', () => {
+    render(<DailyActivityRows snapshot={makeSnapshot({ sleepHours: null })} />)
+
+    expect(screen.getByLabelText('Active calories 300 kcal')).toBeTruthy()
+    expect(screen.queryByText('Sleep')).toBeNull()
+    expect(screen.queryByText('Workouts')).toBeNull()
+    expect(screen.queryByText(/unavailable|No workouts|denied/i)).toBeNull()
+  })
+
+  it('shows sleep without inventing missing calories', () => {
+    render(<DailyActivityRows snapshot={makeSnapshot({ calories: null })} />)
+
+    expect(screen.getByLabelText('Sleep 8.0 hrs')).toBeTruthy()
+    expect(screen.queryByText('Active calories')).toBeNull()
   })
 
   it('shows genuine zero values without suppressing them', () => {
@@ -87,5 +100,15 @@ describe('DailyActivityRows', () => {
     render(<DailyActivityRows snapshot={makeSnapshot({ workouts })} />)
 
     expect(screen.getAllByLabelText(/^Workout \d,/)).toHaveLength(5)
+  })
+
+  it('preserves zero active calories as a reading', () => {
+    render(
+      <DailyActivityRows
+        snapshot={makeSnapshot({ calories: 0, sleepHours: null })}
+      />,
+    )
+
+    expect(screen.getByLabelText('Active calories 0 kcal')).toBeTruthy()
   })
 })

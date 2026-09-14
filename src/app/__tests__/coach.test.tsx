@@ -1,10 +1,13 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react-native'
+import { useLocalSearchParams } from 'expo-router'
 
+import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { activeCoachEngine } from '@/lib/coach'
 import type { CoachChatContext } from '@/lib/coach'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
@@ -29,14 +32,14 @@ const mockSnapshot: DailyHealthSnapshot = {
 let mockSnapshotState: DailyHealthSnapshot | null = mockSnapshot
 
 jest.mock('@/hooks/useHealthSnapshot', () => ({
-  useHealthSnapshot: () => ({
+  useHealthSnapshot: jest.fn(() => ({
     snapshot: mockSnapshotState,
     status: mockSnapshotState ? 'ready' : 'loading',
     isDemoMode: false,
     error: null,
     refresh: jest.fn(),
     requestAuthorization: jest.fn(),
-  }),
+  })),
 }))
 
 jest.mock('@/hooks/useThemeColor', () => {
@@ -107,6 +110,8 @@ describe('CoachScreen', () => {
   })
 
   beforeEach(() => {
+    jest.clearAllMocks()
+    jest.mocked(useLocalSearchParams).mockReturnValue({})
     mockSnapshotState = mockSnapshot
     jest
       .spyOn(activeCoachEngine, 'chat')
@@ -166,11 +171,13 @@ describe('CoachScreen', () => {
 
     await waitFor(() => expect(activeCoachEngine.chat).toHaveBeenCalled())
     const ctx = getLastChatContext()
+    expect(ctx.dateISO).toBe(mockSnapshotState.date)
     expect(ctx.snapshot).toEqual(mockSnapshotState)
     expect(ctx.recovery).not.toBeNull()
   })
 
   it('passes null recovery when sending before a health snapshot is available', async () => {
+    jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-06-11' })
     mockSnapshotState = null
     render(<CoachScreen />)
 
@@ -178,8 +185,88 @@ describe('CoachScreen', () => {
 
     await waitFor(() => expect(activeCoachEngine.chat).toHaveBeenCalled())
     const ctx = getLastChatContext()
+    expect(ctx.dateISO).toBe('2026-06-11')
     expect(ctx.snapshot).toBeNull()
     expect(ctx.recovery).toBeNull()
+  })
+
+  it('loads the requested local day and dates chat context from that snapshot', async () => {
+    jest
+      .mocked(useLocalSearchParams)
+      .mockReturnValue({ date: mockSnapshot.date })
+    render(<CoachScreen />)
+
+    expect(
+      jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
+    ).toBe(new Date(2026, 5, 12).toDateString())
+    fireEvent.press(screen.getByText('Am I recovered enough to train?'))
+
+    await waitFor(() => expect(activeCoachEngine.chat).toHaveBeenCalled())
+    expect(getLastChatContext()).toMatchObject({
+      dateISO: mockSnapshot.date,
+      snapshot: mockSnapshot,
+    })
+  })
+
+  it('clears the previous conversation when the selected day changes', async () => {
+    jest
+      .mocked(useLocalSearchParams)
+      .mockReturnValue({ date: mockSnapshot.date })
+    const { rerender } = render(<CoachScreen />)
+    fireEvent.press(screen.getByText('How was my week?'))
+    await screen.findByText(streamedResponse)
+
+    jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-06-11' })
+    mockSnapshotState = { ...mockSnapshot, date: '2026-06-11' }
+    rerender(<CoachScreen />)
+
+    expect(screen.queryByText(streamedResponse)).toBeNull()
+    expect(screen.getByText('Ask your coach anything')).toBeTruthy()
+    fireEvent.changeText(screen.getByTestId('coach-input'), 'How was this day?')
+    fireEvent.press(screen.getByRole('button', { name: 'Send message' }))
+
+    await waitFor(() =>
+      expect(activeCoachEngine.chat).toHaveBeenLastCalledWith(
+        [{ role: 'user', content: 'How was this day?' }],
+        expect.objectContaining({ dateISO: '2026-06-11' }),
+      ),
+    )
+  })
+
+  it('discards a late response from a previously selected day', async () => {
+    let finishResponse: (() => void) | undefined
+    const pending = new Promise<void>((resolve) => {
+      finishResponse = resolve
+    })
+    jest
+      .mocked(activeCoachEngine.chat)
+      .mockImplementationOnce(async function* () {
+        await pending
+        yield 'Previous day response'
+      })
+    jest
+      .mocked(useLocalSearchParams)
+      .mockReturnValue({ date: mockSnapshot.date })
+    const { rerender } = render(<CoachScreen />)
+    fireEvent.press(screen.getByText('How was my week?'))
+
+    jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-06-11' })
+    mockSnapshotState = { ...mockSnapshot, date: '2026-06-11' }
+    rerender(<CoachScreen />)
+
+    await act(async () => finishResponse?.())
+    expect(screen.queryByText('Previous day response')).toBeNull()
+    expect(screen.queryByText('Thinking…')).toBeNull()
+    expect(screen.getByTestId('coach-input').props.editable).toBe(true)
+  })
+
+  it('does not load or send health context for an invalid route date', () => {
+    jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-02-31' })
+    render(<CoachScreen />)
+
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(useHealthSnapshot).not.toHaveBeenCalled()
+    expect(activeCoachEngine.chat).not.toHaveBeenCalled()
   })
 
   it.each(['hrv', 'restingHeartRate', 'sleepHours'] as const)(

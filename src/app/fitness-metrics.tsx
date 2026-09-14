@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { CoachInsightCard } from '@/components/health/CoachInsightCard'
+import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { useDailyCoachInsight } from '@/hooks/useDailyCoachInsight'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme, useThemeColor } from '@/hooks/useThemeColor'
@@ -30,6 +31,7 @@ import {
   type MetricPresentation,
   type MetricRoute,
 } from '@/lib/fitnessMetrics'
+import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import { useRecoveryPresentation } from '@/utils/recovery'
 
 function clamp(val: number, min: number, max: number) {
@@ -163,6 +165,14 @@ function MetricCard({
 // ── Screen ───────────────────────────────────────────────────────────
 
 export default function FitnessMetricsScreen() {
+  return (
+    <HealthDateRoute>
+      {(date) => <FitnessMetricsForDate date={date} />}
+    </HealthDateRoute>
+  )
+}
+
+function FitnessMetricsForDate({ date }: { date: Date }) {
   const router = useRouter()
 
   const theme = useTheme()
@@ -171,7 +181,7 @@ export default function FitnessMetricsScreen() {
   const subtitleColor = useThemeColor({}, 'subtitleText')
   const borderColor = useThemeColor({}, 'border')
   const backgroundColor = useThemeColor({}, 'background')
-  const { snapshot } = useHealthSnapshot()
+  const { snapshot } = useHealthSnapshot(date)
   const recovery = useRecoveryPresentation({
     hrv: snapshot?.hrv ?? null,
     restingHR: snapshot?.restingHeartRate ?? null,
@@ -205,7 +215,8 @@ export default function FitnessMetricsScreen() {
       return undefined
     }
 
-    return () => router.push(route)
+    return () =>
+      router.push({ pathname: route, params: { date: localDateKey(date) } })
   }
 
   return (
@@ -224,9 +235,18 @@ export default function FitnessMetricsScreen() {
         >
           <Ionicons name="chevron-back" size={20} color={textColor} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: textColor }]}>
-          Fitness Metrics
-        </Text>
+        <View>
+          <Text style={[styles.title, { color: textColor }]}>
+            Fitness Metrics
+          </Text>
+          <Text style={[styles.date, { color: subtitleColor }]}>
+            {date.toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </Text>
+        </View>
         <View style={styles.backBtn} />
       </View>
 
@@ -272,6 +292,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '700',
+  },
+  date: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
   },
   grid: {
     flexDirection: 'row',

@@ -6,14 +6,15 @@ name: HealthKit Home Screen Test
     file: ../common/startup.yaml
 
 # The default overview is read-only and keeps secondary data collapsed.
-- assertVisible: 'Recovery'
+- assertVisible: 'Steps.*'
+- assertNotVisible: 'Recovery'
 - assertVisible: 'More health data'
 - assertNotVisible: 'Weight'
 - takeScreenshot: healthkit_home_initial
 
-# Missing HealthKit measurements render as -- rather than invented zeroes.
+# Steps remain visible; unavailable supporting metrics are omitted.
 - assertVisible: 'Steps.*'
-- assertVisible: 'Sleep.*'
+- assertNotVisible: 'No workouts available for this day'
 - takeScreenshot: healthkit_home_overview
 
 - tapOn: 'More health data'

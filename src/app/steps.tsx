@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ActivityRings } from '@/components/charts/ActivityRings'
+import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 
 // ── Constants ─────────────────────────────────────────────────────────
@@ -40,8 +41,14 @@ const CALORIES_TARGET = 600 // kcal reference for ring
 // ── Component ───────────────────────────────────────────────────────
 
 export default function StepsScreen() {
+  return (
+    <HealthDateRoute>{(date) => <StepsForDate date={date} />}</HealthDateRoute>
+  )
+}
+
+function StepsForDate({ date }: { date: Date }) {
   const router = useRouter()
-  const { snapshot } = useHealthSnapshot()
+  const { snapshot } = useHealthSnapshot(date)
   const steps = snapshot?.steps ?? null
   const calories = snapshot?.calories ?? null
   const [stepsGoal, setStepsGoal] = useState(DEFAULT_STEPS_GOAL)
@@ -106,7 +113,16 @@ export default function StepsScreen() {
             <Ionicons name="chevron-back" size={22} color={TEXT_PRIMARY} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Steps Taken</Text>
+          <View>
+            <Text style={styles.headerTitle}>Steps Taken</Text>
+            <Text style={styles.headerDate}>
+              {date.toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </Text>
+          </View>
 
           <TouchableOpacity
             style={styles.headerBtn}
@@ -277,6 +293,12 @@ const styles = StyleSheet.create({
     color: TEXT_PRIMARY,
     fontSize: 18,
     fontWeight: '700',
+  },
+  headerDate: {
+    color: TEXT_SECONDARY,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
   },
 
   // ── Content ───────────────────────────────────────────────────

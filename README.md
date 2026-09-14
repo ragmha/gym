@@ -11,11 +11,15 @@ An on-device AI coach reads the same snapshot and nothing else. It runs through
 Apple Foundation Models on supported iOS devices and a deterministic mock
 everywhere else, so no health data leaves the phone.
 
-Home puts recovery, steps, active calories, sleep, and the selected day's
-workouts first. Tap the date to reveal the week calendar, or expand **More
-health data** for the latest weigh-in and recent activity heatmap. **See all
-metrics**, Coach, and Settings remain available. The overview follows the
-saved light/dark preference and keeps unavailable readings as `--`.
+Home leads with the selected day's steps. Active calories, sleep, and workouts
+appear only when readings are available; missing data does not fill the screen
+with empty cards or a recovery score. Tap steps for details, tap the date for the
+week calendar, or expand **More health data** for the latest weigh-in and recent
+activity heatmap. **See all metrics** retains the full breakdown, including
+unavailable readings as `--` and the recovery estimate. The selected date stays in
+the route, including when returning from details. Coach and Settings remain
+available, and a sparse day offers a shortcut to review Health access without
+claiming that access was denied.
 
 ## 1) Quick Start
 
@@ -151,6 +155,8 @@ HealthKit statistics instead of summing overlapping device samples; cardiac
 readings belong to the selected day. Sleep intervals are clipped to the selected
 night and merged before totaling them. Mock readings stay stable for each date,
 including today and across overlapping heatmap ranges.
+Workout durations use HealthKit's recorded duration, not elapsed start-to-end
+time, so pauses are not counted as activity.
 
 The app requests **read** permissions only. It never writes to Health.
 Finishing a fetch or an authorization request does not establish read access:

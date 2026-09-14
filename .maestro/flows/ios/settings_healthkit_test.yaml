@@ -29,5 +29,5 @@ name: Settings HealthKit Test
 # Back to the dashboard to verify the app still renders after the round trip.
 - tapOn: 'Back'
 - waitForAnimationToEnd
-- assertVisible: 'Recovery'
+- assertVisible: 'Steps.*'
 - takeScreenshot: settings_back_to_home
