@@ -136,4 +136,8 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Create preview update
-        run: eas update --auto
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          eas update --branch "pr-${PR_NUMBER}" --environment preview \
+            --platform ios --message "PR #${PR_NUMBER} ${GITHUB_SHA}" --non-interactive

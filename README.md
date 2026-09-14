@@ -188,16 +188,63 @@ half a sentence.
 
 GitHub Actions workflows in `.github/workflows/`:
 
-| Workflow    | Trigger         | Description                                                  |
-| ----------- | --------------- | ------------------------------------------------------------ |
-| **preview** | Pull request    | Quality gates, runtime isolation, JS-only EAS preview       |
-| **update**  | Push to `main`  | JS-only OTA; isolated native changes dispatch EAS Build      |
-| **build**   | Manual dispatch | EAS Build (iOS/Android, any profile)                         |
+| Workflow    | Trigger          | Description                                                   |
+| ----------- | ---------------- | ------------------------------------------------------------- |
+| **preview** | Pull request     | Quality gates and compatible iOS OTA on an isolated PR branch |
+| **update**  | Push to `main`   | Guarded production iOS OTA or native build plus TestFlight     |
+| **build**   | Manual or reused | Native builds; verified production iOS calls can auto-submit  |
 
 The **preview** workflow runs on every PR and gates merges on `bun run expo:check`,
 `bun run expo:doctor`, `bun run lint`, `bun run typecheck`, and `bun run test:unit`.
 This keeps the PR Interface aligned with Expo SDK compatibility without forcing
 device/simulator-only Adapters into GitHub-hosted runners.
+
+### Automatic iPhone delivery
+
+After a PR merges, the **update** workflow chooses one delivery path:
+
+- Compatible JS/UI/assets publish to the `production` channel with the
+  `production` EAS environment. This matches the installed production build,
+  rather than inferring an EAS branch from a detached Git checkout.
+- A new native runtime calls the reusable **build** workflow at the same
+  verified Git revision and enables `--auto-submit` for its production iOS
+  build. EAS uploads that exact build to TestFlight, not public App Store review.
+
+Ordinary manual builds remain build-only. Preview/development, Android and
+`all` builds are never automatically submitted. The reusable workflow rejects
+auto-submission requests unless the platform is `ios` and profile is
+`production`.
+
+Same-repository PRs with compatible native code publish to `pr-<number>` using
+the `preview` EAS environment. Inspect those updates through the EAS dashboard
+or a compatible development client; they do not replace the production channel
+or another PR's preview. Both publishers explicitly select iOS and the EAS
+environment required by SDK 55.
+
+The repository needs the `EXPO_TOKEN` Actions secret and valid Apple
+signing/submission credentials stored in EAS. The production submission profile
+contains only the existing App Store Connect app ID, `6742069555`, not an API
+key. Apple agreement renewals still require the Account Holder. After upload,
+Apple processing and tester access remain separate from build success; inspect
+the EAS submission link or submissions dashboard.
+
+No recurring builds are scheduled. OTA updates do not extend TestFlight's
+90-day build expiry.
+
+### Future Phone rest production approval
+
+The Phone rest plugin and prototype are absent from this release, so the
+ordinary HealthKit dashboard passes the production readiness guard.
+When `./modules/phone-rest/app.plugin.js` is registered in a future release,
+production OTA and production-profile native builds are blocked unless
+`expo.extra.phoneRest.distributionApproved` is exactly `true`. The check runs
+before EAS credential setup, including for manual production builds.
+
+Keep any future approval flag false until Family Controls distribution
+approval and provisioning are confirmed for **both** `io.raghib.gym` and
+`io.raghib.gym.PhoneRestReport`. A successful simulator build does not establish
+distribution approval. Preview/development builds remain available for that
+future opt-in prototype.
 
 ### Native releases and OTA safety
 
@@ -211,16 +258,21 @@ dependency, config-plugin, or native app configuration change requires both:
    that runtime. Use the existing manual **build** workflow with the appropriate
    profile (`preview` for internal testing, `production` for store releases).
 
-Automatic native releases build iOS only. Android remains available through a
-manual **build** workflow dispatch.
+Automatic native releases build and submit iOS only. Android remains available
+through a manual **build** workflow dispatch.
 
 This includes native **patch** updates within an Expo SDK or React Native
 version and removing native modules, not just major/minor SDK upgrades.
-The HealthKit-only refactor now uses app version/runtime **1.0.2** after SDK 55
-patch alignment; existing **1.0.0** and **1.0.1** binaries must not receive its
-JavaScript. Users need a matching native binary before receiving updates for
-this runtime. Green JS tests, a static web export, or simulator smoke tests do not
-establish compatibility with previously installed binaries.
+This CI-only release uses app version/runtime **1.0.3** for the persistent
+submission configuration, not for Phone rest. The fingerprinter hashes
+`eas.json`, so changing this configuration requires a one-time isolated runtime
+and a new native binary even though the dashboard's native code is unchanged.
+Later native additions, including Phone rest, require a newer unused runtime
+(for example **1.0.4**), not **1.0.3**. Existing **1.0.0**, **1.0.1** and
+**1.0.2** binaries remain isolated from updates for this runtime. Users need a
+matching native binary before receiving its updates. Green JS tests, a static
+web export, or simulator smoke tests do not establish compatibility with
+previously installed binaries.
 
 Both publishing workflows compare native fingerprints with the same explicitly
 pinned `@expo/fingerprint` **0.16.8** implementation and then run
