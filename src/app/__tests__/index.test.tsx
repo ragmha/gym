@@ -332,12 +332,12 @@ describe('HomeScreen', () => {
 
     expect(mockPush.mock.calls).toEqual([
       ['/settings'],
-      ['/coach'],
+      [{ pathname: '/coach', params: { date: '2026-09-12' } }],
       [{ pathname: '/fitness-metrics', params: { date: '2026-09-12' } }],
     ])
   })
 
-  it('carries the selected day into steps and the full metric breakdown', () => {
+  it('carries the selected day into steps, coach, and the full metric breakdown', () => {
     render(<HomeScreen />)
     fireEvent.press(screen.getByRole('button', { name: 'Choose date, TODAY' }))
     fireEvent.press(
@@ -345,10 +345,12 @@ describe('HomeScreen', () => {
     )
 
     fireEvent.press(screen.getByRole('button', { name: 'Steps 5,000' }))
+    fireEvent.press(screen.getByRole('button', { name: 'Open coach' }))
     fireEvent.press(screen.getByRole('button', { name: 'See all metrics' }))
 
     expect(mockPush.mock.calls).toEqual([
       [{ pathname: '/steps', params: { date: '2026-09-11' } }],
+      [{ pathname: '/coach', params: { date: '2026-09-11' } }],
       [{ pathname: '/fitness-metrics', params: { date: '2026-09-11' } }],
     ])
   })

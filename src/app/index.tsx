@@ -139,7 +139,12 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
           setFocusDate(selectedDate)
           setCalendarExpanded((expanded) => !expanded)
         }}
-        onCoachPress={() => router.push('/coach')}
+        onCoachPress={() =>
+          router.push({
+            pathname: '/coach',
+            params: { date: localDateKey(selectedDate) },
+          })
+        }
         onSettingsPress={() => router.push('/settings')}
       />
 

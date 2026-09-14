@@ -12,10 +12,12 @@ import {
   View,
 } from 'react-native'
 
+import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
 import { activeCoachEngine } from '@/lib/coach'
 import type { CoachChatContext, CoachChatMessage } from '@/lib/coach'
+import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import { useRecoveryPresentation } from '@/utils/recovery'
 
 const SUGGESTIONS = [
@@ -29,9 +31,17 @@ interface ChatMessage extends CoachChatMessage {
 }
 
 export default function CoachScreen() {
+  return (
+    <HealthDateRoute>
+      {(date) => <CoachForDate key={localDateKey(date)} date={date} />}
+    </HealthDateRoute>
+  )
+}
+
+function CoachForDate({ date }: { date: Date }) {
   const router = useRouter()
   const theme = useTheme()
-  const { snapshot } = useHealthSnapshot()
+  const { snapshot } = useHealthSnapshot(date)
   const recovery = useRecoveryPresentation({
     hrv: snapshot?.hrv ?? null,
     restingHR: snapshot?.restingHeartRate ?? null,
@@ -41,16 +51,13 @@ export default function CoachScreen() {
     sleepGoalHours: 8,
   })
 
-  const contextRef = useRef<CoachChatContext>({
-    dateISO: new Date().toISOString(),
-    snapshot: null,
-    recovery: null,
-  })
-  contextRef.current = {
-    dateISO: new Date().toISOString(),
+  const context: CoachChatContext = {
+    dateISO: snapshot?.date ?? localDateKey(date),
     snapshot,
     recovery,
   }
+  const contextRef = useRef(context)
+  contextRef.current = context
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
