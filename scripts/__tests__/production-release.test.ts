@@ -16,6 +16,26 @@ function config(plugins: unknown, distributionApproved?: unknown) {
   }
 }
 
+function runProductionCheck(appConfig: unknown, alternateConfig?: string) {
+  const directory = mkdtempSync(path.join(tmpdir(), 'gym-production-release-'))
+  try {
+    writeFileSync(path.join(directory, 'app.json'), JSON.stringify(appConfig))
+    if (alternateConfig) {
+      writeFileSync(
+        path.join(directory, alternateConfig),
+        'throw new Error("Alternate config must never execute")',
+      )
+    }
+    return spawnSync(
+      'bun',
+      [path.resolve(__dirname, '../check-production-release.ts')],
+      { cwd: directory, encoding: 'utf8' },
+    )
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
 describe('production release readiness', () => {
   it('does not require Family Controls approval without the Phone rest plugin', () => {
     expect(() =>
@@ -28,12 +48,15 @@ describe('production release readiness', () => {
   })
 
   it.each([
-    './modules/phone-rest/app.plugin.js',
-    'modules/phone-rest/app.plugin.js',
-    '.\\modules\\phone-rest\\app.plugin.js',
+    { entry: plugin },
+    { entry: [plugin, {}] },
+    { entry: 'modules/phone-rest/app.plugin.js' },
+    { entry: ['modules/phone-rest/app.plugin.js', {}] },
+    { entry: '.\\modules\\phone-rest\\app.plugin.js' },
+    { entry: ['.\\modules\\phone-rest\\app.plugin.js', {}] },
   ])(
-    'blocks equivalent Phone rest plugin paths without explicit approval: %s',
-    (entry) => {
+    'blocks a Phone rest plugin entry without explicit approval: $entry',
+    ({ entry }) => {
       expect(() =>
         assertProductionReleaseReady({ expo: { plugins: [entry] } }),
       ).toThrow('Phone rest production releases are blocked')
@@ -76,37 +99,54 @@ describe('production release readiness', () => {
   it.each([false, true])(
     'propagates approval=%s through the production CLI exit status',
     (approval) => {
-      const directory = mkdtempSync(
-        path.join(tmpdir(), 'gym-production-release-'),
-      )
-      try {
-        writeFileSync(
-          path.join(directory, 'app.json'),
-          JSON.stringify(config([plugin], approval)),
+      const result = runProductionCheck(config([plugin], approval))
+      expect(result.error).toBeUndefined()
+      expect(result.status).toBe(approval ? 0 : 1)
+      if (approval) {
+        expect(result.stdout).toContain(
+          'Production release readiness confirmed.',
         )
-        const result = spawnSync(
-          'bun',
-          [path.resolve(__dirname, '../check-production-release.ts')],
-          { cwd: directory, encoding: 'utf8' },
+      } else {
+        expect(result.stdout).not.toContain('readiness confirmed')
+        expect(result.stderr).toContain(
+          'Phone rest production releases are blocked',
         )
-        expect(result.error).toBeUndefined()
-        expect(result.status).toBe(approval ? 0 : 1)
-        if (approval) {
-          expect(result.stdout).toContain(
-            'Production release readiness confirmed.',
-          )
-        } else {
-          expect(result.stdout).not.toContain('readiness confirmed')
-          expect(result.stderr).toContain(
-            'Phone rest production releases are blocked',
-          )
-          expect(result.stderr).toContain(
-            'A simulator build is not distribution approval.',
-          )
-        }
-      } finally {
-        rmSync(directory, { recursive: true, force: true })
+        expect(result.stderr).toContain(
+          'A simulator build is not distribution approval.',
+        )
       }
     },
   )
+
+  it('allows a static dashboard-only config through the production CLI', () => {
+    const result = runProductionCheck({ expo: { plugins: ['expo-router'] } })
+    expect(result.error).toBeUndefined()
+    expect(result.status).toBe(0)
+    expect(result.stderr).toBe('')
+    expect(result.stdout).toContain('Production release readiness confirmed.')
+  })
+
+  it.each([
+    'app.config.js',
+    'app.config.ts',
+    'app.config.mjs',
+    'app.config.cjs',
+    'app.config.mts',
+    'app.config.cts',
+    'app.config.json',
+    'APP.CONFIG.future',
+    'app.config',
+  ])('rejects alternate %s before declaring readiness', (alternate) => {
+    const result = runProductionCheck(
+      { expo: { plugins: ['expo-router'] } },
+      alternate,
+    )
+    expect(result.error).toBeUndefined()
+    expect(result.status).toBe(1)
+    expect(result.stdout).not.toContain('readiness confirmed')
+    expect(result.stderr).toContain(
+      'Only app.json is supported for runtime safety',
+    )
+    expect(result.stderr).not.toContain('Alternate config must never execute')
+  })
 })

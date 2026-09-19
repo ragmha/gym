@@ -257,20 +257,27 @@ After a PR merges, the **update** workflow chooses one delivery path:
 Ordinary manual builds remain build-only. Preview/development, Android and
 `all` builds are never automatically submitted. The reusable workflow rejects
 auto-submission requests unless the platform is `ios` and profile is
-`production`.
+`production`. Before accessing release credentials, it also requires GitHub's
+caller context to identify a `push` to `main` from
+`ragmha/gym/.github/workflows/update.yml`. A caller-supplied `auto_submit`
+input alone cannot authorize submission; that workflow's build job still
+depends on the successful fingerprint/runtime decision at the same SHA.
 
 Same-repository PRs with compatible native code publish to `pr-<number>` using
 the `preview` EAS environment. Inspect those updates through the EAS dashboard
 or a compatible development client; they do not replace the production channel
 or another PR's preview. Both publishers explicitly select iOS and the EAS
 environment required by SDK 55.
+An installed binary on the `preview` channel does not automatically receive
+these per-PR branch updates; use the dashboard/development-client preview
+instead of repointing a shared channel.
 
 The repository needs the `EXPO_TOKEN` Actions secret and valid Apple
 signing/submission credentials stored in EAS. The production submission profile
 contains only the existing App Store Connect app ID, `6742069555`, not an API
 key. Apple agreement renewals still require the Account Holder. After upload,
 Apple processing and tester access remain separate from build success; inspect
-the EAS submission link or `bunx eas-cli submit:status --platform ios`.
+the EAS submission link or submissions dashboard.
 
 No recurring builds are scheduled. OTA updates do not extend TestFlight's
 90-day build expiry.
@@ -281,8 +288,12 @@ The Phone rest plugin is currently not registered, so it is excluded from
 production native builds and does not block production OTA releases. Re-enable
 it only after Family Controls distribution approval and provisioning are
 confirmed for **both** `io.raghib.gym` and `io.raghib.gym.PhoneRestReport`; the
-release guard will then require explicit approval before any production
-release.
+release guard will then require boolean
+`expo.extra.phoneRest.distributionApproved: true` before any production release.
+The check runs before EAS credential setup, including for manual production
+builds, and rejects every root `app.config.*` file before parsing `app.json`.
+A dynamic Expo config cannot bypass the guard, and a successful simulator
+build does not establish distribution approval.
 
 ### Native releases and OTA safety
 
@@ -295,6 +306,13 @@ dependency, config-plugin, or native app configuration change requires both:
 2. Create and install/distribute a new native binary before using updates for
    that runtime. Use the existing manual **build** workflow with the appropriate
    profile (`preview` for internal testing, `production` for store releases).
+
+EAS `cli.appVersionSource: "remote"` manages only the developer-facing
+`ios.buildNumber` and `android.versionCode` counters. The user-facing
+`expo.version` stays in `app.json`, and the `appVersion` runtime policy follows
+that local version; no remote marketing-version synchronization is needed.
+The release guard checks it against `package.json` at the verified commit.
+See [Expo's app version management documentation](https://docs.expo.dev/build-reference/app-versions/).
 
 Automatic native releases build and submit iOS only. Android remains available
 through a manual **build** workflow dispatch.

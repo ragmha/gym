@@ -1,8 +1,12 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 
-import { assertProductionReleaseReady } from './release-config'
+import {
+  assertProductionReleaseReady,
+  assertStaticAppConfig,
+} from './release-config'
 
 try {
+  assertStaticAppConfig(readdirSync(process.cwd()), 'the production checkout')
   assertProductionReleaseReady(JSON.parse(readFileSync('app.json', 'utf8')))
   console.log('Production release readiness confirmed.')
 } catch (error: unknown) {

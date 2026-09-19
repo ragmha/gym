@@ -30,7 +30,7 @@ on:
         type: string
         default: production
       auto_submit:
-        description: 'Submit a production iOS build after the calling workflow verifies release safety'
+        description: 'Submit a production iOS build only from the guarded main update workflow'
         type: boolean
         default: false
     secrets:
@@ -49,6 +49,22 @@ jobs:
     name: EAS Build (${{ inputs.platform }} / ${{ inputs.profile }})
     runs-on: ubuntu-latest
     steps:
+      - name: Authorize automatic submission
+        if: inputs.auto_submit
+        shell: bash
+        # Reusable workflows receive GitHub's caller context, not the callee's.
+        env:
+          CALLER_WORKFLOW_REF: ${{ github.workflow_ref }}
+          CALLER_EVENT_NAME: ${{ github.event_name }}
+          CALLER_REF: ${{ github.ref }}
+        run: |
+          if [[ "$CALLER_WORKFLOW_REF" != "ragmha/gym/.github/workflows/update.yml@refs/heads/main" ||
+                "$CALLER_EVENT_NAME" != "push" ||
+                "$CALLER_REF" != "refs/heads/main" ]]; then
+            echo "::error::Automatic TestFlight submission requires the guarded main update workflow." >&2
+            exit 1
+          fi
+
       - name: Check for EXPO_TOKEN
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
