@@ -186,6 +186,7 @@ it('separates production build and update decisions after the runtime guard', ()
   })
   expect(build.secrets).toEqual({ EXPO_TOKEN: '${{ secrets.EXPO_TOKEN }}' })
   expect(release.permissions).toEqual({ contents: 'read' })
+  expect(release.on).toEqual({ push: { branches: ['main'] } })
   expect(
     step(workflow('build.yml').jobs.build, 'Checkout repository').with,
   ).toEqual({
@@ -253,6 +254,109 @@ it('makes auto-submission opt-in for a verified reusable-workflow call', () => {
     default: false,
   })
   expect(triggers.workflow_dispatch.inputs).not.toHaveProperty('auto_submit')
+})
+
+describe('automatic submission caller authorization', () => {
+  const trustedCaller = {
+    CALLER_WORKFLOW_REF:
+      'ragmha/gym/.github/workflows/update.yml@refs/heads/main',
+    CALLER_EVENT_NAME: 'push',
+    CALLER_REF: 'refs/heads/main',
+  }
+
+  it('authenticates the caller before exposing release credentials', () => {
+    const job = workflow('build.yml').jobs.build
+    const authorize = step(job, 'Authorize automatic submission')
+    expect(authorize.if).toBe('inputs.auto_submit')
+    expect(authorize.env).toEqual({
+      CALLER_WORKFLOW_REF: '${{ github.workflow_ref }}',
+      CALLER_EVENT_NAME: '${{ github.event_name }}',
+      CALLER_REF: '${{ github.ref }}',
+    })
+    for (const name of [
+      'Check for EXPO_TOKEN',
+      'Checkout repository',
+      'Setup EAS',
+      'Build app',
+    ]) {
+      expect(job.steps.indexOf(authorize)).toBeLessThan(
+        job.steps.indexOf(step(job, name)),
+      )
+    }
+  })
+
+  it('accepts only the guarded main update workflow caller', () => {
+    const authorize = step(
+      workflow('build.yml').jobs.build,
+      'Authorize automatic submission',
+    )
+    expect(captureEasArgs(authorize.run, trustedCaller)).toEqual([])
+  })
+
+  it.each([
+    {
+      name: 'another workflow on main',
+      context: {
+        CALLER_WORKFLOW_REF:
+          'ragmha/gym/.github/workflows/unverified.yml@refs/heads/main',
+      },
+    },
+    {
+      name: 'the standalone build workflow',
+      context: {
+        CALLER_WORKFLOW_REF:
+          'ragmha/gym/.github/workflows/build.yml@refs/heads/main',
+      },
+    },
+    {
+      name: 'an update workflow from another repository',
+      context: {
+        CALLER_WORKFLOW_REF:
+          'another-owner/gym/.github/workflows/update.yml@refs/heads/main',
+      },
+    },
+    {
+      name: 'an update workflow on a feature branch',
+      context: {
+        CALLER_WORKFLOW_REF:
+          'ragmha/gym/.github/workflows/update.yml@refs/heads/feature',
+      },
+    },
+    {
+      name: 'a manual dispatch on main',
+      context: { CALLER_EVENT_NAME: 'workflow_dispatch' },
+    },
+    {
+      name: 'a pull request targeting main',
+      context: { CALLER_EVENT_NAME: 'pull_request_target' },
+    },
+    {
+      name: 'an ordinary pull request',
+      context: { CALLER_EVENT_NAME: 'pull_request' },
+    },
+    {
+      name: 'a tag push',
+      context: { CALLER_REF: 'refs/tags/main' },
+    },
+    {
+      name: 'a non-main branch push',
+      context: { CALLER_REF: 'refs/heads/feature' },
+    },
+    {
+      name: 'missing caller identity',
+      context: { CALLER_WORKFLOW_REF: '' },
+    },
+  ])('rejects $name even when auto-submit is requested', ({ context }) => {
+    const authorize = step(
+      workflow('build.yml').jobs.build,
+      'Authorize automatic submission',
+    )
+    expect(() =>
+      captureEasArgs(authorize.run, { ...trustedCaller, ...context }),
+    ).toThrow(
+      'Automatic TestFlight submission requires the guarded main update workflow.',
+    )
+  })
 })
 
 it.each([

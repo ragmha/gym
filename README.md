@@ -213,13 +213,20 @@ After a PR merges, the **update** workflow chooses one delivery path:
 Ordinary manual builds remain build-only. Preview/development, Android and
 `all` builds are never automatically submitted. The reusable workflow rejects
 auto-submission requests unless the platform is `ios` and profile is
-`production`.
+`production`. Before accessing release credentials, it also requires GitHub's
+caller context to identify a `push` to `main` from
+`ragmha/gym/.github/workflows/update.yml`. A caller-supplied `auto_submit`
+input alone cannot authorize submission; that workflow's build job still
+depends on the successful fingerprint/runtime decision at the same SHA.
 
 Same-repository PRs with compatible native code publish to `pr-<number>` using
 the `preview` EAS environment. Inspect those updates through the EAS dashboard
 or a compatible development client; they do not replace the production channel
 or another PR's preview. Both publishers explicitly select iOS and the EAS
 environment required by SDK 55.
+An installed binary on the `preview` channel does not automatically receive
+these per-PR branch updates; use the dashboard/development-client preview
+instead of repointing a shared channel.
 
 The repository needs the `EXPO_TOKEN` Actions secret and valid Apple
 signing/submission credentials stored in EAS. The production submission profile
@@ -239,6 +246,8 @@ When `./modules/phone-rest/app.plugin.js` is registered in a future release,
 production OTA and production-profile native builds are blocked unless
 `expo.extra.phoneRest.distributionApproved` is exactly `true`. The check runs
 before EAS credential setup, including for manual production builds.
+The same check rejects every root `app.config.*` file before parsing
+`app.json`, so a dynamic Expo config cannot bypass the production guard.
 
 Keep any future approval flag false until Family Controls distribution
 approval and provisioning are confirmed for **both** `io.raghib.gym` and
