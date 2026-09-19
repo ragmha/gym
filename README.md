@@ -272,10 +272,11 @@ through a manual **build** workflow dispatch.
 
 This includes native **patch** updates within an Expo SDK or React Native
 version and removing native modules, not just major/minor SDK upgrades.
-This CI-only release uses app version/runtime **1.0.3** for the persistent
-submission configuration, not for Phone rest. The fingerprinter hashes
-`eas.json`, so changing this configuration requires a one-time isolated runtime
-and a new native binary even though the dashboard's native code is unchanged.
+This release uses app version/runtime **1.0.3** for the persistent submission
+configuration and the explicitly approved native `expo-updates` patch from
+**55.0.30** to **55.0.31**, not for Phone rest. The fingerprinter hashes
+`eas.json` and native dependencies, so these changes require an isolated runtime
+and a new native binary, never an OTA to an installed **1.0.2** binary.
 Later native additions, including Phone rest, require a newer unused runtime
 (for example **1.0.4**), not **1.0.3**. Existing **1.0.0**, **1.0.1** and
 **1.0.2** binaries remain isolated from updates for this runtime. Users need a
