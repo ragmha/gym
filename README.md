@@ -21,6 +21,50 @@ the route, including when returning from details. Coach and Settings remain
 available, and a sparse day offers a shortcut to review Health access without
 claiming that access was denied.
 
+### Phone rest prototype
+
+**Settings > Experimental > Phone rest** opens an optional native Screen Time
+report. It estimates an overnight interval without observed phone activity,
+not actual sleep or exact app-open/close times. It does not replace HealthKit
+sleep or contribute to recovery or coach context. Nothing is written to Health.
+
+The report uses hourly iPhone activity from the previous evening at 18:00
+through noon on the selected day. Before noon today, it ends at the start of
+the current local hour; the incomplete hour is excluded. It requires activity
+on both sides of a sufficiently long, explicitly covered inactive
+interval; missing coverage is not treated as rest. Interrupted use splits the
+interval. These are conservative prototype rules, not a validated sleep model.
+
+Activity data and the derived result stay inside Apple's DeviceActivity report
+extension. There is no JS result channel, App Group, stored usage history, or
+network export. The main app supplies only the selected local date and theme.
+The user opts in through native Screen Time authorization and can disconnect
+from the report screen or iPhone Settings.
+
+This requires a **new native build**, iOS 16+, and a physical iPhone. The
+simulator and web show an honest unavailable state instead of fabricated
+activity. Real-device data availability and overnight behavior still require
+validation. An empty or blank Screen Time report is not proof of sleep.
+
+The Phone rest prototype is retained in `modules/phone-rest/`, but its CNG
+plugin is not registered in the shipped app while Apple distribution approval
+is pending. Do not hand-edit generated Xcode targets.
+The module-root podspec includes both the native host and shared date-window
+source. Validate an `iphoneos` build as well as the simulator: the simulator
+does not compile the physical-device report-rendering branch.
+If the plugin is re-enabled later, production distribution must remain blocked
+until Family Controls distribution approval and provisioning are verified for
+**both** `io.raghib.gym` and `io.raghib.gym.PhoneRestReport`. A simulator build
+does not prove that approval.
+No EU-only direct Screen Time export entitlement is requested.
+
+Run the pure native estimator tests with `bun run test:phone-rest:swift`.
+On an entitled physical development build, enable Phone rest, confirm the
+requested Screen Time consent, exercise a recorded inactive interval and
+interrupted usage, then revoke access and confirm the report becomes
+unavailable. Review the selected day, light/dark theme, and large text without
+exporting any usage records.
+
 ## 1) Quick Start
 
 ### Prerequisites
@@ -188,16 +232,57 @@ half a sentence.
 
 GitHub Actions workflows in `.github/workflows/`:
 
-| Workflow    | Trigger         | Description                                                  |
-| ----------- | --------------- | ------------------------------------------------------------ |
-| **preview** | Pull request    | Quality gates, runtime isolation, JS-only EAS preview       |
-| **update**  | Push to `main`  | JS-only OTA; isolated native changes dispatch EAS Build      |
-| **build**   | Manual dispatch | EAS Build (iOS/Android, any profile)                         |
+| Workflow    | Trigger          | Description                                                   |
+| ----------- | ---------------- | ------------------------------------------------------------- |
+| **preview** | Pull request     | Quality gates and compatible iOS OTA on an isolated PR branch |
+| **update**  | Push to `main`   | Guarded production iOS OTA or native build plus TestFlight     |
+| **build**   | Manual or reused | Native builds; verified production iOS calls can auto-submit  |
 
 The **preview** workflow runs on every PR and gates merges on `bun run expo:check`,
 `bun run expo:doctor`, `bun run lint`, `bun run typecheck`, and `bun run test:unit`.
 This keeps the PR Interface aligned with Expo SDK compatibility without forcing
 device/simulator-only Adapters into GitHub-hosted runners.
+
+### Automatic iPhone delivery
+
+After a PR merges, the **update** workflow chooses one delivery path:
+
+- Compatible JS/UI/assets publish to the `production` channel with the
+  `production` EAS environment. This matches the installed production build,
+  rather than inferring an EAS branch from a detached Git checkout.
+- A new native runtime calls the reusable **build** workflow at the same
+  verified Git revision and enables `--auto-submit` for its production iOS
+  build. EAS uploads that exact build to TestFlight, not public App Store review.
+
+Ordinary manual builds remain build-only. Preview/development, Android and
+`all` builds are never automatically submitted. The reusable workflow rejects
+auto-submission requests unless the platform is `ios` and profile is
+`production`.
+
+Same-repository PRs with compatible native code publish to `pr-<number>` using
+the `preview` EAS environment. Inspect those updates through the EAS dashboard
+or a compatible development client; they do not replace the production channel
+or another PR's preview. Both publishers explicitly select iOS and the EAS
+environment required by SDK 55.
+
+The repository needs the `EXPO_TOKEN` Actions secret and valid Apple
+signing/submission credentials stored in EAS. The production submission profile
+contains only the existing App Store Connect app ID, `6742069555`, not an API
+key. Apple agreement renewals still require the Account Holder. After upload,
+Apple processing and tester access remain separate from build success; inspect
+the EAS submission link or `bunx eas-cli submit:status --platform ios`.
+
+No recurring builds are scheduled. OTA updates do not extend TestFlight's
+90-day build expiry.
+
+### Phone rest production approval
+
+The Phone rest plugin is currently not registered, so it is excluded from
+production native builds and does not block production OTA releases. Re-enable
+it only after Family Controls distribution approval and provisioning are
+confirmed for **both** `io.raghib.gym` and `io.raghib.gym.PhoneRestReport`; the
+release guard will then require explicit approval before any production
+release.
 
 ### Native releases and OTA safety
 
@@ -211,16 +296,19 @@ dependency, config-plugin, or native app configuration change requires both:
    that runtime. Use the existing manual **build** workflow with the appropriate
    profile (`preview` for internal testing, `production` for store releases).
 
-Automatic native releases build iOS only. Android remains available through a
-manual **build** workflow dispatch.
+Automatic native releases build and submit iOS only. Android remains available
+through a manual **build** workflow dispatch.
 
 This includes native **patch** updates within an Expo SDK or React Native
 version and removing native modules, not just major/minor SDK upgrades.
-The HealthKit-only refactor now uses app version/runtime **1.0.2** after SDK 55
-patch alignment; existing **1.0.0** and **1.0.1** binaries must not receive its
+The next native release uses app version/runtime **1.0.6**, including the
+submission configuration and exclusion of the unapproved Phone rest native
+plugin. The fingerprinter includes `eas.json`, so submission-profile changes
+also require runtime isolation under this conservative policy. Existing
+**1.0.0**, **1.0.1** and **1.0.2** binaries must not receive its incompatible
 JavaScript. Users need a matching native binary before receiving updates for
-this runtime. Green JS tests, a static web export, or simulator smoke tests do not
-establish compatibility with previously installed binaries.
+this runtime. Green JS tests, a static web export, or simulator smoke tests do
+not establish compatibility with previously installed binaries.
 
 Both publishing workflows compare native fingerprints with the same explicitly
 pinned `@expo/fingerprint` **0.16.8** implementation and then run

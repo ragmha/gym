@@ -1,3 +1,34 @@
+import { z } from 'zod'
+
+const productionConfigSchema = z.looseObject({
+  expo: z.looseObject({
+    plugins: z
+      .array(z.union([z.string(), z.tuple([z.string(), z.unknown()])]))
+      .optional(),
+    extra: z
+      .looseObject({
+        phoneRest: z
+          .looseObject({ distributionApproved: z.boolean().optional() })
+          .optional(),
+      })
+      .optional(),
+  }),
+})
+
+export function assertProductionReleaseReady(appConfig: unknown): void {
+  const { expo } = productionConfigSchema.parse(appConfig)
+  const hasPhoneRest = expo.plugins?.some(
+    (plugin) =>
+      (typeof plugin === 'string' ? plugin : plugin[0]) ===
+      './modules/phone-rest/app.plugin.js',
+  )
+  if (hasPhoneRest && expo.extra?.phoneRest?.distributionApproved !== true) {
+    throw new Error(
+      'Phone rest production releases are blocked. Confirm Family Controls distribution approval and provisioning for both io.raghib.gym and io.raghib.gym.PhoneRestReport, then explicitly set expo.extra.phoneRest.distributionApproved to true. A simulator build is not distribution approval.',
+    )
+  }
+}
+
 export function assertStaticAppConfig(
   rootFiles: readonly string[],
   location: string,

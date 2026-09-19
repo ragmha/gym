@@ -16,6 +16,7 @@ import Header from '@/components/common/Header'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
+import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import { type ThemePreference, useThemeStore } from '@/stores/ThemeStore'
 import { StatusBar } from 'expo-status-bar'
 
@@ -162,6 +163,33 @@ export default function SettingsScreen() {
           )}
         </View>
       </View>
+
+      {Platform.OS === 'ios' && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>
+            Experimental
+          </Text>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/phone-rest',
+                params: { date: localDateKey(new Date()) },
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Phone rest"
+            accessibilityHint="Set up an optional Screen Time inactivity estimate"
+            style={[styles.card, { backgroundColor: cardBg, borderColor }]}
+          >
+            <Text style={[styles.rowTitle, { color: textColor }]}>
+              Phone rest
+            </Text>
+            <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
+              Optional Screen Time estimate, separate from sleep.
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Appearance */}
       <View style={styles.section}>
