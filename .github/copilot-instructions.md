@@ -22,6 +22,12 @@ the daily HealthKit snapshot and the recovery score, and nothing else. Do not
 give it persistence, a profile, or a server — its context is built solely by
 `buildDailyContext`, and prompts must stay within the on-device token budget.
 
+The opt-in Phone rest prototype is a separate Screen Time report, not a new
+HealthKit sleep source. Its activity data and derived inactivity estimate stay
+inside the native DeviceActivity report extension: no JS bridge, persistence,
+App Group, Health writes, or coach input. Keep distribution blocked while
+`expo.extra.phoneRest.distributionApproved` is false.
+
 ## Tech Stack Summary
 
 | Layer            | Technology                                       | Version    |

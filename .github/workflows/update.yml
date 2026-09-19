@@ -10,12 +10,13 @@ concurrency:
 
 permissions:
   contents: read
-  actions: write
 
 jobs:
   update:
     name: EAS Update (Production)
     runs-on: ubuntu-latest
+    outputs:
+      release-action: ${{ steps.runtime.outputs.action }}
     steps:
       - name: Check for EXPO_TOKEN
         env:
@@ -44,6 +45,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Check production release readiness
+        run: bun scripts/check-production-release.ts
 
       - name: Setup EAS
         uses: expo/expo-github-action@v8
@@ -91,18 +95,20 @@ jobs:
           FINGERPRINT_DIFF: ${{ steps.fingerprint.outputs.fingerprint-diff }}
         run: bun scripts/check-release-safety.ts
 
-      - name: Trigger EAS Build on native changes
-        if: steps.runtime.outputs.action == 'build'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "::warning::Native/runtime changes detected — triggering EAS Build instead of OTA update."
-          gh workflow run build.yml \
-            --ref "$GITHUB_REF" \
-            -f platform=ios \
-            -f profile=production
-          echo "EAS Build triggered. Skipping OTA update."
-
       - name: Publish update
         if: steps.runtime.outputs.action == 'update'
-        run: eas update --auto
+        run: |
+          eas update --channel production --environment production \
+            --platform ios --message "$GITHUB_SHA" --non-interactive
+
+  build:
+    name: Build and submit iOS
+    needs: update
+    if: needs.update.outputs.release-action == 'build'
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: ios
+      profile: production
+      auto_submit: true
+    secrets:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
