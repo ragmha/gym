@@ -1,7 +1,7 @@
 {
   "name": "gym",
   "main": "expo-router/entry",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "packageManager": "bun@1.3.5",
   "scripts": {
     "start": "bunx expo start",
@@ -14,6 +14,7 @@
     "web": "bunx expo start --web",
     "test": "bunx jest",
     "test:unit": "bunx jest",
+    "test:phone-rest:swift": "swift test --package-path modules/phone-rest",
     "test:e2e:maestro:ios": "maestro test .maestro/flows/ios",
     "build:web": "bunx expo export --platform web --output-dir dist",
     "test:watch": "bunx jest --watch",

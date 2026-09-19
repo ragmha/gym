@@ -21,6 +21,50 @@ the route, including when returning from details. Coach and Settings remain
 available, and a sparse day offers a shortcut to review Health access without
 claiming that access was denied.
 
+### Phone rest prototype
+
+**Settings > Experimental > Phone rest** opens an optional native Screen Time
+report. It estimates an overnight interval without observed phone activity,
+not actual sleep or exact app-open/close times. It does not replace HealthKit
+sleep or contribute to recovery or coach context. Nothing is written to Health.
+
+The report uses hourly iPhone activity from the previous evening at 18:00
+through noon on the selected day. Before noon today, it ends at the start of
+the current local hour; the incomplete hour is excluded. It requires activity
+on both sides of a sufficiently long, explicitly covered inactive
+interval; missing coverage is not treated as rest. Interrupted use splits the
+interval. These are conservative prototype rules, not a validated sleep model.
+
+Activity data and the derived result stay inside Apple's DeviceActivity report
+extension. There is no JS result channel, App Group, stored usage history, or
+network export. The main app supplies only the selected local date and theme.
+The user opts in through native Screen Time authorization and can disconnect
+from the report screen or iPhone Settings.
+
+This requires a **new native build**, iOS 16+, and a physical iPhone. The
+simulator and web show an honest unavailable state instead of fabricated
+activity. Real-device data availability and overnight behavior still require
+validation. An empty or blank Screen Time report is not proof of sleep.
+
+The Phone rest prototype is retained in `modules/phone-rest/`, but its CNG
+plugin is not registered in the shipped app while Apple distribution approval
+is pending. Do not hand-edit generated Xcode targets.
+The module-root podspec includes both the native host and shared date-window
+source. Validate an `iphoneos` build as well as the simulator: the simulator
+does not compile the physical-device report-rendering branch.
+If the plugin is re-enabled later, production distribution must remain blocked
+until Family Controls distribution approval and provisioning are verified for
+**both** `io.raghib.gym` and `io.raghib.gym.PhoneRestReport`. A simulator build
+does not prove that approval.
+No EU-only direct Screen Time export entitlement is requested.
+
+Run the pure native estimator tests with `bun run test:phone-rest:swift`.
+On an entitled physical development build, enable Phone rest, confirm the
+requested Screen Time consent, exercise a recorded inactive interval and
+interrupted usage, then revoke access and confirm the report becomes
+unavailable. Review the selected day, light/dark theme, and large text without
+exporting any usage records.
+
 ## 1) Quick Start
 
 ### Prerequisites
@@ -238,22 +282,18 @@ the EAS submission link or submissions dashboard.
 No recurring builds are scheduled. OTA updates do not extend TestFlight's
 90-day build expiry.
 
-### Future Phone rest production approval
+### Phone rest production approval
 
-The Phone rest plugin and prototype are absent from this release, so the
-ordinary HealthKit dashboard passes the production readiness guard.
-When `./modules/phone-rest/app.plugin.js` is registered in a future release,
-production OTA and production-profile native builds are blocked unless
-`expo.extra.phoneRest.distributionApproved` is exactly `true`. The check runs
-before EAS credential setup, including for manual production builds.
-The same check rejects every root `app.config.*` file before parsing
-`app.json`, so a dynamic Expo config cannot bypass the production guard.
-
-Keep any future approval flag false until Family Controls distribution
-approval and provisioning are confirmed for **both** `io.raghib.gym` and
-`io.raghib.gym.PhoneRestReport`. A successful simulator build does not establish
-distribution approval. Preview/development builds remain available for that
-future opt-in prototype.
+The Phone rest plugin is currently not registered, so it is excluded from
+production native builds and does not block production OTA releases. Re-enable
+it only after Family Controls distribution approval and provisioning are
+confirmed for **both** `io.raghib.gym` and `io.raghib.gym.PhoneRestReport`; the
+release guard will then require boolean
+`expo.extra.phoneRest.distributionApproved: true` before any production release.
+The check runs before EAS credential setup, including for manual production
+builds, and rejects every root `app.config.*` file before parsing `app.json`.
+A dynamic Expo config cannot bypass the guard, and a successful simulator
+build does not establish distribution approval.
 
 ### Native releases and OTA safety
 
@@ -267,22 +307,26 @@ dependency, config-plugin, or native app configuration change requires both:
    that runtime. Use the existing manual **build** workflow with the appropriate
    profile (`preview` for internal testing, `production` for store releases).
 
+EAS `cli.appVersionSource: "remote"` manages only the developer-facing
+`ios.buildNumber` and `android.versionCode` counters. The user-facing
+`expo.version` stays in `app.json`, and the `appVersion` runtime policy follows
+that local version; no remote marketing-version synchronization is needed.
+The release guard checks it against `package.json` at the verified commit.
+See [Expo's app version management documentation](https://docs.expo.dev/build-reference/app-versions/).
+
 Automatic native releases build and submit iOS only. Android remains available
 through a manual **build** workflow dispatch.
 
 This includes native **patch** updates within an Expo SDK or React Native
 version and removing native modules, not just major/minor SDK upgrades.
-This release uses app version/runtime **1.0.3** for the persistent submission
-configuration and the explicitly approved native `expo-updates` patch from
-**55.0.30** to **55.0.31**, not for Phone rest. The fingerprinter hashes
-`eas.json` and native dependencies, so these changes require an isolated runtime
-and a new native binary, never an OTA to an installed **1.0.2** binary.
-Later native additions, including Phone rest, require a newer unused runtime
-(for example **1.0.4**), not **1.0.3**. Existing **1.0.0**, **1.0.1** and
-**1.0.2** binaries remain isolated from updates for this runtime. Users need a
-matching native binary before receiving its updates. Green JS tests, a static
-web export, or simulator smoke tests do not establish compatibility with
-previously installed binaries.
+The next native release uses app version/runtime **1.0.6**, including the
+submission configuration and exclusion of the unapproved Phone rest native
+plugin. The fingerprinter includes `eas.json`, so submission-profile changes
+also require runtime isolation under this conservative policy. Existing
+**1.0.0**, **1.0.1** and **1.0.2** binaries must not receive its incompatible
+JavaScript. Users need a matching native binary before receiving updates for
+this runtime. Green JS tests, a static web export, or simulator smoke tests do
+not establish compatibility with previously installed binaries.
 
 Both publishing workflows compare native fingerprints with the same explicitly
 pinned `@expo/fingerprint` **0.16.8** implementation and then run

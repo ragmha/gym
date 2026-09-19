@@ -47,7 +47,14 @@ describe('production release readiness', () => {
     ).not.toThrow()
   })
 
-  it.each([{ entry: plugin }, { entry: [plugin, {}] }])(
+  it.each([
+    { entry: plugin },
+    { entry: [plugin, {}] },
+    { entry: 'modules/phone-rest/app.plugin.js' },
+    { entry: ['modules/phone-rest/app.plugin.js', {}] },
+    { entry: '.\\modules\\phone-rest\\app.plugin.js' },
+    { entry: ['.\\modules\\phone-rest\\app.plugin.js', {}] },
+  ])(
     'blocks a Phone rest plugin entry without explicit approval: $entry',
     ({ entry }) => {
       expect(() =>

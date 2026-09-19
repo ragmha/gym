@@ -5,6 +5,7 @@ import {
   userEvent,
   waitFor,
 } from '@testing-library/react-native'
+import { useRouter } from 'expo-router'
 import { Alert, Linking, Platform } from 'react-native'
 
 import type {
@@ -79,6 +80,31 @@ describe('SettingsScreen Health access', () => {
     jest.useRealTimers()
     jest.restoreAllMocks()
   })
+
+  it('opens the optional native Phone rest setup without requesting Screen Time from Settings', async () => {
+    const push = jest.fn()
+    jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    render(<SettingsScreen />)
+
+    await user.press(screen.getByRole('button', { name: 'Phone rest' }))
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: '/phone-rest',
+      params: { date: '2026-02-20' },
+    })
+    expect(mockSource.requestAuthorization).not.toHaveBeenCalled()
+  })
+
+  it.each(['web', 'android'] as const)(
+    'does not offer native Phone rest setup on %s',
+    (platform) => {
+      jest.replaceProperty(Platform, 'OS', platform)
+      render(<SettingsScreen />)
+
+      expect(screen.queryByRole('button', { name: 'Phone rest' })).toBeNull()
+    },
+  )
 
   it('allows access requests after an empty successful read and never claims Connected', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
