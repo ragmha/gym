@@ -11,7 +11,7 @@ const NativePanel = requireOptionalNativeModule<object>('PhoneRest')
 export default function PhoneRestPanel(props: PhoneRestPanelProps) {
   if (!NativePanel) {
     return (
-      <PhoneRestUnavailable message="This installed app does not include Phone rest. Install a new development build; a JavaScript refresh cannot add the native capability." />
+      <PhoneRestUnavailable message="This installed app does not include Phone rest. A JavaScript update cannot add the native capability; use a binary that includes the Phone rest module." />
     )
   }
 

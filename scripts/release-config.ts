@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { posix } from 'node:path'
 
 const productionConfigSchema = z.looseObject({
   expo: z.looseObject({
@@ -17,11 +18,14 @@ const productionConfigSchema = z.looseObject({
 
 export function assertProductionReleaseReady(appConfig: unknown): void {
   const { expo } = productionConfigSchema.parse(appConfig)
-  const hasPhoneRest = expo.plugins?.some(
-    (plugin) =>
-      (typeof plugin === 'string' ? plugin : plugin[0]) ===
-      './modules/phone-rest/app.plugin.js',
-  )
+  const hasPhoneRest = expo.plugins?.some((plugin) => {
+    const pluginPath = typeof plugin === 'string' ? plugin : plugin[0]
+    return (
+      typeof pluginPath === 'string' &&
+      posix.normalize(pluginPath.replaceAll('\\', '/')).replace(/^\.\//, '') ===
+        'modules/phone-rest/app.plugin.js'
+    )
+  })
   if (hasPhoneRest && expo.extra?.phoneRest?.distributionApproved !== true) {
     throw new Error(
       'Phone rest production releases are blocked. Confirm Family Controls distribution approval and provisioning for both io.raghib.gym and io.raghib.gym.PhoneRestReport, then explicitly set expo.extra.phoneRest.distributionApproved to true. A simulator build is not distribution approval.',

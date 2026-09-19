@@ -18,6 +18,8 @@ jest.mock('@/hooks/useThemeColor', () => ({
 it('explains an older binary instead of crashing or pretending Screen Time is available', () => {
   render(<PhoneRestPanel dateKey="2026-09-13" colorScheme="light" />)
 
-  expect(screen.getByText(/Install a new development build/)).toBeTruthy()
+  expect(
+    screen.getByText(/A JavaScript update cannot add the native capability/),
+  ).toBeTruthy()
   expect(requireNativeView).not.toHaveBeenCalled()
 })

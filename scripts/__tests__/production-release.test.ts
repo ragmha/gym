@@ -27,9 +27,13 @@ describe('production release readiness', () => {
     ).not.toThrow()
   })
 
-  it.each([{ entry: plugin }, { entry: [plugin, {}] }])(
-    'blocks a Phone rest plugin entry without explicit approval: $entry',
-    ({ entry }) => {
+  it.each([
+    './modules/phone-rest/app.plugin.js',
+    'modules/phone-rest/app.plugin.js',
+    '.\\modules\\phone-rest\\app.plugin.js',
+  ])(
+    'blocks equivalent Phone rest plugin paths without explicit approval: %s',
+    (entry) => {
       expect(() =>
         assertProductionReleaseReady({ expo: { plugins: [entry] } }),
       ).toThrow('Phone rest production releases are blocked')
