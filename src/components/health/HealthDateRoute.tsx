@@ -1,10 +1,12 @@
 import { Link, useLocalSearchParams } from 'expo-router'
 import { useMemo, type ReactNode } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
-import { Spacing, Typography } from '@/constants/DesignSystem'
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
+import { Ionicons } from '@expo/vector-icons'
 
 export function HealthDateRoute({
   children,
@@ -38,6 +40,9 @@ export function HealthDateRoute({
         contentContainerStyle={styles.error}
         contentInsetAdjustmentBehavior="automatic"
       >
+        <View style={[styles.icon, { backgroundColor: theme.cardSurface }]}>
+          <Ionicons name="calendar-outline" size={32} color={theme.icon} />
+        </View>
         <Text
           selectable
           accessibilityRole="alert"
@@ -46,8 +51,14 @@ export function HealthDateRoute({
           Invalid date. Choose a day from Home.
         </Text>
         <Link href="/" asChild>
-          <Pressable accessibilityRole="button" style={styles.button}>
-            <Text style={[Typography.labelLg, { color: theme.homeAccent }]}>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: theme.accent, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text style={[Typography.labelLg, { color: theme.selectedText }]}>
               Back to home
             </Text>
           </Pressable>
@@ -62,14 +73,26 @@ export function HealthDateRoute({
 const styles = StyleSheet.create({
   error: {
     flexGrow: 1,
-    padding: Spacing.lg,
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: Layout.gutter,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.md,
   },
-  button: {
-    minHeight: 44,
+  icon: {
+    width: 72,
+    height: 72,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
+  },
+  button: {
+    minHeight: Layout.controlSize,
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radii.pill,
   },
 })

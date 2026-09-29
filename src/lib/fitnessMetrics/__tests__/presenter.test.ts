@@ -30,6 +30,7 @@ function snapshot(
     waterLiters: null,
     flightsClimbed: null,
     bodyMassKg: null,
+    bodyMassHistory: null,
     dietaryCalories: null,
     workouts: [],
     ...overrides,
@@ -40,15 +41,16 @@ describe('fitness metric presenters', () => {
   it.each([
     [null, '--', 0, 'empty'],
     [0, '0', 0, 'progress'],
-    [5_000, '5,000', 0.5, 'progress'],
-    [DASHBOARD_GOALS.stepsGoal, '10,000', 1, 'reached'],
-    [12_000, '12,000', 1, 'over'],
+    [5_000, '5,000', 0.25, 'progress'],
+    [19_999, '19,999', 19_999 / 20_000, 'progress'],
+    [DASHBOARD_GOALS.stepsGoal, '20,000', 1, 'reached'],
+    [22_000, '22,000', 1, 'over'],
   ] as const)('presents steps=%s', (steps, value, progress, status) => {
     expect(presentSteps(snapshot({ steps }))).toMatchObject({
       id: 'steps',
       label: 'Steps',
       value,
-      subtitle: 'Goal: 10,000',
+      subtitle: 'Goal: 20,000',
       progress,
       status,
     })

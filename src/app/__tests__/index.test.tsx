@@ -1,7 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Platform, StyleSheet, type RefreshControlProps } from 'react-native'
+import {
+  AppState,
+  Platform,
+  StyleSheet,
+  type RefreshControlProps,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap'
@@ -18,11 +23,17 @@ const mockRefresh = jest.fn<Promise<void>, []>()
 const mockPush = jest.fn()
 const mockSetParams = jest.fn()
 const originalPlatform = Platform.OS
+const originalAppState = Object.getOwnPropertyDescriptor(
+  AppState,
+  'currentState',
+)
+let focusCleanup: void | (() => void)
 
 function focusHome(): void {
   const callback = jest.mocked(useFocusEffect).mock.lastCall?.[0]
   if (!callback) throw new Error('Home did not register a focus effect')
-  callback()
+  focusCleanup?.()
+  focusCleanup = callback()
 }
 
 function useTestSearchParams() {
@@ -79,6 +90,12 @@ describe('HomeScreen', () => {
     mockRefresh.mockReset().mockResolvedValue(undefined)
     mockTheme = 'light'
     mockInitialParams = {}
+    focusCleanup = undefined
+    Object.defineProperty(AppState, 'currentState', {
+      configurable: true,
+      writable: true,
+      value: 'active',
+    })
     jest
       .mocked(useSafeAreaInsets)
       .mockReturnValue({ top: 0, bottom: 0, left: 0, right: 0 })
@@ -101,27 +118,32 @@ describe('HomeScreen', () => {
   })
 
   afterEach(() => {
+    focusCleanup?.()
     jest.useRealTimers()
+    if (originalAppState) {
+      Object.defineProperty(AppState, 'currentState', originalAppState)
+    }
     Object.defineProperty(Platform, 'OS', {
       configurable: true,
       value: originalPlatform,
     })
   })
 
-  it('shows the daily essentials with secondary content collapsed', () => {
+  it('shows only the five daily priorities, with other metrics behind their route', () => {
     render(<HomeScreen />)
 
     expect(screen.queryByText(/Recovery/i)).toBeNull()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
-    expect(screen.getByLabelText('Active calories 300 kcal')).toBeTruthy()
-    expect(screen.getByLabelText('Sleep 8.0 hrs')).toBeTruthy()
-    expect(screen.queryByText('Weight')).toBeNull()
+    expect(screen.queryByLabelText('Active calories 300 kcal')).toBeNull()
+    expect(screen.queryByLabelText('Sleep 8.0 hrs')).toBeNull()
+    expect(screen.getByText('Cardio')).toBeTruthy()
+    expect(screen.getByText('Lift')).toBeTruthy()
+    expect(screen.getByText('Water')).toBeTruthy()
+    expect(screen.getByText('Morning weight')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Previous week' })).toBeNull()
     expect(ActivityHeatmap).not.toHaveBeenCalled()
-    expect(
-      screen.getByRole('button', { name: 'More health data' }).props
-        .accessibilityState,
-    ).toMatchObject({ expanded: false })
+    expect(screen.queryByText('More health data')).toBeNull()
+    expect(screen.getByRole('button', { name: 'See all metrics' })).toBeTruthy()
   })
 
   it('keeps a steps-only day useful without empty metric cards', () => {
@@ -132,6 +154,8 @@ describe('HomeScreen', () => {
         sleepHours: null,
         hrv: null,
         restingHeartRate: null,
+        waterLiters: null,
+        bodyMassHistory: null,
       }),
     }
     render(<HomeScreen />)
@@ -154,27 +178,18 @@ describe('HomeScreen', () => {
     render(<HomeScreen />)
 
     expect(screen.getByLabelText('Steps 0')).toBeTruthy()
-    expect(screen.getByLabelText('Active calories 0 kcal')).toBeTruthy()
+    expect(screen.getByText('20,000 steps to go')).toBeTruthy()
     expect(
       screen.queryByRole('button', { name: 'Review Health access' }),
     ).toBeNull()
   })
 
-  it('reveals weight and mounts the heatmap only after expansion', () => {
+  it('shows the morning weigh-in without mounting the activity heatmap', () => {
     render(<HomeScreen />)
 
-    fireEvent.press(screen.getByRole('button', { name: 'More health data' }))
-
-    expect(screen.getByText('Weight')).toBeTruthy()
-    expect(screen.getByText('78.4')).toBeTruthy()
-    expect(ActivityHeatmap).toHaveBeenCalled()
-    expect(
-      screen.getByRole('button', { name: 'More health data' }).props
-        .accessibilityState,
-    ).toMatchObject({ expanded: true })
-
-    fireEvent.press(screen.getByRole('button', { name: 'More health data' }))
-    expect(screen.queryByText('Weight')).toBeNull()
+    expect(screen.getByLabelText('Morning weight 78.4 kilograms')).toBeTruthy()
+    expect(screen.getByText('7-day average: 78.4 kg')).toBeTruthy()
+    expect(ActivityHeatmap).not.toHaveBeenCalled()
   })
 
   it('selects a past day, closes the calendar, and blocks future days', () => {
@@ -337,6 +352,27 @@ describe('HomeScreen', () => {
     ])
   })
 
+  it('opens weight entry for the selected day and rereads Health on returning without optimistic data', async () => {
+    mockInitialParams = { date: '2026-09-11' }
+    mockState = {
+      ...mockState,
+      snapshot: makeSnapshot({ bodyMassHistory: null }),
+    }
+    render(<HomeScreen />)
+    act(focusHome)
+    fireEvent.press(screen.getByRole('button', { name: 'Add weight' }))
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/add-weight',
+      params: { date: '2026-09-11' },
+    })
+    await act(async () => focusHome())
+    expect(mockRefresh).toHaveBeenCalledTimes(1)
+    expect(
+      jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
+    ).toBe(new Date(2026, 8, 11).toDateString())
+    expect(screen.getByLabelText('Morning weight unavailable')).toBeTruthy()
+  })
+
   it('carries the selected day into steps, coach, and the full metric breakdown', () => {
     render(<HomeScreen />)
     fireEvent.press(screen.getByRole('button', { name: 'Choose date, TODAY' }))
@@ -414,6 +450,74 @@ describe('HomeScreen', () => {
       screen.getByRole('button', { name: 'Review Health access' }),
     ).toBeTruthy()
     expect(mockState.requestAuthorization).not.toHaveBeenCalled()
+  })
+
+  it('catches a late-synced workout without an observer notification while home stays active', async () => {
+    mockRefresh.mockImplementation(async () => {
+      mockState = {
+        ...mockState,
+        snapshot: makeSnapshot({
+          workouts: [
+            {
+              kind: 'stairClimber',
+              activityName: 'Stair climbing',
+              averageHeartRate: 143,
+              durationMinutes: 32,
+              calories: null,
+              distance: null,
+              startISO: new Date(2026, 8, 12, 8).toISOString(),
+              endISO: new Date(2026, 8, 12, 8, 32).toISOString(),
+            },
+          ],
+        }),
+      }
+    })
+    const { rerender } = render(<HomeScreen />)
+    act(focusHome)
+    expect(mockRefresh).not.toHaveBeenCalled()
+    await act(async () => jest.advanceTimersByTime(30_000))
+    rerender(<HomeScreen />)
+
+    expect(mockRefresh).toHaveBeenCalledTimes(1)
+    expect(
+      screen.getByText('StairMaster: 32 min synced / 143 bpm avg'),
+    ).toBeTruthy()
+    expect(screen.queryByText('Goal met')).toBeNull()
+  })
+
+  it('does not poll demo data, backgrounded home, or home after blur', async () => {
+    const { rerender } = render(<HomeScreen />)
+    act(focusHome)
+    Object.defineProperty(AppState, 'currentState', { value: 'background' })
+    await act(async () => jest.advanceTimersByTime(60_000))
+    expect(mockRefresh).not.toHaveBeenCalled()
+
+    focusCleanup?.()
+    Object.defineProperty(AppState, 'currentState', { value: 'active' })
+    await act(async () => jest.advanceTimersByTime(60_000))
+    expect(mockRefresh).not.toHaveBeenCalled()
+
+    mockState = { ...mockState, isDemoMode: true }
+    rerender(<HomeScreen />)
+    act(focusHome)
+    const callsAfterFocus = mockRefresh.mock.calls.length
+    await act(async () => jest.advanceTimersByTime(60_000))
+    expect(mockRefresh).toHaveBeenCalledTimes(callsAfterFocus)
+  })
+
+  it('does not overlap periodic Health reads when a previous poll is still pending', async () => {
+    let finish: (() => void) | undefined
+    mockRefresh.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        }),
+    )
+    render(<HomeScreen />)
+    act(focusHome)
+    await act(async () => jest.advanceTimersByTime(90_000))
+    expect(mockRefresh).toHaveBeenCalledTimes(1)
+    await act(async () => finish?.())
   })
 
   it('identifies non-iOS demo data explicitly', () => {

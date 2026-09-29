@@ -6,6 +6,7 @@ import {
 import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
+import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo } from 'react'
 import { Alert } from 'react-native'
 import 'react-native-reanimated'
@@ -64,10 +65,15 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <ErrorBoundary>
         <Stack
           screenOptions={{
-            navigationBarColor: navTheme.colors.background,
+            contentStyle: { backgroundColor: navTheme.colors.background },
+            headerStyle: { backgroundColor: navTheme.colors.background },
+            headerTintColor: navTheme.colors.primary,
+            headerShadowVisible: false,
+            headerTitleStyle: { fontWeight: '600' },
           }}
         >
           <Stack.Screen
@@ -94,6 +100,14 @@ export default function RootLayout() {
             name="coach"
             options={{
               headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="add-weight"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+              title: 'Add weight',
             }}
           />
           <Stack.Screen name="+not-found" />

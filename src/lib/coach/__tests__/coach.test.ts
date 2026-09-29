@@ -21,10 +21,13 @@ const snapshot: DailyHealthSnapshot = {
   waterLiters: null,
   flightsClimbed: 8,
   bodyMassKg: 81.4,
+  bodyMassHistory: null,
   dietaryCalories: null,
   workouts: [
     {
+      kind: 'strength',
       activityName: 'Traditional Strength Training',
+      averageHeartRate: null,
       calories: 320,
       distance: 0,
       durationMinutes: 48,
@@ -51,6 +54,7 @@ const missingSnapshot: DailyHealthSnapshot = {
   waterLiters: null,
   flightsClimbed: null,
   bodyMassKg: null,
+  bodyMassHistory: null,
   dietaryCalories: null,
   workouts: [],
 }

@@ -24,6 +24,7 @@ function snapshot(
     waterLiters: 1.5,
     flightsClimbed: 10,
     bodyMassKg: 78.5,
+    bodyMassHistory: null,
     dietaryCalories: 2_100,
     workouts: [],
     ...overrides,

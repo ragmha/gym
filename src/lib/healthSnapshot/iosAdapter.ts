@@ -7,6 +7,7 @@ import {
   queryStatisticsForQuantity,
   queryWorkoutSamples,
   requestAuthorization,
+  subscribeToChanges,
 } from '@kingstinct/react-native-healthkit'
 import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
@@ -14,6 +15,7 @@ import { Platform } from 'react-native'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
+  HealthBodyMassSample,
   HealthSnapshotSource,
   HealthWorkout,
   IntensityMap,
@@ -44,12 +46,7 @@ interface CategoryLike extends DateRangeLike {
   value?: number
 }
 
-interface WorkoutLike extends DateRangeLike {
-  workoutActivityType?: unknown
-  duration: { quantity: number }
-  totalEnergyBurned?: { quantity?: number }
-  totalDistance?: { quantity?: number }
-}
+type NativeWorkout = Awaited<ReturnType<typeof queryWorkoutSamples>>[number]
 
 function dayWindow(date: Date): { startDate: Date; endDate: Date } {
   const startDate = new Date(date)
@@ -108,18 +105,43 @@ function workoutActivityName(activityType: unknown): string {
   return words.charAt(0).toUpperCase() + words.slice(1).toLowerCase()
 }
 
-function mapWorkout(workout: WorkoutLike): HealthWorkout {
+function workoutKind(activityType: number): HealthWorkout['kind'] {
+  switch (activityType) {
+    case WorkoutActivityType.running:
+      return 'running'
+    case WorkoutActivityType.stairClimbing:
+      return 'stairClimber'
+    case WorkoutActivityType.traditionalStrengthTraining:
+    case WorkoutActivityType.functionalStrengthTraining:
+      return 'strength'
+    default:
+      return 'other'
+  }
+}
+
+function mapWorkout(workout: NativeWorkout): HealthWorkout {
   const start = toDate(workout.startDate)
   const end = toDate(workout.endDate)
+  if (
+    !Number.isFinite(start.getTime()) ||
+    !Number.isFinite(end.getTime()) ||
+    end < start ||
+    !Number.isFinite(workout.duration.quantity) ||
+    workout.duration.quantity < 0
+  ) {
+    throw new TypeError('Invalid workout')
+  }
 
   return {
+    kind: workoutKind(workout.workoutActivityType),
     activityName: workoutActivityName(workout.workoutActivityType),
+    averageHeartRate: null,
     calories:
       workout.totalEnergyBurned?.quantity == null
         ? null
         : roundInt(workout.totalEnergyBurned.quantity),
     distance: workout.totalDistance?.quantity ?? null,
-    durationMinutes: roundInt(workout.duration.quantity / 60),
+    durationMinutes: workout.duration.quantity / 60,
     startISO: start.toISOString(),
     endISO: end.toISOString(),
   }
@@ -227,12 +249,70 @@ async function readBodyMassKg(): Promise<number | null> {
   return roundTenths(sample.quantity)
 }
 
+async function readBodyMassHistory(
+  date: Date,
+): Promise<HealthBodyMassSample[] | null> {
+  const { startDate, endDate } = dayWindow(date)
+  startDate.setDate(startDate.getDate() - 13)
+  const samples = await queryQuantitySamples(
+    'HKQuantityTypeIdentifierBodyMass',
+    {
+      limit: 0,
+      ascending: true,
+      unit: 'kg',
+      filter: { date: { startDate, endDate, strictStartDate: true } },
+    },
+  )
+  const readings = samples
+    .filter((sample) => sample.quantity != null)
+    .map((sample) => {
+      const start = toDate(sample.startDate)
+      if (
+        !Number.isFinite(start.getTime()) ||
+        !Number.isFinite(sample.quantity) ||
+        sample.quantity < 0
+      ) {
+        throw new TypeError('Invalid body mass sample')
+      }
+      return { kilograms: sample.quantity, startISO: start.toISOString() }
+    })
+  return readings.length > 0 ? readings : null
+}
+
 async function readWorkouts(date: Date): Promise<HealthWorkout[]> {
   const workouts = await queryWorkoutSamples({
     limit: 0,
     filter: { date: dayWindow(date) },
   })
-  return workouts.map((workout) => mapWorkout(workout))
+  const mapped = workouts.map(mapWorkout)
+  const stairIndex = mapped.reduce(
+    (best, workout, index) =>
+      workout.kind === 'stairClimber' &&
+      localDateKey(new Date(workout.startISO)) === localDateKey(date) &&
+      (best === -1 || workout.durationMinutes > mapped[best].durationMinutes)
+        ? index
+        : best,
+    -1,
+  )
+  // Only the displayed stair session needs an extra statistics query.
+  if (stairIndex !== -1) {
+    mapped[stairIndex].averageHeartRate = await readMetric(
+      'stair workout heart rate',
+      async () => {
+        const statistics = await workouts[stairIndex].getStatistic(
+          'HKQuantityTypeIdentifierHeartRate',
+          'count/min',
+        )
+        const bpm = statistics?.averageQuantity?.quantity
+        if (bpm == null) return null
+        if (!Number.isFinite(bpm) || bpm < 0) {
+          throw new TypeError('Invalid workout heart rate')
+        }
+        return roundInt(bpm)
+      },
+    )
+  }
+  return mapped
 }
 
 export const iosHealthKitAdapter: HealthSnapshotSource = {
@@ -253,6 +333,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
         waterLiters: null,
         flightsClimbed: null,
         bodyMassKg: null,
+        bodyMassHistory: null,
         dietaryCalories: null,
         workouts: [],
       }
@@ -268,6 +349,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       waterLiters,
       flightsClimbed,
       bodyMassKg,
+      bodyMassHistory,
       dietaryCalories,
       workouts,
     ] = await Promise.all([
@@ -326,6 +408,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
         ),
       ),
       readMetric('body mass', () => readBodyMassKg()),
+      readMetric('body mass history', () => readBodyMassHistory(date)),
       readMetric('dietary calories', () =>
         readQuantitySum(
           'HKQuantityTypeIdentifierDietaryEnergyConsumed',
@@ -348,6 +431,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       waterLiters,
       flightsClimbed,
       bodyMassKg: bodyMassKg ?? null,
+      bodyMassHistory,
       dietaryCalories,
       workouts: workouts ?? [],
     }
@@ -394,6 +478,26 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
     }
 
     return intensity
+  },
+
+  subscribeToWorkoutChanges(onChange) {
+    if (!this.isAvailable()) return null
+    try {
+      const subscription = subscribeToChanges(
+        'HKWorkoutTypeIdentifier',
+        ({ errorMessage }) => {
+          if (errorMessage) {
+            warnHealthSnapshotFailure('workout observation', new Error())
+          } else {
+            onChange()
+          }
+        },
+      )
+      return () => subscription.remove()
+    } catch (err) {
+      warnHealthSnapshotFailure('workout observation', err)
+      return null
+    }
   },
 
   async requestAuthorization(): Promise<boolean> {

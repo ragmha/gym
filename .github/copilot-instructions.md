@@ -4,18 +4,24 @@ These instructions capture Expo team best practices from Expo docs, GitHub issue
 
 ## What this app is
 
-A read-only daily health dashboard. Every number on screen is read from Apple
-HealthKit. There is no backend, no login, and no manual data entry.
+A daily health dashboard whose displayed readings come from Apple HealthKit.
+There is no backend or login. The sole user-approved manual-entry exception is
+body weight: a confirmed weight in kilograms and its actual measurement time
+can be saved directly to Apple Health on compatible iOS builds.
 
 This is the single most important constraint in the repo. The app previously
 carried a second, competing architecture — manual CRUD screens on a Supabase
 backend that duplicated data HealthKit already had — and that is what made it
-unmaintainable. Do not reintroduce it.
+unmaintainable. Do not reintroduce it. Weight entry has ephemeral form state only:
+no local weight store/cache, profile, backend, optimistic readings, or editing
+or deleting existing Health samples. No other manual-entry feature is approved.
 
 Before adding a feature, check whether the data already exists in HealthKit. If
 it does, read it. If it does not, adding a form, a store that persists user
 input, or a network backend is a scope decision that needs explicit sign-off —
 not an implementation detail to decide while coding.
+The narrowly scoped Apple Health body-mass form is already approved; that
+approval does not authorize other forms or persistence.
 
 The on-device AI coach (`src/lib/coach/`) inherits the same constraint. It reads
 the daily HealthKit snapshot and the recovery score, and nothing else. Do not
@@ -58,6 +64,7 @@ src/
     index.tsx           #   the dashboard (root route)
     settings.tsx        #   pushed from the dashboard header
     coach.tsx           #   streaming coach chat
+    add-weight.tsx      #   explicit body-mass save to Apple Health
   components/
     dashboard/          #   dashboard sections + the ring builder
     charts/             #   heatmap and ring primitives
@@ -128,7 +135,7 @@ This project targets **iOS as the primary platform**.
 ## Data (HealthKit)
 
 - `src/lib/healthSnapshot/` is the only data source. `HealthSnapshotSource` is
-  the interface every screen codes against.
+  the read interface; the approved body-mass writer is a separate, narrow port.
 - `DailyHealthSnapshot` in `types.ts` is the contract. Every metric is nullable:
   missing or inaccessible measurements render `--`, never an invented `0`.
   Preserve observed zeroes. Body mass uses the latest available weigh-in.
@@ -136,9 +143,25 @@ This project targets **iOS as the primary platform**.
   platform with deterministic seeded values.
 - New metrics are added in three places: `types.ts`, `iosAdapter.ts`, and
   `mockAdapter.ts` — plus a matching read permission in `READ_PERMISSIONS`.
-- The app requests **read** permissions only and never writes to Health.
-  Fetch readiness and authorization-request completion do not prove read
-  permission; HealthKit keeps read grants private.
+- Dashboard reads and Settings **Connect / Review Health access** request read
+  permissions only. Fetch readiness and authorization-request completion do not
+  prove read permission; HealthKit keeps read grants private.
+- The separate `bodyMassWriter` port is the only write path. On explicit
+  **Save to Apple Health**, request only `HKQuantityTypeIdentifierBodyMass`
+  sharing access, validate positive finite kilograms and the confirmed,
+  non-future measurement timestamp again at the boundary, and mark the sample
+  user-entered. Request completion is not write success: require the native
+  saved sample. Never log entered values, sample details, or native error text.
+- Weight entry requires an immutable compatible native application version
+  (1.0.7 or later with the required modules), never the live Expo config version.
+  Missing/old binaries and non-iOS platforms must fail closed before permissions
+  or loading the native picker. The updated Health write-purpose string and
+  native dependencies require a new isolated binary, not an OTA to 1.0.6.
+- Keep the weight form ephemeral, with editable actual date/time and explicit
+  confirmation. No write on Enter, blur, cancel, or dismiss. Guard double taps
+  synchronously, block conflicting navigation while saving, preserve input on
+  errors, and reread Health on returning. Do not fake read-back or move afternoon
+  samples into the morning window; existing morning-history formulas are unchanged.
 - Recovery is unavailable without its required valid measurements. Display
   `--` and omit the assessment from coach context rather than substituting zeroes.
 - There are no environment variables. The app runs with no configuration.

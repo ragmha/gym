@@ -39,6 +39,7 @@ const snapshot: DailyHealthSnapshot = {
   waterLiters: null,
   flightsClimbed: 8,
   bodyMassKg: 81.4,
+  bodyMassHistory: null,
   dietaryCalories: null,
   workouts: [],
 }

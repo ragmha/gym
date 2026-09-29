@@ -17,6 +17,7 @@ const snapshot = (
   waterLiters: 1.84,
   flightsClimbed: 6,
   bodyMassKg: 78.4,
+  bodyMassHistory: null,
   dietaryCalories: 2_100,
   workouts: [],
   ...overrides,
@@ -61,7 +62,9 @@ describe('buildFitnessRings', () => {
       snapshot({
         workouts: [
           {
+            kind: 'running',
             activityName: 'Running',
+            averageHeartRate: null,
             calories: 300,
             distance: 5,
             durationMinutes: 28.4,
@@ -69,7 +72,9 @@ describe('buildFitnessRings', () => {
             endISO: '2025-03-04T07:28:00.000Z',
           },
           {
+            kind: 'strength',
             activityName: 'Strength',
+            averageHeartRate: null,
             calories: 180,
             distance: 0,
             durationMinutes: 31.2,
@@ -112,7 +117,9 @@ describe('buildFitnessRings', () => {
         steps: 0,
         workouts: [
           {
+            kind: 'other',
             activityName: 'Walking',
+            averageHeartRate: null,
             calories: 0,
             distance: 0,
             durationMinutes: 0,
@@ -131,7 +138,9 @@ describe('buildFitnessRings', () => {
       snapshot({
         workouts: [
           {
+            kind: 'other',
             activityName: 'Walking',
+            averageHeartRate: null,
             calories: 0,
             distance: 0,
             durationMinutes: NaN,

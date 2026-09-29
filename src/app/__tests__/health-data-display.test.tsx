@@ -20,6 +20,7 @@ const missingSnapshot: DailyHealthSnapshot = {
   waterLiters: null,
   flightsClimbed: null,
   bodyMassKg: null,
+  bodyMassHistory: null,
   dietaryCalories: null,
   workouts: [],
 }
@@ -35,6 +36,9 @@ const completeSnapshot: DailyHealthSnapshot = {
   waterLiters: 2,
   flightsClimbed: 6,
   bodyMassKg: 78.4,
+  bodyMassHistory: [
+    { kilograms: 78.4, startISO: new Date(2026, 8, 12, 7).toISOString() },
+  ],
   dietaryCalories: 2_100,
 }
 
@@ -97,7 +101,7 @@ jest.mock('@/hooks/useThemeColor', () => {
 beforeEach(() => {
   mockSnapshot = null
   jest.clearAllMocks()
-  jest.mocked(useLocalSearchParams).mockReturnValue({})
+  jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-12' })
 })
 
 describe('HomeScreen health data', () => {
@@ -111,33 +115,32 @@ describe('HomeScreen health data', () => {
       expect(queryByLabelText('Recovery unavailable')).toBeNull()
       expect(queryByLabelText('Active calories unavailable')).toBeNull()
       expect(getByLabelText('Steps unavailable')).toBeTruthy()
-      fireEvent.press(getByLabelText('More health data'))
-      expect(getByText('No weigh-in available')).toBeTruthy()
+      expect(
+        getByText('No morning weigh-in available for this day'),
+      ).toBeTruthy()
       expect(queryByText('30%')).toBeNull()
     },
   )
 
   it('preserves partial measurements without inventing recovery', () => {
     mockSnapshot = { ...completeSnapshot, restingHeartRate: null }
-    const { getByLabelText, getByText, queryByText } = render(<HomeScreen />)
+    const { getByLabelText, queryByText } = render(<HomeScreen />)
 
     expect(queryByText(/Recovery/i)).toBeNull()
     expect(getByLabelText('Steps 8,000')).toBeTruthy()
-    fireEvent.press(getByLabelText('More health data'))
-    expect(getByText('78.4')).toBeTruthy()
+    expect(getByLabelText('Morning weight 78.4 kilograms')).toBeTruthy()
   })
 
-  it('adds and removes secondary readings as data becomes available or disappears', () => {
-    const { getByLabelText, getByText, queryByText, rerender } = render(
-      <HomeScreen />,
-    )
+  it('updates priority readings without introducing secondary metrics', () => {
+    const { getByLabelText, queryByText, rerender } = render(<HomeScreen />)
     expect(getByLabelText('Steps unavailable')).toBeTruthy()
     expect(queryByText('Sleep')).toBeNull()
 
     mockSnapshot = completeSnapshot
     rerender(<HomeScreen />)
     expect(getByLabelText('Steps 8,000')).toBeTruthy()
-    expect(getByText('Sleep')).toBeTruthy()
+    expect(getByLabelText('Water 2.0 liters recorded')).toBeTruthy()
+    expect(queryByText('Sleep')).toBeNull()
 
     mockSnapshot = null
     rerender(<HomeScreen />)
@@ -156,7 +159,7 @@ describe('HomeScreen health data', () => {
     const { getByLabelText, queryByText } = render(<HomeScreen />)
 
     expect(getByLabelText('Steps 0')).toBeTruthy()
-    expect(getByLabelText('Sleep 0.0 hrs')).toBeTruthy()
+    expect(queryByText('Sleep')).toBeNull()
     expect(queryByText('0%')).toBeNull()
   })
 

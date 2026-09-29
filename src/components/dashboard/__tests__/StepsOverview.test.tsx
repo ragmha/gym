@@ -20,7 +20,9 @@ describe('StepsOverview', () => {
 
     expect(onPress).toHaveBeenCalledTimes(1)
     expect(screen.getByText('5,000')).toBeTruthy()
-    expect(screen.queryByText(/recovery|intensity|goal/i)).toBeNull()
+    expect(screen.getByText('/ 20,000 steps')).toBeTruthy()
+    expect(screen.getByText('15,000 steps to go')).toBeTruthy()
+    expect(screen.queryByText(/recovery|intensity/i)).toBeNull()
   })
 
   it('does not turn missing steps into a zero or progress score', () => {
@@ -41,8 +43,29 @@ describe('StepsOverview', () => {
     )
 
     expect(screen.getByLabelText('Steps 0')).toBeTruthy()
-    expect(screen.getByText('Daily total')).toBeTruthy()
+    expect(screen.getByText('20,000 steps to go')).toBeTruthy()
   })
+
+  it.each([19_999, 20_000, 20_001])(
+    'requires exactly 20,000 steps for completion, actual count %s',
+    (steps) => {
+      render(
+        <StepsOverview
+          snapshot={makeSnapshot({ steps })}
+          onPress={jest.fn()}
+        />,
+      )
+      expect(screen.queryByText('Daily goal met') !== null).toBe(
+        steps >= 20_000,
+      )
+      expect(screen.getByRole('button').props.accessibilityValue).toEqual({
+        min: 0,
+        max: 20_000,
+        now: Math.min(steps, 20_000),
+        text: `${steps.toLocaleString()} of 20,000 steps`,
+      })
+    },
+  )
 
   it('keeps the full count accessible when visual text needs to fit', () => {
     render(

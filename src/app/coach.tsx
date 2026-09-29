@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
@@ -7,12 +7,16 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ScreenHeader } from '@/components/common/ScreenHeader'
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
+import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
+import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
 import { activeCoachEngine } from '@/lib/coach'
@@ -39,8 +43,8 @@ export default function CoachScreen() {
 }
 
 function CoachForDate({ date }: { date: Date }) {
-  const router = useRouter()
   const theme = useTheme()
+  const colorScheme = useColorScheme()
   const { snapshot } = useHealthSnapshot(date)
   const recovery = useRecoveryPresentation({
     hrv: snapshot?.hrv ?? null,
@@ -157,12 +161,12 @@ function CoachForDate({ date }: { date: Date }) {
           key={suggestion}
           onPress={() => void sendMessage(suggestion)}
           disabled={isStreaming}
+          accessibilityRole="button"
           accessibilityState={{ disabled: isStreaming }}
           style={({ pressed }) => [
             styles.chip,
             {
               backgroundColor: theme.accentInactive,
-              borderColor: theme.border,
               opacity: pressed || isStreaming ? 0.7 : 1,
             },
           ]}
@@ -176,146 +180,153 @@ function CoachForDate({ date }: { date: Date }) {
   )
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <SafeAreaView
+      testID="coach-screen"
+      edges={['top', 'left', 'right']}
+      style={[styles.container, { backgroundColor: theme.homeBackground }]}
     >
-      <View style={[styles.header, { borderBottomColor: theme.separator }]}>
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={12}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="chevron-back" size={24} color={theme.text} />
-        </Pressable>
-        <View>
-          <Text style={[styles.title, { color: theme.text }]}>Coach</Text>
-          <Text style={[styles.subtitle, { color: theme.subtitleText }]}>
-            On-device guidance
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView
-        ref={scrollRef}
-        style={styles.messages}
-        contentContainerStyle={[
-          styles.messagesContent,
-          messages.length === 0 && styles.emptyMessagesContent,
-        ]}
-        keyboardShouldPersistTaps="handled"
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {messages.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View
-              style={[
-                styles.emptyIcon,
-                { backgroundColor: theme.accentInactive },
-              ]}
-            >
-              <Ionicons name="chatbubbles" size={30} color={theme.accent} />
-            </View>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>
-              Ask your coach anything
-            </Text>
-            <Text style={[styles.emptyCopy, { color: theme.subtitleText }]}>
-              Get practical training guidance from your health snapshot and
-              recovery signals.
-            </Text>
-            {renderSuggestions()}
-          </View>
-        ) : (
-          messages.map((message) => {
-            const isUser = message.role === 'user'
-            return (
+        <ScreenHeader
+          title="Coach"
+          subtitle={`On-device · ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+        />
+
+        <ScrollView
+          ref={scrollRef}
+          style={styles.messages}
+          contentContainerStyle={[
+            styles.messagesContent,
+            messages.length === 0 && styles.emptyMessagesContent,
+          ]}
+          keyboardShouldPersistTaps="handled"
+          contentInsetAdjustmentBehavior="automatic"
+        >
+          {messages.length === 0 ? (
+            <View style={styles.emptyState}>
               <View
-                key={message.id}
                 style={[
-                  styles.messageRow,
-                  isUser ? styles.userRow : styles.assistantRow,
+                  styles.emptyIcon,
+                  { backgroundColor: theme.cardSurface },
                 ]}
               >
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={30}
+                  color={theme.text}
+                />
+              </View>
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                Ask your coach anything
+              </Text>
+              <Text style={[styles.emptyCopy, { color: theme.subtitleText }]}>
+                Practical guidance from this day’s health snapshot and recovery
+                signals. Your health data stays on your device.
+              </Text>
+              {renderSuggestions()}
+            </View>
+          ) : (
+            messages.map((message) => {
+              const isUser = message.role === 'user'
+              return (
                 <View
+                  key={message.id}
                   style={[
-                    styles.bubble,
-                    isUser ? styles.userBubble : styles.assistantBubble,
-                    {
-                      backgroundColor: isUser
-                        ? theme.accent
-                        : theme.cardBackground,
-                      borderColor: isUser ? theme.accent : theme.border,
-                    },
+                    styles.messageRow,
+                    isUser ? styles.userRow : styles.assistantRow,
                   ]}
                 >
-                  {!isUser && message.id === firstAssistantId ? (
-                    <Text
-                      style={[styles.caption, { color: theme.subtitleText }]}
-                    >
-                      On-device AI
-                    </Text>
-                  ) : null}
-                  <Text
+                  <View
                     style={[
-                      styles.messageText,
-                      { color: isUser ? theme.selectedText : theme.text },
+                      styles.bubble,
+                      isUser ? styles.userBubble : styles.assistantBubble,
+                      {
+                        backgroundColor: isUser
+                          ? theme.accent
+                          : theme.cardSurface,
+                      },
                     ]}
                   >
-                    {message.content || 'Thinking…'}
-                  </Text>
+                    {!isUser && message.id === firstAssistantId ? (
+                      <Text
+                        selectable
+                        style={[styles.caption, { color: theme.subtitleText }]}
+                      >
+                        On-device AI
+                      </Text>
+                    ) : null}
+                    <Text
+                      selectable
+                      style={[
+                        styles.messageText,
+                        { color: isUser ? theme.selectedText : theme.text },
+                      ]}
+                    >
+                      {message.content || 'Thinking…'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            )
-          })
-        )}
-      </ScrollView>
+              )
+            })
+          )}
+        </ScrollView>
 
-      <View style={[styles.inputWrap, { borderTopColor: theme.separator }]}>
-        <View
-          style={[
-            styles.inputRow,
-            {
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <TextInput
-            testID="coach-input"
-            value={input}
-            onChangeText={setInput}
-            placeholder="Ask about training, recovery, or tomorrow…"
-            placeholderTextColor={theme.subtitleText}
-            editable={!isStreaming}
-            style={[styles.input, { color: theme.text }]}
-            returnKeyType="send"
-            onSubmitEditing={() => void sendMessage(input)}
-          />
-          <Pressable
-            onPress={() => void sendMessage(input)}
-            disabled={isStreaming || input.trim().length === 0}
-            accessibilityState={{
-              disabled: isStreaming || input.trim().length === 0,
-            }}
-            style={({ pressed }) => [
-              styles.sendButton,
-              {
-                backgroundColor: theme.accent,
-                opacity:
-                  pressed || isStreaming || input.trim().length === 0
-                    ? 0.55
-                    : 1,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Send message"
-          >
-            <Ionicons name="send" size={18} color={theme.selectedText} />
-          </Pressable>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+        <SafeAreaView edges={['bottom']} style={styles.composerSafe}>
+          <View style={styles.inputWrap}>
+            <View
+              style={[
+                styles.inputRow,
+                {
+                  backgroundColor: theme.cardSurface,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <TextInput
+                testID="coach-input"
+                accessibilityLabel="Message your coach"
+                value={input}
+                onChangeText={setInput}
+                placeholder="Ask about training, recovery, or tomorrow…"
+                placeholderTextColor={theme.subtitleText}
+                editable={!isStreaming}
+                style={[styles.input, { color: theme.text }]}
+                returnKeyType="send"
+                onSubmitEditing={() => void sendMessage(input)}
+              />
+              <Pressable
+                onPress={() => void sendMessage(input)}
+                disabled={isStreaming || input.trim().length === 0}
+                accessibilityState={{
+                  disabled: isStreaming || input.trim().length === 0,
+                }}
+                style={({ pressed }) => [
+                  styles.sendButton,
+                  {
+                    backgroundColor: theme.accent,
+                    opacity:
+                      pressed || isStreaming || input.trim().length === 0
+                        ? 0.55
+                        : 1,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Send message"
+              >
+                <Ionicons
+                  name="arrow-up"
+                  size={22}
+                  color={theme.selectedText}
+                />
+              </Pressable>
+            </View>
+          </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
@@ -323,38 +334,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  subtitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
-  },
   messages: {
     flex: 1,
   },
   messagesContent: {
-    padding: 20,
-    paddingBottom: 28,
-    gap: 14,
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
+    padding: Layout.gutter,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.lg,
   },
   emptyMessagesContent: {
     flexGrow: 1,
@@ -362,42 +351,41 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    gap: 14,
+    gap: Spacing.lg,
   },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    ...Typography.headingLg,
     textAlign: 'center',
   },
   emptyCopy: {
-    fontSize: 15,
-    lineHeight: 22,
+    ...Typography.bodyMd,
     textAlign: 'center',
-    maxWidth: 320,
+    maxWidth: 440,
   },
   chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 6,
+    width: '100%',
+    maxWidth: 440,
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   chip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    borderRadius: Radii.lg,
+    borderCurve: 'continuous',
+    minHeight: Layout.controlSize,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    justifyContent: 'center',
   },
   chipText: {
-    fontSize: 13,
-    fontWeight: '700',
+    ...Typography.labelLg,
+    textAlign: 'center',
   },
   messageRow: {
     flexDirection: 'row',
@@ -409,11 +397,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   bubble: {
-    maxWidth: '84%',
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    maxWidth: '92%',
+    borderRadius: Radii.xl,
+    borderCurve: 'continuous',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
   userBubble: {
     borderBottomRightRadius: 6,
@@ -422,43 +410,42 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 6,
   },
   caption: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginBottom: 6,
+    ...Typography.labelMd,
+    marginBottom: Spacing.xs,
   },
   messageText: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
+    ...Typography.bodyMd,
+  },
+  composerSafe: {
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
   },
   inputWrap: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 18,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: Spacing.xs,
     borderWidth: 1,
-    borderRadius: 24,
-    paddingLeft: 16,
+    borderRadius: Radii.pill,
+    paddingLeft: Spacing.lg,
     paddingRight: 6,
     paddingVertical: 6,
   },
   input: {
     flex: 1,
-    minHeight: 38,
-    fontSize: 15,
-    fontWeight: '500',
+    minHeight: 48,
+    fontSize: Typography.bodyMd.fontSize,
+    fontWeight: '400',
   },
   sendButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: Layout.controlSize,
+    height: Layout.controlSize,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },

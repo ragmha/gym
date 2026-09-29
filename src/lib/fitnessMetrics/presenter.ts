@@ -1,3 +1,4 @@
+import { DAILY_STEP_GOAL } from '@/lib/dailyGoals'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 import type { RecoveryPresentation } from '@/utils/recovery'
 
@@ -5,7 +6,7 @@ import type { MetricPresentation, MetricStatus } from './types'
 import { METRIC_IDS } from './types'
 
 export const DASHBOARD_GOALS = {
-  stepsGoal: 10_000,
+  stepsGoal: DAILY_STEP_GOAL,
   caloriesGoal: 600,
   sleepGoalHours: 8,
   hrvOptimal: 80,

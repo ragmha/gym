@@ -1,5 +1,11 @@
+import { Ionicons } from '@expo/vector-icons'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
+import { useTheme } from '@/hooks/useThemeColor'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -34,22 +40,10 @@ export class ErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <View style={styles.container}>
-          <Text style={styles.icon}>⚠️</Text>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>
-            {this.state.error?.message ?? 'An unexpected error occurred.'}
-          </Text>
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={this.handleReset}
-          >
-            <Text style={styles.buttonText}>Try Again</Text>
-          </Pressable>
-        </View>
+        <ErrorFallback
+          message={this.state.error?.message ?? 'An unexpected error occurred.'}
+          onReset={this.handleReset}
+        />
       )
     }
 
@@ -57,43 +51,82 @@ export class ErrorBoundary extends Component<
   }
 }
 
+function ErrorFallback({
+  message,
+  onReset,
+}: {
+  message: string
+  onReset: () => void
+}) {
+  const theme = useTheme()
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={[styles.icon, { backgroundColor: theme.cardSurface }]}>
+          <Ionicons name="alert-circle-outline" size={32} color={theme.icon} />
+        </View>
+        <Text
+          accessibilityRole="header"
+          style={[styles.title, { color: theme.text }]}
+        >
+          Something went wrong
+        </Text>
+        <Text
+          selectable
+          accessibilityRole="alert"
+          style={[styles.message, { color: theme.subtitleText }]}
+        >
+          {message}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.button,
+            { backgroundColor: theme.accent, opacity: pressed ? 0.7 : 1 },
+          ]}
+          onPress={onReset}
+        >
+          <Text style={[Typography.labelLg, { color: theme.selectedText }]}>
+            Try Again
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
+  )
+}
+
 const styles = StyleSheet.create({
+  safe: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#151718',
-    padding: 24,
+    padding: Layout.gutter,
+    gap: Spacing.lg,
   },
   icon: {
-    fontSize: 48,
-    marginBottom: 16,
+    width: 72,
+    height: 72,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ECEDEE',
-    marginBottom: 8,
+    ...Typography.headingLg,
+    textAlign: 'center',
   },
   message: {
-    fontSize: 14,
-    color: '#9BA1A6',
+    ...Typography.bodyMd,
     textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 32,
   },
   button: {
-    backgroundColor: '#0a7ea4',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonPressed: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    minHeight: Layout.controlSize,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
   },
 })

@@ -13,7 +13,9 @@ jest.mock('@/hooks/useThemeColor', () => {
 })
 
 const walking: HealthWorkout = {
+  kind: 'other',
   activityName: 'Walking',
+  averageHeartRate: null,
   durationMinutes: 30,
   calories: 150,
   distance: 2_000,
@@ -22,7 +24,9 @@ const walking: HealthWorkout = {
 }
 
 const cycling: HealthWorkout = {
+  kind: 'other',
   activityName: 'Cycling',
+  averageHeartRate: null,
   durationMinutes: 45,
   calories: null,
   distance: null,
@@ -31,6 +35,19 @@ const cycling: HealthWorkout = {
 }
 
 describe('DailyActivityRows', () => {
+  it('can show the full workout list without duplicating metric cards', () => {
+    render(
+      <DailyActivityRows
+        snapshot={makeSnapshot({ workouts: [walking, cycling] })}
+        showSummaryMetrics={false}
+      />,
+    )
+    expect(screen.queryByText('Sleep')).toBeNull()
+    expect(screen.queryByText('Active calories')).toBeNull()
+    expect(screen.getByText('Walking')).toBeTruthy()
+    expect(screen.getByText('Cycling')).toBeTruthy()
+  })
+
   it('renders sleep and actual workouts newest first without mutating the snapshot', () => {
     const snapshot = makeSnapshot({
       sleepHours: 7.5,

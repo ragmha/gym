@@ -50,6 +50,7 @@ const emptySnapshot: DailyHealthSnapshot = {
   waterLiters: null,
   flightsClimbed: null,
   bodyMassKg: null,
+  bodyMassHistory: null,
   dietaryCalories: null,
   workouts: [],
 }
@@ -70,6 +71,7 @@ describe('SettingsScreen Health access', () => {
     mockSource = {
       getDailySnapshot: jest.fn(async (_date: Date) => emptySnapshot),
       getRangeIntensity: jest.fn(async (_daysBack: number) => new Map()),
+      subscribeToWorkoutChanges: jest.fn((_onChange: () => void) => null),
       requestAuthorization: jest.fn(async () => true),
       isAvailable: jest.fn(() => true),
     }

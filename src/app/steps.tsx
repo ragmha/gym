@@ -1,44 +1,24 @@
 import { Ionicons } from '@expo/vector-icons'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useEffect, useState } from 'react'
-import {
-  Alert,
-  Keyboard,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native'
+import React, { useCallback, useState } from 'react'
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { ActivityRings } from '@/components/charts/ActivityRings'
+import { ScreenHeader } from '@/components/common/ScreenHeader'
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
+import { HealthReadState } from '@/components/health/HealthReadState'
+import {
+  Elevation,
+  Layout,
+  Radii,
+  Spacing,
+  Typography,
+} from '@/constants/DesignSystem'
+import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
-
-// ── Constants ─────────────────────────────────────────────────────────
-
-const DEFAULT_STEPS_GOAL = 10_000
-const STORAGE_KEY = 'steps-goal'
-
-// Design palette (matches reference image)
-const BG = '#111214'
-const HEADER_BTN = '#2A2C31'
-const ORANGE = '#E8873D'
-const GRAY_RING = '#8E8E93'
-const BLUE = '#2D7CF6'
-const RING_BG = 'rgba(255,255,255,0.06)'
-const TEXT_PRIMARY = '#FFFFFF'
-const TEXT_SECONDARY = '#8A8E96'
-
-const CALORIES_TARGET = 600 // kcal reference for ring
-
-// ── Component ───────────────────────────────────────────────────────
+import { useTheme } from '@/hooks/useThemeColor'
+import { DAILY_STEP_GOAL } from '@/lib/dailyGoals'
 
 export default function StepsScreen() {
   return (
@@ -47,388 +27,261 @@ export default function StepsScreen() {
 }
 
 function StepsForDate({ date }: { date: Date }) {
-  const router = useRouter()
-  const { snapshot } = useHealthSnapshot(date)
+  const theme = useTheme()
+  const colorScheme = useColorScheme()
+  const { snapshot, status, error, isDemoMode, refresh } =
+    useHealthSnapshot(date)
+  const [refreshing, setRefreshing] = useState(false)
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      await refresh()
+    } finally {
+      setRefreshing(false)
+    }
+  }, [refresh])
   const steps = snapshot?.steps ?? null
   const calories = snapshot?.calories ?? null
-  const [stepsGoal, setStepsGoal] = useState(DEFAULT_STEPS_GOAL)
-  const [showGoalModal, setShowGoalModal] = useState(false)
-  const [goalInput, setGoalInput] = useState('')
-
-  // Load persisted goal
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((val) => {
-      if (val) {
-        const parsed = parseInt(val, 10)
-        if (!Number.isNaN(parsed) && parsed > 0) setStepsGoal(parsed)
-      }
-    })
-  }, [])
-
-  const saveGoal = useCallback(() => {
-    const trimmed = goalInput.trim()
-    if (!trimmed) {
-      setShowGoalModal(false)
-      return
-    }
-    const parsed = parseInt(trimmed, 10)
-    if (Number.isNaN(parsed) || parsed <= 0 || parsed > 200_000) {
-      if (Platform.OS === 'web') {
-        alert('Enter a valid step goal (1 – 200,000).')
-      } else {
-        Alert.alert('Invalid goal', 'Enter a number between 1 and 200,000.')
-      }
-      return
-    }
-    setStepsGoal(parsed)
-    AsyncStorage.setItem(STORAGE_KEY, String(parsed))
-    setGoalInput('')
-    setShowGoalModal(false)
-    Keyboard.dismiss()
-  }, [goalInput])
-
-  // Ring progress (0–1)
-  const stepsProgress = steps === null ? 0 : Math.min(steps / stepsGoal, 1)
-  const caloriesProgress =
-    calories === null ? 0 : Math.min(calories / CALORIES_TARGET, 1)
-
-  const rings = [
-    { progress: stepsProgress, color: ORANGE, bgColor: RING_BG },
-    // Walking distance is not part of the snapshot; never estimate it from steps.
-    { progress: 0, color: GRAY_RING, bgColor: RING_BG },
-    { progress: caloriesProgress, color: BLUE, bgColor: RING_BG },
-  ]
+  const stepsProgress =
+    steps === null ? 0 : Math.min(steps / DAILY_STEP_GOAL, 1)
+  const remaining = steps === null ? null : Math.max(DAILY_STEP_GOAL - steps, 0)
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <SafeAreaView style={styles.safeArea}>
-        {/* ── Header ─────────────────────────────────────────── */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => router.back()}
-            hitSlop={12}
-          >
-            <Ionicons name="chevron-back" size={22} color={TEXT_PRIMARY} />
-          </TouchableOpacity>
-
-          <View>
-            <Text style={styles.headerTitle}>Steps Taken</Text>
-            <Text style={styles.headerDate}>
-              {date.toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => {
-              setGoalInput(String(stepsGoal))
-              setShowGoalModal(true)
-            }}
-            hitSlop={12}
-          >
-            <Ionicons
-              name="settings-outline"
-              size={20}
-              color={TEXT_SECONDARY}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Content ────────────────────────────────────────── */}
-        <View style={styles.content}>
-          {/* Activity rings */}
-          <View style={styles.ringsWrapper}>
-            <ActivityRings
-              rings={rings}
-              size={280}
-              strokeWidth={22}
-              gap={4}
-              duration={1400}
-            >
-              <View style={styles.centerIcon}>
-                <Ionicons name="footsteps" size={30} color={TEXT_PRIMARY} />
-              </View>
-            </ActivityRings>
-          </View>
-
-          {/* Step count */}
-          <Text
-            style={styles.heroSteps}
-            accessibilityLabel={
-              steps === null ? 'Steps unavailable' : `${steps} steps`
-            }
-          >
-            {steps === null ? '--' : steps.toLocaleString()}
+    <SafeAreaView
+      testID="steps-screen"
+      style={[styles.container, { backgroundColor: theme.homeBackground }]}
+      edges={['top', 'left', 'right']}
+    >
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <ScreenHeader
+        title="Steps Taken"
+        subtitle={date.toLocaleDateString(undefined, {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })}
+      />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl
+            testID="steps-refresh"
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.accent}
+          />
+        }
+      >
+        {isDemoMode && (
+          <Text style={[styles.demo, { color: theme.subtitleText }]}>
+            Demo data - Apple Health is available on iOS.
           </Text>
-          <Text style={styles.heroLabel}>total steps</Text>
-
-          {/* Bottom stat cards */}
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: ORANGE }]}>
-                <Ionicons name="flame" size={22} color={TEXT_PRIMARY} />
+        )}
+        {status === 'loading' && !snapshot ? (
+          <HealthReadState loading />
+        ) : status === 'error' ? (
+          <HealthReadState error={error} onRetry={onRefresh} />
+        ) : (
+          <>
+            <View style={styles.overview}>
+              <View style={styles.activityHeading}>
+                <View
+                  style={[
+                    styles.activityIcon,
+                    { backgroundColor: theme.cardSurface },
+                  ]}
+                >
+                  <Ionicons name="walk-outline" size={32} color={theme.text} />
+                </View>
+                <Text style={[Typography.headingMd, { color: theme.text }]}>
+                  Daily steps
+                </Text>
               </View>
               <Text
-                style={styles.statValue}
+                selectable
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                style={[styles.heroSteps, { color: theme.text }]}
                 accessibilityLabel={
-                  calories === null
-                    ? 'Calories unavailable'
-                    : `${calories} kcal`
+                  steps === null ? 'Steps unavailable' : `${steps} steps`
                 }
               >
-                {calories === null ? '--' : calories}
+                {steps === null ? '--' : steps.toLocaleString()}
               </Text>
-              <Text style={styles.statLabel}>kcal</Text>
+              <Text style={[Typography.bodyLg, { color: theme.subtitleText }]}>
+                of {DAILY_STEP_GOAL.toLocaleString()} daily steps
+              </Text>
+              {steps !== null && (
+                <View
+                  testID="steps-progress"
+                  accessible
+                  accessibilityRole="progressbar"
+                  accessibilityLabel="Daily step goal"
+                  accessibilityValue={{
+                    min: 0,
+                    max: DAILY_STEP_GOAL,
+                    now: Math.min(steps, DAILY_STEP_GOAL),
+                    text: `${steps.toLocaleString()} of ${DAILY_STEP_GOAL.toLocaleString()} steps`,
+                  }}
+                  style={[styles.track, { backgroundColor: theme.separator }]}
+                >
+                  <View
+                    style={[
+                      styles.fill,
+                      {
+                        width: `${stepsProgress * 100}%`,
+                        backgroundColor: theme.progress,
+                      },
+                    ]}
+                  />
+                </View>
+              )}
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                {remaining === null
+                  ? 'No step reading available'
+                  : remaining === 0
+                    ? 'Daily goal met'
+                    : `${remaining.toLocaleString()} ${remaining === 1 ? 'step' : 'steps'} to go`}
+              </Text>
             </View>
 
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: '#5A5C62' }]}>
-                <Ionicons name="location" size={22} color={TEXT_PRIMARY} />
-              </View>
+            <View
+              style={[styles.panel, { backgroundColor: theme.cardBackground }]}
+            >
               <Text
-                style={styles.statValue}
-                accessibilityLabel="Walking distance unavailable"
+                accessibilityRole="header"
+                style={[Typography.headingMd, { color: theme.text }]}
               >
-                --
+                Daily readings
               </Text>
-              <Text style={styles.statLabel}>kilometer</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: BLUE }]}>
-                <Ionicons name="time" size={22} color={TEXT_PRIMARY} />
+              <View style={[styles.statRow, { borderColor: theme.separator }]}>
+                <Text style={[styles.statLabel, { color: theme.subtitleText }]}>
+                  Active calories
+                </Text>
+                <Text
+                  selectable
+                  style={[styles.statValue, { color: theme.text }]}
+                  accessibilityLabel={
+                    calories === null
+                      ? 'Calories unavailable'
+                      : `${calories} kcal`
+                  }
+                >
+                  {calories === null ? '--' : calories.toLocaleString()}{' '}
+                  <Text style={Typography.bodySm}>kcal</Text>
+                </Text>
               </View>
-              <Text
-                style={styles.statValue}
-                accessibilityLabel="Active minutes unavailable"
-              >
-                --
+              <View style={[styles.statRow, { borderColor: theme.separator }]}>
+                <Text style={[styles.statLabel, { color: theme.subtitleText }]}>
+                  Walking distance
+                </Text>
+                <Text
+                  selectable
+                  style={[styles.statValue, { color: theme.text }]}
+                  accessibilityLabel="Walking distance unavailable"
+                >
+                  -- <Text style={Typography.bodySm}>km</Text>
+                </Text>
+              </View>
+              <View style={[styles.statRow, { borderColor: theme.separator }]}>
+                <Text style={[styles.statLabel, { color: theme.subtitleText }]}>
+                  Active minutes
+                </Text>
+                <Text
+                  selectable
+                  style={[styles.statValue, { color: theme.text }]}
+                  accessibilityLabel="Active minutes unavailable"
+                >
+                  -- <Text style={Typography.bodySm}>min</Text>
+                </Text>
+              </View>
+              <Text style={[styles.note, { color: theme.subtitleText }]}>
+                Distance and active minutes are not included in this daily
+                snapshot.
               </Text>
-              <Text style={styles.statLabel}>minute</Text>
             </View>
-          </View>
-        </View>
-      </SafeAreaView>
-
-      {/* ── Goal modal ───────────────────────────────────────── */}
-      <Modal
-        visible={showGoalModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowGoalModal(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowGoalModal(false)}
-        >
-          <Pressable style={styles.modalSheet} onPress={Keyboard.dismiss}>
-            <Text style={styles.modalTitle}>Set Step Goal</Text>
-            <Text style={styles.modalSubtitle}>
-              Current goal: {stepsGoal.toLocaleString()} steps
+            <Text style={[styles.source, { color: theme.subtitleText }]}>
+              Read from Apple Health. Pull down to refresh.
             </Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="e.g. 10000"
-              placeholderTextColor="#666"
-              keyboardType="number-pad"
-              returnKeyType="done"
-              value={goalInput}
-              onChangeText={setGoalInput}
-              onSubmitEditing={saveGoal}
-              autoFocus
-              selectTextOnFocus
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalCancel}
-                onPress={() => setShowGoalModal(false)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalSave} onPress={saveGoal}>
-                <Text style={styles.modalSaveText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </View>
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
-// ── Styles ──────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
+  container: { flex: 1 },
+  content: {
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingBottom: Spacing.xxxl,
+    gap: Spacing.xl,
   },
-  safeArea: {
-    flex: 1,
+  overview: {
+    paddingHorizontal: Layout.gutter,
+    paddingTop: Spacing.xl,
+    gap: Spacing.sm,
   },
-
-  // ── Header ────────────────────────────────────────────────────
-  header: {
+  activityHeading: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
   },
-  headerBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: HEADER_BTN,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    color: TEXT_PRIMARY,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  headerDate: {
-    color: TEXT_SECONDARY,
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-
-  // ── Content ───────────────────────────────────────────────────
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-
-  // ── Rings ─────────────────────────────────────────────────────
-  ringsWrapper: {
-    marginBottom: 28,
-  },
-  centerIcon: {
+  activityIcon: {
     width: 64,
     height: 64,
-    borderRadius: 16,
-    backgroundColor: '#0A0B0D',
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // ── Hero text ─────────────────────────────────────────────────
   heroSteps: {
-    color: TEXT_PRIMARY,
-    fontSize: 48,
-    fontWeight: '800',
-    letterSpacing: -1,
+    ...Typography.displayLg,
+    fontVariant: ['tabular-nums'],
   },
-  heroLabel: {
-    color: TEXT_SECONDARY,
-    fontSize: 16,
-    fontWeight: '500',
-    marginTop: 2,
-    marginBottom: 44,
+  track: {
+    height: 4,
+    borderRadius: Radii.pill,
+    overflow: 'hidden',
+    marginTop: Spacing.md,
   },
-
-  // ── Bottom stat cards ─────────────────────────────────────────
-  statsRow: {
+  fill: {
+    height: '100%',
+    borderRadius: Radii.pill,
+  },
+  panel: {
+    ...Elevation.soft,
+    marginHorizontal: Spacing.sm,
+    borderRadius: Radii.panel,
+    borderCurve: 'continuous',
+    padding: Spacing.xl,
+  },
+  statRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  statCard: {
+    flexWrap: 'wrap',
     alignItems: 'center',
-    flex: 1,
-  },
-  statIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  statValue: {
-    color: TEXT_PRIMARY,
-    fontSize: 24,
-    fontWeight: '800',
+    justifyContent: 'space-between',
+    columnGap: Spacing.md,
+    rowGap: Spacing.xxs,
+    paddingVertical: Spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   statLabel: {
-    color: TEXT_SECONDARY,
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 2,
+    ...Typography.bodyMd,
+    flexGrow: 1,
+    flexShrink: 1,
   },
-
-  // ── Goal modal ────────────────────────────────────────────────
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  statValue: {
+    ...Typography.numericMd,
+    flexShrink: 1,
   },
-  modalSheet: {
-    backgroundColor: '#1C1E24',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 40,
+  note: { ...Typography.bodySm, paddingTop: Spacing.lg },
+  source: {
+    ...Typography.bodySm,
+    marginHorizontal: Layout.gutter,
   },
-  modalTitle: {
-    color: TEXT_PRIMARY,
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    color: TEXT_SECONDARY,
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  modalInput: {
-    color: TEXT_PRIMARY,
-    fontSize: 24,
-    fontWeight: '700',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'flex-end',
-  },
-  modalCancel: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  modalCancelText: {
-    color: TEXT_SECONDARY,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  modalSave: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: ORANGE,
-  },
-  modalSaveText: {
-    color: TEXT_PRIMARY,
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  demo: { ...Typography.bodySm, marginHorizontal: Layout.gutter },
 })
