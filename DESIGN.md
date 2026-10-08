@@ -59,9 +59,12 @@ not completion colors.
   unavailable distance/minute readings are grouped below; there are no
   calorie-progress rings, invented distance, or estimated active minutes.
 - **All metrics:** Activity, Recovery & sleep, and Body & intake use grouped
-  rows rather than a grid of decorative progress charts. All workout rows,
-  coach insight, and the recent-activity heatmap remain available. Intake and
-  hydration readings do not present decorative targets as personalized goals.
+  compact name/value rows without repeated source or missing-reading captions.
+  "Latest weight" and "Recovery estimate" retain essential context in the labels.
+  All workouts and the recent-activity heatmap remain visible. Coach insight
+  is collapsed below the readings; source, recovery, and heatmap explanations
+  share one collapsed "About these readings" control. Intake and hydration
+  readings do not present decorative targets as personalized goals.
 - **Settings:** inset groups, a single Health-access action, and full-width
   theme radio rows. Authorization completion still does not claim read access.
 - **Add weight:** an action beside Morning weight opens a focused modal in the

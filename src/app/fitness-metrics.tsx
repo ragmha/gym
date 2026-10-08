@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
   Pressable,
   RefreshControl,
@@ -71,17 +71,12 @@ function MetricRow({
 }) {
   const theme = useTheme()
   const Wrapper = onPress ? Pressable : View
-  const subtitle = [
-    'calories',
-    'flights-climbed',
-    'hydration',
-    'nutrition-intake',
-    'sleep',
-  ].includes(metric.id)
-    ? metric.status === 'empty'
-      ? 'No reading available'
-      : 'Recorded in Apple Health'
-    : metric.subtitle
+  const label =
+    metric.id === 'body-mass'
+      ? 'Latest weight'
+      : metric.id === 'recovery'
+        ? 'Recovery estimate'
+        : metric.label
   return (
     <Wrapper
       style={[
@@ -89,22 +84,20 @@ function MetricRow({
         { borderColor: last ? 'transparent' : theme.separator },
       ]}
       onPress={onPress}
+      accessible
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={
-        onPress ? `${metric.label} ${metric.value}` : undefined
+        metric.status === 'empty'
+          ? `${label} unavailable`
+          : `${label} ${metric.value}${metric.unit ? ` ${metric.unit}` : ''}`
       }
       accessibilityHint={
-        onPress ? 'Opens step details for the selected day' : undefined
+        onPress
+          ? `${metric.subtitle}. Opens step details for the selected day`
+          : undefined
       }
     >
-      <View style={styles.metricCopy}>
-        <Text style={[Typography.bodyMd, { color: theme.text }]}>
-          {metric.label}
-        </Text>
-        <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
-          {subtitle}
-        </Text>
-      </View>
+      <Text style={[styles.metricLabel, { color: theme.text }]}>{label}</Text>
       <View style={styles.metricReading}>
         <Text selectable style={[styles.metricValue, { color: theme.text }]}>
           {metric.value}
@@ -120,6 +113,43 @@ function MetricRow({
         )}
       </View>
     </Wrapper>
+  )
+}
+
+function ReadingDisclosure({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  const theme = useTheme()
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <View>
+      <Pressable
+        onPress={() => setExpanded((current) => !current)}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ expanded }}
+        aria-expanded={expanded}
+        style={({ pressed }) => [
+          styles.disclosureButton,
+          { opacity: pressed ? 0.6 : 1 },
+        ]}
+      >
+        <Text style={[styles.disclosureTitle, { color: theme.accent }]}>
+          {title}
+        </Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={theme.accent}
+        />
+      </Pressable>
+      {expanded && <View style={styles.disclosureContent}>{children}</View>}
+    </View>
   )
 }
 
@@ -215,7 +245,7 @@ function FitnessMetricsForDate({ date }: { date: Date }) {
       >
         {isDemoMode && (
           <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
-            Demo data - Apple Health is available on iOS.
+            Demo data
           </Text>
         )}
         {status === 'loading' && !snapshot ? (
@@ -224,7 +254,6 @@ function FitnessMetricsForDate({ date }: { date: Date }) {
           <HealthReadState error={error} onRetry={onRefresh} />
         ) : (
           <>
-            <CoachInsightCard insight={insight} status={insightStatus} />
             {METRIC_GROUPS.map((group) => {
               const rows = metrics.filter((metric) =>
                 group.ids.includes(metric.id),
@@ -256,7 +285,38 @@ function FitnessMetricsForDate({ date }: { date: Date }) {
               )
             })}
             <DailyActivityRows snapshot={snapshot} showSummaryMetrics={false} />
-            <ActivityHeatmap title="Recent activity" />
+            {(insight || insightStatus === 'loading') && (
+              <ReadingDisclosure
+                key={`coach-${localDateKey(date)}`}
+                title="Coach insight"
+              >
+                <CoachInsightCard insight={insight} status={insightStatus} />
+              </ReadingDisclosure>
+            )}
+            <ActivityHeatmap title="Recent activity" showNotes={false} />
+            <ReadingDisclosure
+              key={`about-${localDateKey(date)}`}
+              title="About these readings"
+            >
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                Readings come from Apple Health on iOS. Web and Android show
+                demo data. -- means unavailable, not zero.
+              </Text>
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                Step goal: {DASHBOARD_GOALS.stepsGoal.toLocaleString()} per day.
+                Weight is the latest weigh-in, not necessarily from this day.
+              </Text>
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                Recovery is estimated from HRV, resting heart rate, and sleep.
+              </Text>
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                {recovery?.label ?? 'Not enough recovery data'}
+              </Text>
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                Recent activity combines steps and workouts, not measured step
+                counts. Blank squares may mean no readings.
+              </Text>
+            </ReadingDisclosure>
           </>
         )}
       </ScrollView>
@@ -275,7 +335,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.xxxl,
-    gap: Spacing.xl,
+    gap: Spacing.lg,
   },
   group: { gap: Spacing.sm },
   groupTitle: { ...Typography.headingMd, paddingHorizontal: Spacing.xxs },
@@ -291,14 +351,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     columnGap: Spacing.md,
     rowGap: Spacing.xs,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    minHeight: 80,
+    minHeight: 56,
   },
-  metricCopy: {
+  metricLabel: {
+    ...Typography.bodyMd,
     flex: 1,
     minWidth: 120,
-    gap: Spacing.xxs,
   },
   metricReading: {
     flexDirection: 'row',
@@ -308,6 +368,24 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     ...Typography.numericMd,
+    fontSize: 24,
+    lineHeight: 32,
     flexShrink: 1,
+  },
+  disclosureButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xxs,
+  },
+  disclosureTitle: {
+    ...Typography.labelLg,
+    flex: 1,
+  },
+  disclosureContent: {
+    gap: Spacing.sm,
+    paddingBottom: Spacing.sm,
   },
 })

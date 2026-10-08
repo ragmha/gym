@@ -101,6 +101,10 @@ jest.mock('@/hooks/useThemeColor', () => {
 beforeEach(() => {
   mockSnapshot = null
   jest.clearAllMocks()
+  jest.mocked(useDailyCoachInsight).mockReturnValue({
+    insight: null,
+    status: 'idle',
+  })
   jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-12' })
 })
 
@@ -224,15 +228,116 @@ describe('HomeScreen health data', () => {
 })
 
 describe('FitnessMetricsScreen health data', () => {
+  it('leads with all measurements instead of repeated explanations', () => {
+    mockSnapshot = completeSnapshot
+    const { getByText, getByRole, queryByText } = render(
+      <FitnessMetricsScreen />,
+    )
+
+    for (const label of [
+      'Steps',
+      'Calories',
+      'Flights Climbed',
+      'Recovery estimate',
+      'Sleep',
+      'Heart Rate',
+      'HRV',
+      'Resting HR',
+      'Latest weight',
+      'Hydration',
+      'Calories Eaten',
+    ]) {
+      expect(getByText(label)).toBeTruthy()
+    }
+    expect(queryByText('Recorded in Apple Health')).toBeNull()
+    expect(queryByText('No reading available')).toBeNull()
+    expect(queryByText('Goal: 20,000')).toBeNull()
+    expect(queryByText('Latest weigh-in')).toBeNull()
+    expect(
+      getByRole('button', { name: 'About these readings' }).props
+        .accessibilityState,
+    ).toEqual({ expanded: false })
+  })
+
+  it('keeps data caveats available behind a single expandable explanation', () => {
+    mockSnapshot = completeSnapshot
+    const { getByText, getByRole, queryByText } = render(
+      <FitnessMetricsScreen />,
+    )
+    const about = getByRole('button', { name: 'About these readings' })
+
+    expect(queryByText(/means unavailable, not zero/)).toBeNull()
+    fireEvent.press(about)
+    expect(about.props.accessibilityState).toEqual({ expanded: true })
+    expect(getByText(/means unavailable, not zero/)).toBeTruthy()
+    expect(getByText(/Weight is the latest weigh-in/)).toBeTruthy()
+    expect(getByText(/Recovery is estimated/)).toBeTruthy()
+    expect(getByText(/not measured step counts/)).toBeTruthy()
+
+    fireEvent.press(about)
+    expect(queryByText(/means unavailable, not zero/)).toBeNull()
+    expect(about.props.accessibilityState).toEqual({ expanded: false })
+    expect(getByText('78.4 kg')).toBeTruthy()
+  })
+
+  it('keeps coach prose collapsed without removing access to the full insight', () => {
+    mockSnapshot = completeSnapshot
+    jest.mocked(useDailyCoachInsight).mockReturnValue({
+      insight: {
+        headline: 'Your daily insight',
+        body: 'Insight body for this day.',
+        suggestion: 'A suggestion for this day.',
+        tone: 'steady',
+      },
+      status: 'ready',
+    })
+    const { getByText, getByRole, queryByText } = render(
+      <FitnessMetricsScreen />,
+    )
+    const coach = getByRole('button', { name: 'Coach insight' })
+
+    expect(queryByText('Your daily insight')).toBeNull()
+    expect(queryByText('Insight body for this day.')).toBeNull()
+    expect(coach.props.accessibilityState).toEqual({ expanded: false })
+
+    fireEvent.press(coach)
+    expect(getByText('Your daily insight')).toBeTruthy()
+    expect(getByText('Insight body for this day.')).toBeTruthy()
+    expect(getByText('A suggestion for this day.')).toBeTruthy()
+    fireEvent.press(coach)
+    expect(queryByText('Insight body for this day.')).toBeNull()
+  })
+
+  it('collapses explanations when the selected date changes', () => {
+    const { getByRole, queryByText, rerender } = render(
+      <FitnessMetricsScreen />,
+    )
+    fireEvent.press(getByRole('button', { name: 'About these readings' }))
+    expect(queryByText(/means unavailable, not zero/)).toBeTruthy()
+
+    jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-11' })
+    rerender(<FitnessMetricsScreen />)
+    expect(queryByText(/means unavailable, not zero/)).toBeNull()
+    expect(
+      getByRole('button', { name: 'About these readings' }).props
+        .accessibilityState,
+    ).toEqual({ expanded: false })
+  })
+
   it.each([null, missingSnapshot])(
     'does not send a fabricated recovery assessment to the coach: %j',
     (snapshot) => {
       mockSnapshot = snapshot
-      const { getByText, queryByText } = render(<FitnessMetricsScreen />)
+      const { getByText, getByRole, getByLabelText, queryByText } = render(
+        <FitnessMetricsScreen />,
+      )
 
-      expect(getByText('Not enough recovery data')).toBeTruthy()
+      expect(queryByText('Not enough recovery data')).toBeNull()
+      expect(getByLabelText('Recovery estimate unavailable')).toBeTruthy()
       expect(getByText('-- %')).toBeTruthy()
       expect(queryByText('Under-recovered')).toBeNull()
+      fireEvent.press(getByRole('button', { name: 'About these readings' }))
+      expect(getByText('Not enough recovery data')).toBeTruthy()
       expect(useDailyCoachInsight).toHaveBeenLastCalledWith({
         snapshot,
         recovery: null,

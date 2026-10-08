@@ -33,6 +33,7 @@ const MONTH_LABELS = [
 
 interface ActivityHeatmapProps {
   title?: string
+  showNotes?: boolean
 }
 
 /** Map the combined activity score to a relative intensity level 0-4. */
@@ -87,7 +88,10 @@ function buildMonthHeaders(
   return headers
 }
 
-export function ActivityHeatmap({ title = 'Activity' }: ActivityHeatmapProps) {
+export function ActivityHeatmap({
+  title = 'Activity',
+  showNotes = true,
+}: ActivityHeatmapProps) {
   const [containerWidth, setContainerWidth] = useState(0)
   const { fontScale } = useWindowDimensions()
   const theme = useTheme()
@@ -263,12 +267,16 @@ export function ActivityHeatmap({ title = 'Activity' }: ActivityHeatmapProps) {
           </View>
         </View>
       </ScrollView>
-      <Text style={[styles.note, { color: subtitleColor }]}>
-        Based on available step and workout readings.
-      </Text>
-      <Text style={[styles.note, { color: subtitleColor }]}>
-        Blank squares include days with no reading.
-      </Text>
+      {showNotes && (
+        <>
+          <Text style={[styles.note, { color: subtitleColor }]}>
+            Based on available step and workout readings.
+          </Text>
+          <Text style={[styles.note, { color: subtitleColor }]}>
+            Blank squares include days with no reading.
+          </Text>
+        </>
+      )}
     </View>
   )
 }

@@ -88,6 +88,30 @@ describe('ActivityHeatmap sizing', () => {
     ).toBeTruthy()
   })
 
+  it('can omit prose notes without hiding the relative-activity label or readings', async () => {
+    jest
+      .mocked(healthSnapshot.getRangeIntensity)
+      .mockResolvedValue(new Map([['2026-09-20', 5_000]]))
+    render(<ActivityHeatmap showNotes={false} />)
+
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText(
+          'September 20, 2026: Relative activity level 2 of 4',
+        ),
+      ).toBeTruthy(),
+    )
+    expect(
+      screen.getByText('Relative activity over the last 15 weeks'),
+    ).toBeTruthy()
+    expect(
+      screen.queryByText('Based on available step and workout readings.'),
+    ).toBeNull()
+    expect(
+      screen.queryByText('Blank squares include days with no reading.'),
+    ).toBeNull()
+  })
+
   it.each([256, 310, 348, 350])(
     'fits every week inside the actual %s-point container, including its padding',
     async (width) => {
