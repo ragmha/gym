@@ -79,14 +79,14 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
       if (isDemoMode) return
 
       let pollInFlight = false
-      // HealthKit's observer can miss late-synced workouts that started earlier.
+      // ponytail: reconcile missed imports every five minutes; observer updates stay immediate.
       const interval = setInterval(() => {
         if (AppState.currentState !== 'active' || pollInFlight) return
         pollInFlight = true
         void refresh().finally(() => {
           pollInFlight = false
         })
-      }, 30_000)
+      }, 5 * 60_000)
       return () => clearInterval(interval)
     }, [refresh, isDemoMode]),
   )

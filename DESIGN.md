@@ -120,8 +120,14 @@ coach behavior, native capabilities, or stored preferences. Missing values
 remain `--`, observed zeroes remain visible, StairMaster intensity stays
 unverified, and the PPL program stays unconfigured.
 
+While Home stays focused and active, a five-minute fallback catches delayed
+workout imports missed by the native observer. Observer notifications, app
+foregrounding, and pull-to-refresh do not wait for that fallback.
+
 The separately approved weight-entry feature adds a narrow writer port and the
-native date/time/application dependencies in runtime 1.0.7. It does not change
+native date/time/application dependencies, gated to compatible 1.0.7-or-later
+binaries. The updated Expo native dependency stack uses runtime 1.0.8 and requires
+a new binary, not an OTA to 1.0.6 or 1.0.7. Weight entry does not change
 the read contract, morning-window calculations, or storage architecture. It
 reports success only for an actual native saved body-mass sample, marks manual
 entry with HealthKit metadata, and never manufactures a read-back value.

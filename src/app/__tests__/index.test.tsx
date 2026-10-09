@@ -452,7 +452,7 @@ describe('HomeScreen', () => {
     expect(mockState.requestAuthorization).not.toHaveBeenCalled()
   })
 
-  it('catches a late-synced workout without an observer notification while home stays active', async () => {
+  it('catches a late-synced workout on the five-minute fallback, not every 30 seconds', async () => {
     mockRefresh.mockImplementation(async () => {
       mockState = {
         ...mockState,
@@ -475,7 +475,9 @@ describe('HomeScreen', () => {
     const { rerender } = render(<HomeScreen />)
     act(focusHome)
     expect(mockRefresh).not.toHaveBeenCalled()
-    await act(async () => jest.advanceTimersByTime(30_000))
+    await act(async () => jest.advanceTimersByTime(5 * 60_000 - 1))
+    expect(mockRefresh).not.toHaveBeenCalled()
+    await act(async () => jest.advanceTimersByTime(1))
     rerender(<HomeScreen />)
 
     expect(mockRefresh).toHaveBeenCalledTimes(1)
@@ -485,23 +487,32 @@ describe('HomeScreen', () => {
     expect(screen.queryByText('Goal met')).toBeNull()
   })
 
+  it('limits periodic refreshes to twelve per hour while home stays active', async () => {
+    render(<HomeScreen />)
+    act(focusHome)
+
+    await act(async () => jest.advanceTimersByTimeAsync(60 * 60_000))
+
+    expect(mockRefresh).toHaveBeenCalledTimes(12)
+  })
+
   it('does not poll demo data, backgrounded home, or home after blur', async () => {
     const { rerender } = render(<HomeScreen />)
     act(focusHome)
     Object.defineProperty(AppState, 'currentState', { value: 'background' })
-    await act(async () => jest.advanceTimersByTime(60_000))
+    await act(async () => jest.advanceTimersByTime(15 * 60_000))
     expect(mockRefresh).not.toHaveBeenCalled()
 
     focusCleanup?.()
     Object.defineProperty(AppState, 'currentState', { value: 'active' })
-    await act(async () => jest.advanceTimersByTime(60_000))
+    await act(async () => jest.advanceTimersByTime(15 * 60_000))
     expect(mockRefresh).not.toHaveBeenCalled()
 
     mockState = { ...mockState, isDemoMode: true }
     rerender(<HomeScreen />)
     act(focusHome)
     const callsAfterFocus = mockRefresh.mock.calls.length
-    await act(async () => jest.advanceTimersByTime(60_000))
+    await act(async () => jest.advanceTimersByTime(15 * 60_000))
     expect(mockRefresh).toHaveBeenCalledTimes(callsAfterFocus)
   })
 
@@ -515,7 +526,7 @@ describe('HomeScreen', () => {
     )
     render(<HomeScreen />)
     act(focusHome)
-    await act(async () => jest.advanceTimersByTime(90_000))
+    await act(async () => jest.advanceTimersByTime(15 * 60_000))
     expect(mockRefresh).toHaveBeenCalledTimes(1)
     await act(async () => finish?.())
   })
