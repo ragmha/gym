@@ -352,7 +352,7 @@ describe('HomeScreen', () => {
     ])
   })
 
-  it('opens weight entry for the selected day and rereads Health on returning without optimistic data', async () => {
+  it('keeps the selected day after weight entry without synthesizing a returned reading', async () => {
     mockInitialParams = { date: '2026-09-11' }
     mockState = {
       ...mockState,
@@ -366,7 +366,7 @@ describe('HomeScreen', () => {
       params: { date: '2026-09-11' },
     })
     await act(async () => focusHome())
-    expect(mockRefresh).toHaveBeenCalledTimes(1)
+    expect(mockRefresh).not.toHaveBeenCalled()
     expect(
       jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
     ).toBe(new Date(2026, 8, 11).toDateString())
@@ -405,7 +405,15 @@ describe('HomeScreen', () => {
     ).toBeTruthy()
   })
 
-  it('refreshes the selected day after returning from Health access settings', async () => {
+  it('leaves immediate focus refreshes to the shared snapshot hook', () => {
+    render(<HomeScreen />)
+    act(focusHome)
+    act(focusHome)
+
+    expect(mockRefresh).not.toHaveBeenCalled()
+  })
+
+  it('keeps the fallback on the selected day after returning from Health access settings', async () => {
     mockState = { ...mockState, snapshot: null }
     const { rerender } = render(<HomeScreen />)
     act(focusHome)
@@ -426,6 +434,8 @@ describe('HomeScreen', () => {
     })
 
     await act(async () => focusHome())
+    expect(mockRefresh).not.toHaveBeenCalled()
+    await act(async () => jest.advanceTimersByTime(5 * 60_000))
     rerender(<HomeScreen />)
 
     expect(mockRefresh).toHaveBeenCalledTimes(1)
@@ -436,12 +446,13 @@ describe('HomeScreen', () => {
     expect(mockState.requestAuthorization).not.toHaveBeenCalled()
   })
 
-  it('keeps unavailable data honest when returning without read access', async () => {
+  it('keeps unavailable data honest when the fallback runs without read access', async () => {
     mockState = { ...mockState, snapshot: null }
     render(<HomeScreen />)
     act(focusHome)
 
     await act(async () => focusHome())
+    await act(async () => jest.advanceTimersByTime(5 * 60_000))
 
     expect(mockRefresh).toHaveBeenCalledTimes(1)
     expect(screen.queryByLabelText('Recovery unavailable')).toBeNull()

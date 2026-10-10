@@ -114,15 +114,18 @@ platform transitions; data changes do not require motion to communicate state.
 
 ## Data boundaries and regression coverage
 
-The redesign does not change HealthKit queries, workout observers, Home's
-focused foreground refresh, daily goal logic, morning-weight calculations,
-coach behavior, native capabilities, or stored preferences. Missing values
-remain `--`, observed zeroes remain visible, StairMaster intensity stays
-unverified, and the PPL program stays unconfigured.
+The redesign does not change HealthKit queries, daily goal logic, morning-weight
+calculations, coach behavior, native capabilities, or stored preferences.
+Missing values remain `--`, observed zeroes remain visible, StairMaster intensity
+stays unverified, and the PPL program stays unconfigured.
 
 While Home stays focused and active, a five-minute fallback catches delayed
 workout imports missed by the native observer. Observer notifications, app
 foregrounding, and pull-to-refresh do not wait for that fallback.
+The shared snapshot hook refreshes on screen focus and owns the workout and
+foreground listeners only while that route is focused. Covered stack screens
+detach their listeners and cancel queued callbacks until they become visible
+again, without duplicating Home's focus refresh.
 
 The separately approved weight-entry feature adds a narrow writer port and the
 native date/time/application dependencies, gated to compatible 1.0.7-or-later

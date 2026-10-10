@@ -5,7 +5,8 @@ import {
   userEvent,
   waitFor,
 } from '@testing-library/react-native'
-import { useRouter } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
+import { useEffect } from 'react'
 import { Alert, Linking, Platform } from 'react-native'
 
 import type {
@@ -18,6 +19,10 @@ import SettingsScreen from '../settings'
 
 let mockSource: jest.Mocked<HealthSnapshotSource>
 const mockSetPreference = jest.fn()
+
+function useTestFocusEffect(effect: Parameters<typeof useFocusEffect>[0]) {
+  useEffect(effect, [effect])
+}
 
 jest.mock('@/lib/healthSnapshot/HealthSnapshotSource', () => ({
   get healthSnapshot() {
@@ -68,6 +73,7 @@ describe('SettingsScreen Health access', () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-02-20T10:00:00.000Z'))
     jest.replaceProperty(Platform, 'OS', 'ios')
+    jest.mocked(useFocusEffect).mockImplementation(useTestFocusEffect)
     mockSource = {
       getDailySnapshot: jest.fn(async (_date: Date) => emptySnapshot),
       getRangeIntensity: jest.fn(async (_daysBack: number) => new Map()),

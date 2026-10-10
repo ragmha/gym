@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   AppState,
   Platform,
@@ -67,19 +67,12 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
 
   const { snapshot, status, error, isDemoMode, refresh } =
     useHealthSnapshot(selectedDate)
-  const hasFocused = useRef(false)
-
   useFocusEffect(
     useCallback(() => {
-      // The snapshot hook already loads the selected day on mount.
-      if (hasFocused.current) {
-        void refresh()
-      }
-      hasFocused.current = true
       if (isDemoMode) return
 
       let pollInFlight = false
-      // ponytail: reconcile missed imports every five minutes; observer updates stay immediate.
+      // ponytail: five-minute fallback for missed imports; observers handle prompt refreshes.
       const interval = setInterval(() => {
         if (AppState.currentState !== 'active' || pollInFlight) return
         pollInFlight = true
