@@ -4,6 +4,7 @@
 const mock = {
   isHealthDataAvailable: jest.fn(() => Promise.resolve(true)),
   requestAuthorization: jest.fn(() => Promise.resolve(true)),
+  subscribeToChanges: jest.fn(() => ({ remove: jest.fn() })),
   queryQuantitySamples: jest.fn(() => Promise.resolve([{ quantity: 5432 }])),
   queryStatisticsForQuantity: jest.fn(() =>
     Promise.resolve({

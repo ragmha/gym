@@ -98,6 +98,8 @@ export function CalendarStrip({
     accent: accentColor,
     cardBackground: cardBg,
     border: borderColor,
+    selectedText,
+    disabled: disabledColor,
   } = useTheme()
 
   const days = useMemo(() => getWeek(center), [center])
@@ -172,8 +174,8 @@ export function CalendarStrip({
                 <Text
                   style={[
                     styles.compactDayLetter,
-                    { color: isSelected ? '#FFFFFF' : subtitleColor },
-                    isFuture && { color: `${textColor}28` },
+                    { color: isSelected ? selectedText : subtitleColor },
+                    isFuture && { color: disabledColor },
                   ]}
                 >
                   {DAY_LETTERS[i]}
@@ -181,9 +183,9 @@ export function CalendarStrip({
                 <Text
                   style={[
                     styles.dayNumber,
-                    { color: isSelected ? '#FFFFFF' : textColor },
+                    { color: isSelected ? selectedText : textColor },
                     isToday && !isSelected && { color: accentColor },
-                    isFuture && { color: `${textColor}28` },
+                    isFuture && { color: disabledColor },
                   ]}
                 >
                   {date.getDate()}
@@ -204,6 +206,8 @@ export function CalendarStrip({
           onPress={() => navigateWeek(-1)}
           hitSlop={12}
           style={styles.navButton}
+          accessibilityRole="button"
+          accessibilityLabel="Previous week"
         >
           <Ionicons name="chevron-back" size={18} color={subtitleColor} />
         </TouchableOpacity>
@@ -215,6 +219,9 @@ export function CalendarStrip({
           hitSlop={12}
           style={[styles.navButton, !canGoForward && styles.navButtonDisabled]}
           disabled={!canGoForward}
+          accessibilityRole="button"
+          accessibilityLabel="Next week"
+          accessibilityState={{ disabled: !canGoForward }}
         >
           <Ionicons
             name="chevron-forward"
@@ -255,13 +262,21 @@ export function CalendarStrip({
               onPress={() => handlePress(date)}
               activeOpacity={isFuture ? 1 : 0.7}
               disabled={isFuture}
+              accessibilityRole="button"
+              accessibilityLabel={date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+              accessibilityState={{ selected: isSelected, disabled: isFuture }}
             >
               <Text
                 style={[
                   styles.dayNumber,
-                  { color: isSelected ? '#FFFFFF' : textColor },
+                  { color: isSelected ? selectedText : textColor },
                   isToday && !isSelected && { color: accentColor },
-                  isFuture && { color: `${textColor}28` },
+                  isFuture && { color: disabledColor },
                 ]}
               >
                 {date.getDate()}
@@ -274,7 +289,7 @@ export function CalendarStrip({
   )
 }
 
-const CIRCLE_SIZE = 36
+const CIRCLE_SIZE = 44
 const COMPACT_SIZE = 44
 
 const styles = StyleSheet.create({
@@ -299,16 +314,16 @@ const styles = StyleSheet.create({
   },
   compactDay: {
     minWidth: COMPACT_SIZE,
-    minHeight: COMPACT_SIZE,
+    minHeight: 60,
     paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingVertical: 8,
     borderRadius: COMPACT_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 1,
   },
   compactDayLetter: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
@@ -319,9 +334,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   navButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -346,7 +361,7 @@ const styles = StyleSheet.create({
   },
   dayCircle: {
     width: CIRCLE_SIZE,
-    height: CIRCLE_SIZE,
+    minHeight: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',

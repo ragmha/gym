@@ -14,6 +14,12 @@ export function makeSnapshot(
     waterLiters: 1.5,
     flightsClimbed: 8,
     bodyMassKg: 78.4,
+    bodyMassHistory: [
+      {
+        kilograms: 78.4,
+        startISO: new Date(2026, 8, 12, 7).toISOString(),
+      },
+    ],
     dietaryCalories: null,
     workouts: [],
     ...overrides,

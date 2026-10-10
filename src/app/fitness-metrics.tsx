@@ -1,23 +1,37 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
+  Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap'
+import { ScreenHeader } from '@/components/common/ScreenHeader'
+import { DailyActivityRows } from '@/components/dashboard/DailyActivityRows'
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { CoachInsightCard } from '@/components/health/CoachInsightCard'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
+import { HealthReadState } from '@/components/health/HealthReadState'
+import {
+  Elevation,
+  Layout,
+  Radii,
+  Spacing,
+  Typography,
+} from '@/constants/DesignSystem'
+import { useColorScheme } from '@/hooks/useColorScheme'
 import { useDailyCoachInsight } from '@/hooks/useDailyCoachInsight'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
-import { useTheme, useThemeColor } from '@/hooks/useThemeColor'
+import { useTheme } from '@/hooks/useThemeColor'
 import {
   DASHBOARD_GOALS,
+  presentBodyMass,
   presentCalories,
   presentFlightsClimbed,
   presentHeartRate,
@@ -34,135 +48,110 @@ import {
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import { useRecoveryPresentation } from '@/utils/recovery'
 
-function clamp(val: number, min: number, max: number) {
-  return Math.min(Math.max(val, min), max)
-}
-
-// ── Mini progress bars ───────────────────────────────────────────────
-
-function MiniBars({ progress, color }: { progress: number; color: string }) {
-  const barCount = 9
-  return (
-    <View style={miniBarStyles.row}>
-      {Array.from({ length: barCount }, (_, i) => {
-        const filled = (i + 1) / barCount <= progress
-        return (
-          <View
-            key={i}
-            style={[
-              miniBarStyles.bar,
-              {
-                height: 32,
-                backgroundColor: filled ? `${color}CC` : `${color}30`,
-              },
-            ]}
-          />
-        )
-      })}
-    </View>
-  )
-}
-
-const miniBarStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
-    height: 32,
-    marginVertical: 10,
+const METRIC_GROUPS: { title: string; ids: MetricPresentation['id'][] }[] = [
+  { title: 'Activity', ids: ['steps', 'calories', 'flights-climbed'] },
+  {
+    title: 'Recovery & sleep',
+    ids: ['recovery', 'sleep', 'heart-rate', 'hrv', 'resting-hr'],
   },
-  bar: {
-    flex: 1,
-    borderRadius: 2,
-    minHeight: 4,
+  {
+    title: 'Body & intake',
+    ids: ['body-mass', 'hydration', 'nutrition-intake'],
   },
-})
+]
 
-// ── Metric card ──────────────────────────────────────────────────────
-
-interface MetricCardProps {
-  metric: MetricPresentation
-  iconColor: string
-  onPress?: () => void
-  cardBg: string
-  textColor: string
-  subtitleColor: string
-  borderColor: string
-}
-
-function MetricCard({
+function MetricRow({
   metric,
-  iconColor,
   onPress,
-  cardBg,
-  textColor,
-  subtitleColor,
-  borderColor,
-}: MetricCardProps) {
-  const Wrapper = onPress ? TouchableOpacity : View
-
+  last,
+}: {
+  metric: MetricPresentation
+  onPress?: () => void
+  last: boolean
+}) {
+  const theme = useTheme()
+  const Wrapper = onPress ? Pressable : View
+  const label =
+    metric.id === 'body-mass'
+      ? 'Latest weight'
+      : metric.id === 'recovery'
+        ? 'Recovery estimate'
+        : metric.label
   return (
     <Wrapper
-      style={[styles.card, { backgroundColor: cardBg, borderColor }]}
+      style={[
+        styles.metricRow,
+        { borderColor: last ? 'transparent' : theme.separator },
+      ]}
       onPress={onPress}
-      activeOpacity={0.75}
+      accessible
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={
+        metric.status === 'empty'
+          ? `${label} unavailable`
+          : `${label} ${metric.value}${metric.unit ? ` ${metric.unit}` : ''}`
+      }
+      accessibilityHint={
+        onPress
+          ? `${metric.subtitle}. Opens step details for the selected day`
+          : undefined
+      }
     >
-      <View style={styles.cardHeader}>
-        <View style={[styles.iconBadge, { backgroundColor: `${iconColor}1A` }]}>
-          <Ionicons name={metric.iconName} size={16} color={iconColor} />
-        </View>
-        <Text style={[styles.cardLabel, { color: subtitleColor }]}>
-          {metric.label}
-        </Text>
-        {onPress && (
-          <Ionicons
-            name="chevron-forward"
-            size={14}
-            color={subtitleColor}
-            style={styles.chevron}
-          />
-        )}
-      </View>
-
-      <MiniBars progress={metric.progress} color={iconColor} />
-
-      <View style={styles.cardFooter}>
-        <Text style={[styles.cardValue, { color: textColor }]}>
+      <Text style={[styles.metricLabel, { color: theme.text }]}>{label}</Text>
+      <View style={styles.metricReading}>
+        <Text selectable style={[styles.metricValue, { color: theme.text }]}>
           {metric.value}
           {metric.unit ? (
-            <Text style={[styles.cardUnit, { color: subtitleColor }]}>
+            <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
               {' '}
               {metric.unit}
             </Text>
           ) : null}
         </Text>
-        <Text
-          style={[styles.cardSubtitle, { color: subtitleColor }]}
-          numberOfLines={1}
-        >
-          {metric.subtitle}
-        </Text>
-      </View>
-
-      {/* Progress bar */}
-      <View
-        style={[styles.progressTrack, { backgroundColor: `${iconColor}20` }]}
-      >
-        <View
-          style={[
-            styles.progressFill,
-            {
-              backgroundColor: iconColor,
-              width: `${Math.round(clamp(metric.progress, 0, 1) * 100)}%`,
-            },
-          ]}
-        />
+        {onPress && (
+          <Ionicons name="chevron-forward" size={18} color={theme.accent} />
+        )}
       </View>
     </Wrapper>
   )
 }
 
-// ── Screen ───────────────────────────────────────────────────────────
+function ReadingDisclosure({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  const theme = useTheme()
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <View>
+      <Pressable
+        onPress={() => setExpanded((current) => !current)}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ expanded }}
+        aria-expanded={expanded}
+        style={({ pressed }) => [
+          styles.disclosureButton,
+          { opacity: pressed ? 0.6 : 1 },
+        ]}
+      >
+        <Text style={[styles.disclosureTitle, { color: theme.accent }]}>
+          {title}
+        </Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={theme.accent}
+        />
+      </Pressable>
+      {expanded && <View style={styles.disclosureContent}>{children}</View>}
+    </View>
+  )
+}
 
 export default function FitnessMetricsScreen() {
   return (
@@ -176,12 +165,18 @@ function FitnessMetricsForDate({ date }: { date: Date }) {
   const router = useRouter()
 
   const theme = useTheme()
-  const cardBg = useThemeColor({}, 'cardBackground')
-  const textColor = useThemeColor({}, 'text')
-  const subtitleColor = useThemeColor({}, 'subtitleText')
-  const borderColor = useThemeColor({}, 'border')
-  const backgroundColor = useThemeColor({}, 'background')
-  const { snapshot } = useHealthSnapshot(date)
+  const colorScheme = useColorScheme()
+  const { snapshot, status, error, isDemoMode, refresh } =
+    useHealthSnapshot(date)
+  const [refreshing, setRefreshing] = useState(false)
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      await refresh()
+    } finally {
+      setRefreshing(false)
+    }
+  }, [refresh])
   const recovery = useRecoveryPresentation({
     hrv: snapshot?.hrv ?? null,
     restingHR: snapshot?.restingHeartRate ?? null,
@@ -206,6 +201,7 @@ function FitnessMetricsForDate({ date }: { date: Date }) {
       presentHrv(snapshot),
       presentRestingHr(snapshot),
       presentFlightsClimbed(snapshot),
+      presentBodyMass(snapshot),
     ],
     [snapshot, recovery],
   )
@@ -221,52 +217,108 @@ function FitnessMetricsForDate({ date }: { date: Date }) {
 
   return (
     <SafeAreaView
-      style={[styles.safe, { backgroundColor }]}
+      testID="fitness-metrics-screen"
+      style={[styles.safe, { backgroundColor: theme.background }]}
       edges={['top', 'left', 'right']}
     >
-      <StatusBar style="auto" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={8}
-        >
-          <Ionicons name="chevron-back" size={20} color={textColor} />
-        </TouchableOpacity>
-        <View>
-          <Text style={[styles.title, { color: textColor }]}>
-            Fitness Metrics
-          </Text>
-          <Text style={[styles.date, { color: subtitleColor }]}>
-            {date.toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </Text>
-        </View>
-        <View style={styles.backBtn} />
-      </View>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <ScreenHeader
+        title="Fitness Metrics"
+        subtitle={date.toLocaleDateString(undefined, {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })}
+      />
 
       <ScrollView
-        contentContainerStyle={styles.grid}
-        showsVerticalScrollIndicator={false}
-      >
-        <CoachInsightCard insight={insight} status={insightStatus} />
-        {metrics.map((metric) => (
-          <MetricCard
-            key={metric.id}
-            metric={metric}
-            iconColor={theme[metric.accentColorToken]}
-            onPress={createMetricPressHandler(metric.route)}
-            cardBg={cardBg}
-            textColor={textColor}
-            subtitleColor={subtitleColor}
-            borderColor={borderColor}
+        contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl
+            testID="metrics-refresh"
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.accent}
           />
-        ))}
+        }
+      >
+        {isDemoMode && (
+          <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+            Demo data
+          </Text>
+        )}
+        {status === 'loading' && !snapshot ? (
+          <HealthReadState loading />
+        ) : status === 'error' ? (
+          <HealthReadState error={error} onRetry={onRefresh} />
+        ) : (
+          <>
+            {METRIC_GROUPS.map((group) => {
+              const rows = metrics.filter((metric) =>
+                group.ids.includes(metric.id),
+              )
+              return (
+                <View key={group.title} style={styles.group}>
+                  <Text
+                    accessibilityRole="header"
+                    style={[styles.groupTitle, { color: theme.text }]}
+                  >
+                    {group.title}
+                  </Text>
+                  <View
+                    style={[
+                      styles.panel,
+                      { backgroundColor: theme.cardBackground },
+                    ]}
+                  >
+                    {rows.map((metric, index) => (
+                      <MetricRow
+                        key={metric.id}
+                        metric={metric}
+                        last={index === rows.length - 1}
+                        onPress={createMetricPressHandler(metric.route)}
+                      />
+                    ))}
+                  </View>
+                </View>
+              )
+            })}
+            <DailyActivityRows snapshot={snapshot} showSummaryMetrics={false} />
+            {(insight || insightStatus === 'loading') && (
+              <ReadingDisclosure
+                key={`coach-${localDateKey(date)}`}
+                title="Coach insight"
+              >
+                <CoachInsightCard insight={insight} status={insightStatus} />
+              </ReadingDisclosure>
+            )}
+            <ActivityHeatmap title="Recent activity" showNotes={false} />
+            <ReadingDisclosure
+              key={`about-${localDateKey(date)}`}
+              title="About these readings"
+            >
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                Readings come from Apple Health on iOS. Web and Android show
+                demo data. -- means unavailable, not zero.
+              </Text>
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                Step goal: {DASHBOARD_GOALS.stepsGoal.toLocaleString()} per day.
+                Weight is the latest weigh-in, not necessarily from this day.
+              </Text>
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                Recovery is estimated from HRV, resting heart rate, and sleep.
+              </Text>
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                {recovery?.label ?? 'Not enough recovery data'}
+              </Text>
+              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
+                Recent activity combines steps and workouts, not measured step
+                counts. Blank squares may mean no readings.
+              </Text>
+            </ReadingDisclosure>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   )
@@ -276,86 +328,64 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  content: {
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xxxl,
+    gap: Spacing.lg,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+  group: { gap: Spacing.sm },
+  groupTitle: { ...Typography.headingMd, paddingHorizontal: Spacing.xxs },
+  panel: {
+    ...Elevation.soft,
+    borderRadius: Radii.panel,
+    borderCurve: 'continuous',
+    paddingHorizontal: Spacing.lg,
   },
-  title: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  date: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  grid: {
+  metricRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    paddingBottom: 32,
-    gap: 12,
+    alignItems: 'center',
+    columnGap: Spacing.md,
+    rowGap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    minHeight: 56,
   },
-  card: {
-    width: '47%',
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 14,
-    overflow: 'hidden',
+  metricLabel: {
+    ...Typography.bodyMd,
+    flex: 1,
+    minWidth: 120,
   },
-  cardHeader: {
+  metricReading: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xs,
+    flexShrink: 1,
   },
-  iconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+  metricValue: {
+    ...Typography.numericMd,
+    fontSize: 24,
+    lineHeight: 32,
+    flexShrink: 1,
+  },
+  disclosureButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: Spacing.sm,
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xxs,
   },
-  cardLabel: {
+  disclosureTitle: {
+    ...Typography.labelLg,
     flex: 1,
-    fontSize: 12,
-    fontWeight: '600',
   },
-  chevron: {
-    marginLeft: 'auto',
-  },
-  cardFooter: {
-    gap: 2,
-  },
-  cardValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  cardUnit: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  cardSubtitle: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  progressTrack: {
-    height: 3,
-    borderRadius: 2,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
+  disclosureContent: {
+    gap: Spacing.sm,
+    paddingBottom: Spacing.sm,
   },
 })

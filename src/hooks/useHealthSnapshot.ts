@@ -1,11 +1,6 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react'
-import { Platform } from 'react-native'
+import { useFocusEffect } from 'expo-router'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { AppState, Platform } from 'react-native'
 
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import { createDeterministicMockSnapshot } from '@/lib/healthSnapshot/mockAdapter'
@@ -193,16 +188,44 @@ export function useHealthSnapshot(date?: Date): {
     return request
   }, [source, isDemoMode, fetchSnapshot])
 
-  useEffect(() => {
-    if (initialLoadRef.current) {
-      initialLoadRef.current = false
-      if (isDemoMode) {
-        return
+  useFocusEffect(
+    useCallback(() => {
+      if (initialLoadRef.current) {
+        initialLoadRef.current = false
+        if (isDemoMode) return
       }
-    }
 
-    void fetchSnapshot()
-  }, [dateKey, source, isDemoMode, fetchSnapshot])
+      void fetchSnapshot()
+      if (isDemoMode) return
+
+      let active = true
+      let pending: ReturnType<typeof setTimeout> | undefined
+      const queueRefresh = () => {
+        if (!active || AppState.currentState !== 'active') return
+        clearTimeout(pending)
+        pending = setTimeout(() => {
+          if (
+            active &&
+            targetDateRef.current.toDateString() === dateKey &&
+            AppState.currentState === 'active'
+          ) {
+            void fetchSnapshot()
+          }
+        }, 300)
+      }
+      const unsubscribe = source.subscribeToWorkoutChanges(queueRefresh)
+      const foreground = AppState.addEventListener('change', (state) => {
+        if (state === 'active') queueRefresh()
+      })
+
+      return () => {
+        active = false
+        clearTimeout(pending)
+        unsubscribe?.()
+        foreground.remove()
+      }
+    }, [dateKey, source, isDemoMode, fetchSnapshot]),
+  )
 
   // Effects have not run yet on the first render of a newly selected day.
   const hasCurrentData =

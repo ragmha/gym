@@ -1,4 +1,5 @@
 import type { MetricRing } from '@/components/dashboard/WorkoutXPCard'
+import { DAILY_STEP_GOAL } from '@/lib/dailyGoals'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 
 export const SLEEP_GOAL_HOURS = 8
@@ -6,7 +7,7 @@ export const SLEEP_GOAL_HOURS = 8
 const GOALS = {
   calories: 600,
   waterLiters: 2.5,
-  steps: 10_000,
+  steps: DAILY_STEP_GOAL,
   workoutMinutes: 45,
 } as const
 

@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
-  ActivityIndicator,
+  AppState,
   Platform,
   Pressable,
   RefreshControl,
@@ -13,15 +13,21 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap'
 import { CalendarStrip } from '@/components/dashboard/CalendarStrip'
-import { DailyActivityRows } from '@/components/dashboard/DailyActivityRows'
+import { DailyPriorities } from '@/components/dashboard/DailyPriorities'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { StepsOverview } from '@/components/dashboard/StepsOverview'
 import { WeightCard } from '@/components/dashboard/WeightCard'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
-import { Spacing, Typography } from '@/constants/DesignSystem'
+import { HealthReadState } from '@/components/health/HealthReadState'
+import {
+  Elevation,
+  Layout,
+  Radii,
+  Spacing,
+  Typography,
+} from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
@@ -49,7 +55,6 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
   const [focusDate, setFocusDate] = useState(selectedDate)
   const [refreshing, setRefreshing] = useState(false)
   const [calendarExpanded, setCalendarExpanded] = useState(false)
-  const [detailsExpanded, setDetailsExpanded] = useState(false)
 
   const handleDateSelected = useCallback(
     (date: Date) => {
@@ -62,16 +67,21 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
 
   const { snapshot, status, error, isDemoMode, refresh } =
     useHealthSnapshot(selectedDate)
-  const hasFocused = useRef(false)
-
   useFocusEffect(
     useCallback(() => {
-      // The snapshot hook already loads the selected day on mount.
-      if (hasFocused.current) {
-        void refresh()
-      }
-      hasFocused.current = true
-    }, [refresh]),
+      if (isDemoMode) return
+
+      let pollInFlight = false
+      // ponytail: five-minute fallback for missed imports; observers handle prompt refreshes.
+      const interval = setInterval(() => {
+        if (AppState.currentState !== 'active' || pollInFlight) return
+        pollInFlight = true
+        void refresh().finally(() => {
+          pollInFlight = false
+        })
+      }, 5 * 60_000)
+      return () => clearInterval(interval)
+    }, [refresh, isDemoMode]),
   )
 
   const onRefresh = useCallback(async () => {
@@ -197,32 +207,9 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
       )}
 
       {status === 'loading' && !snapshot ? (
-        <View style={styles.loadState}>
-          <ActivityIndicator color={theme.homeAccent} />
-          <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
-            Loading health data...
-          </Text>
-        </View>
+        <HealthReadState loading />
       ) : status === 'error' ? (
-        <View style={styles.loadState}>
-          <Text
-            selectable
-            accessibilityRole="alert"
-            style={[styles.error, { color: theme.text }]}
-          >
-            {error ?? 'Unable to load health data'}
-          </Text>
-          <Pressable
-            onPress={onRefresh}
-            style={styles.weekButton}
-            accessibilityRole="button"
-            accessibilityLabel="Retry loading health data"
-          >
-            <Text style={[Typography.labelLg, { color: theme.homeAccent }]}>
-              Try again
-            </Text>
-          </Pressable>
-        </View>
+        <HealthReadState error={error} onRetry={onRefresh} />
       ) : (
         <>
           <StepsOverview
@@ -234,11 +221,19 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
               })
             }
           />
-          <DailyActivityRows snapshot={snapshot} />
+          <View
+            style={[
+              styles.dailyPanel,
+              { backgroundColor: theme.cardBackground },
+            ]}
+          >
+            <DailyPriorities snapshot={snapshot} />
+            <WeightCard snapshot={snapshot} date={selectedDate} />
+          </View>
           {!isDemoMode &&
             (snapshot?.steps == null ||
-              (snapshot.calories === null &&
-                snapshot.sleepHours === null &&
+              (snapshot.waterLiters === null &&
+                snapshot.bodyMassHistory === null &&
                 snapshot.workouts.length === 0)) && (
               <Pressable
                 onPress={() => router.push('/settings')}
@@ -251,34 +246,6 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
                 </Text>
               </Pressable>
             )}
-          <View>
-            <Pressable
-              onPress={() => setDetailsExpanded((expanded) => !expanded)}
-              style={({ pressed }) => [
-                styles.detailsButton,
-                { borderColor: theme.separator, opacity: pressed ? 0.6 : 1 },
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: detailsExpanded }}
-              aria-expanded={detailsExpanded}
-              accessibilityLabel="More health data"
-            >
-              <Text style={[styles.linkLabel, { color: theme.text }]}>
-                More health data
-              </Text>
-              <Ionicons
-                name={detailsExpanded ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color={theme.subtitleText}
-              />
-            </Pressable>
-            {detailsExpanded && (
-              <>
-                <WeightCard bodyMassKg={snapshot?.bodyMassKg ?? null} />
-                <ActivityHeatmap title="Recent activity" />
-              </>
-            )}
-          </View>
         </>
       )}
 
@@ -291,7 +258,11 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
         }
         style={({ pressed }) => [
           styles.metricsLink,
-          { opacity: pressed ? 0.6 : 1 },
+          styles.allMetrics,
+          {
+            backgroundColor: theme.accentInactive,
+            opacity: pressed ? 0.65 : 1,
+          },
         ]}
         accessibilityRole="button"
         accessibilityLabel="See all metrics"
@@ -310,9 +281,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.xxl,
     gap: Spacing.lg,
+  },
+  dailyPanel: {
+    ...Elevation.soft,
+    marginHorizontal: Spacing.sm,
+    borderRadius: Radii.panel,
+    borderCurve: 'continuous',
   },
   weekNavigation: {
     marginHorizontal: Spacing.lg,
@@ -334,35 +314,20 @@ const styles = StyleSheet.create({
   },
   demo: {
     ...Typography.bodySm,
-    marginHorizontal: Spacing.lg,
-    textAlign: 'center',
-  },
-  loadState: {
-    minHeight: 240,
-    padding: Spacing.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  error: {
-    ...Typography.bodyMd,
-    textAlign: 'center',
-  },
-  detailsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingVertical: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    minHeight: 48,
+    marginHorizontal: Layout.gutter,
   },
   metricsLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     minHeight: 44,
-    marginHorizontal: Spacing.lg,
+    marginHorizontal: Layout.gutter,
+  },
+  allMetrics: {
+    minHeight: 56,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
   },
   linkLabel: {
     ...Typography.labelLg,

@@ -1,5 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native'
-import { Platform } from 'react-native'
+import { useFocusEffect } from 'expo-router'
+import {
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  type PropsWithChildren,
+} from 'react'
+import { AppState, Platform } from 'react-native'
 
 import type {
   DailyHealthSnapshot,
@@ -10,6 +18,18 @@ import { createDeterministicMockSnapshot } from '@/lib/healthSnapshot/mockAdapte
 import { useHealthSnapshot } from '../useHealthSnapshot'
 
 let mockHealthSnapshot: jest.Mocked<HealthSnapshotSource>
+const FocusContext = createContext(true)
+const originalAppState = Object.getOwnPropertyDescriptor(
+  AppState,
+  'currentState',
+)
+
+function useTestFocusEffect(effect: Parameters<typeof useFocusEffect>[0]) {
+  const focused = useContext(FocusContext)
+  useEffect(() => {
+    if (focused) return effect()
+  }, [effect, focused])
+}
 
 jest.mock('@/lib/healthSnapshot/HealthSnapshotSource', () => ({
   get healthSnapshot() {
@@ -35,6 +55,7 @@ function createSource(
       createDeterministicMockSnapshot(date),
     ),
     getRangeIntensity: jest.fn(async (_daysBack: number) => new Map()),
+    subscribeToWorkoutChanges: jest.fn((_onChange: () => void) => null),
     requestAuthorization: jest.fn(async () => true),
     isAvailable: jest.fn(() => false),
     ...overrides,
@@ -48,6 +69,12 @@ describe('useHealthSnapshot', () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-02-20T10:00:00.000Z'))
     jest.replaceProperty(Platform, 'OS', 'ios')
+    Object.defineProperty(AppState, 'currentState', {
+      configurable: true,
+      writable: true,
+      value: 'active',
+    })
+    jest.mocked(useFocusEffect).mockImplementation(useTestFocusEffect)
     createSource()
   })
 
@@ -55,6 +82,9 @@ describe('useHealthSnapshot', () => {
     jest.useRealTimers()
     jest.clearAllMocks()
     jest.restoreAllMocks()
+    if (originalAppState) {
+      Object.defineProperty(AppState, 'currentState', originalAppState)
+    }
   })
 
   it('starts ready with a deterministic mock snapshot and demo mode when the source is unavailable', () => {
@@ -88,6 +118,241 @@ describe('useHealthSnapshot', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'))
     expect(source.getDailySnapshot).toHaveBeenCalledWith(date)
     expect(result.current.snapshot).toEqual(snapshot)
+  })
+
+  it('coalesces saved-workout updates and removes the observer on unmount', async () => {
+    const remove = jest.fn()
+    const source = createSource({
+      isAvailable: jest.fn(() => true),
+      subscribeToWorkoutChanges: jest.fn((_onChange: () => void) => remove),
+    })
+    const { result, unmount } = renderHook(() => useHealthSnapshot())
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+    const notify = source.subscribeToWorkoutChanges.mock.calls[0][0]
+
+    await act(async () => {
+      notify()
+      notify()
+      jest.advanceTimersByTime(300)
+    })
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(2)
+
+    act(notify)
+    unmount()
+    await act(async () => {
+      notify()
+      jest.advanceTimersByTime(300)
+    })
+    expect(remove).toHaveBeenCalledTimes(1)
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not load or subscribe while its mounted screen is unfocused', () => {
+    const listen = jest.spyOn(AppState, 'addEventListener')
+    const source = createSource({ isAvailable: jest.fn(() => true) })
+    const { result } = renderHook(() => useHealthSnapshot(), {
+      wrapper: ({ children }: PropsWithChildren) =>
+        createElement(FocusContext.Provider, { value: false }, children),
+    })
+
+    expect(result.current.snapshot).toBeNull()
+    expect(source.getDailySnapshot).not.toHaveBeenCalled()
+    expect(source.subscribeToWorkoutChanges).not.toHaveBeenCalled()
+    expect(listen).not.toHaveBeenCalled()
+  })
+
+  it('cancels queued and late callbacks on blur, then refreshes the latest date once on refocus', async () => {
+    let focused = true
+    const unsubscribe = jest.fn()
+    const foregroundRemove = jest.fn()
+    const listen = jest
+      .spyOn(AppState, 'addEventListener')
+      .mockReturnValue({ remove: foregroundRemove })
+    const source = createSource({
+      isAvailable: jest.fn(() => true),
+      subscribeToWorkoutChanges: jest.fn(
+        (_onChange: () => void) => unsubscribe,
+      ),
+    })
+    const firstDate = new Date(2026, 1, 15, 12)
+    const nextDate = new Date(2026, 1, 16, 12)
+    const { result, rerender } = renderHook(
+      ({ date }: { date: Date }) => useHealthSnapshot(date),
+      {
+        initialProps: { date: firstDate },
+        wrapper: ({ children }: PropsWithChildren) =>
+          createElement(FocusContext.Provider, { value: focused }, children),
+      },
+    )
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(1)
+    const notify = source.subscribeToWorkoutChanges.mock.calls[0][0]
+    const foreground = listen.mock.calls[0][1]
+    act(notify)
+
+    focused = false
+    rerender({ date: firstDate })
+    rerender({ date: nextDate })
+    await act(async () => {
+      notify()
+      foreground('active')
+      jest.advanceTimersByTime(300)
+    })
+    expect(unsubscribe).toHaveBeenCalledTimes(1)
+    expect(foregroundRemove).toHaveBeenCalledTimes(1)
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(1)
+    expect(source.subscribeToWorkoutChanges).toHaveBeenCalledTimes(1)
+
+    const refreshed = {
+      ...createDeterministicMockSnapshot(nextDate),
+      steps: 9200,
+    }
+    source.getDailySnapshot.mockResolvedValueOnce(refreshed)
+    focused = true
+    rerender({ date: nextDate })
+    await waitFor(() => expect(result.current.snapshot).toBe(refreshed))
+
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(2)
+    expect(source.getDailySnapshot).toHaveBeenLastCalledWith(nextDate)
+    expect(source.subscribeToWorkoutChanges).toHaveBeenCalledTimes(2)
+    expect(listen).toHaveBeenCalledTimes(2)
+    expect(source.requestAuthorization).not.toHaveBeenCalled()
+  })
+
+  it('refreshes only the focused route when another screen remains mounted underneath', async () => {
+    let focused = 'home'
+    const observers = new Set<() => void>()
+    const listen = jest.spyOn(AppState, 'addEventListener')
+    const source = createSource({
+      isAvailable: jest.fn(() => true),
+      subscribeToWorkoutChanges: jest.fn((onChange: () => void) => {
+        observers.add(onChange)
+        return () => {
+          observers.delete(onChange)
+        }
+      }),
+    })
+    const homeDate = new Date(2026, 1, 15, 12)
+    const detailsDate = new Date(2026, 1, 16, 12)
+    const home = renderHook(() => useHealthSnapshot(homeDate), {
+      wrapper: ({ children }: PropsWithChildren) =>
+        createElement(
+          FocusContext.Provider,
+          { value: focused === 'home' },
+          children,
+        ),
+    })
+    const details = renderHook(() => useHealthSnapshot(detailsDate), {
+      wrapper: ({ children }: PropsWithChildren) =>
+        createElement(
+          FocusContext.Provider,
+          { value: focused === 'details' },
+          children,
+        ),
+    })
+    await waitFor(() => expect(home.result.current.status).toBe('ready'))
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(1)
+    expect(observers.size).toBe(1)
+    const coveredSnapshot = home.result.current.snapshot
+    const oldNotify = source.subscribeToWorkoutChanges.mock.calls[0][0]
+    const oldForeground = listen.mock.calls[0][1]
+
+    focused = 'details'
+    home.rerender(undefined)
+    details.rerender(undefined)
+    await waitFor(() => expect(details.result.current.status).toBe('ready'))
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(2)
+    expect(observers.size).toBe(1)
+    await act(async () => {
+      oldNotify()
+      oldForeground('active')
+      for (const notify of observers) notify()
+      listen.mock.calls[1][1]('active')
+      jest.advanceTimersByTime(300)
+    })
+
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(3)
+    expect(source.getDailySnapshot).toHaveBeenLastCalledWith(detailsDate)
+    expect(home.result.current.snapshot).toBe(coveredSnapshot)
+    home.unmount()
+    details.unmount()
+    expect(observers.size).toBe(0)
+  })
+
+  it.each([null, 78.4])(
+    'rereads the selected day after weight entry without inventing the returned weight %s',
+    async (kilograms) => {
+      let focused = true
+      const date = new Date(2026, 1, 15, 12)
+      const empty = {
+        ...createDeterministicMockSnapshot(date),
+        bodyMassKg: null,
+        bodyMassHistory: null,
+      }
+      const source = createSource({
+        isAvailable: jest.fn(() => true),
+        getDailySnapshot: jest.fn(async (_date: Date) => empty),
+      })
+      const { result, rerender } = renderHook(() => useHealthSnapshot(date), {
+        wrapper: ({ children }: PropsWithChildren) =>
+          createElement(FocusContext.Provider, { value: focused }, children),
+      })
+      await waitFor(() => expect(result.current.status).toBe('ready'))
+
+      focused = false
+      rerender(undefined)
+      const reread = {
+        ...empty,
+        bodyMassKg: kilograms,
+        bodyMassHistory:
+          kilograms === null
+            ? null
+            : [{ kilograms, startISO: new Date(2026, 1, 15, 7).toISOString() }],
+      }
+      source.getDailySnapshot.mockResolvedValueOnce(reread)
+      expect(result.current.snapshot?.bodyMassHistory).toBeNull()
+      focused = true
+      rerender(undefined)
+      await waitFor(() => expect(result.current.snapshot).toBe(reread))
+
+      expect(source.getDailySnapshot).toHaveBeenCalledTimes(2)
+      expect(source.getDailySnapshot).toHaveBeenLastCalledWith(date)
+      expect(source.requestAuthorization).not.toHaveBeenCalled()
+    },
+  )
+
+  it('refreshes the selected date on foreground without fetching while backgrounded', async () => {
+    const listen = jest.spyOn(AppState, 'addEventListener')
+    const source = createSource({ isAvailable: jest.fn(() => true) })
+    const date = new Date(2026, 1, 15, 12)
+    const { result } = renderHook(() => useHealthSnapshot(date))
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+    const notify = source.subscribeToWorkoutChanges.mock.calls[0][0]
+    const onStateChange = listen.mock.calls[0][1]
+
+    jest.replaceProperty(AppState, 'currentState', 'background')
+    await act(async () => {
+      notify()
+      onStateChange('background')
+      jest.advanceTimersByTime(300)
+    })
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(1)
+
+    jest.replaceProperty(AppState, 'currentState', 'active')
+    await act(async () => {
+      onStateChange('active')
+      jest.advanceTimersByTime(300)
+    })
+    expect(source.getDailySnapshot).toHaveBeenCalledTimes(2)
+    expect(source.getDailySnapshot).toHaveBeenLastCalledWith(date)
+  })
+
+  it('does not register native workout observation for demo data', () => {
+    const listen = jest.spyOn(AppState, 'addEventListener')
+    const source = createSource()
+    renderHook(() => useHealthSnapshot())
+    expect(source.subscribeToWorkoutChanges).not.toHaveBeenCalled()
+    expect(listen).not.toHaveBeenCalled()
   })
 
   it('tracks request progress separately from data readiness and permits repeat requests', async () => {

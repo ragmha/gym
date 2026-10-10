@@ -28,7 +28,7 @@ describe('FitnessRingsCard missing data', () => {
     expect(getByText('-- / 600 kcal')).toBeTruthy()
     expect(getByText('-- / 2.5 L')).toBeTruthy()
     expect(getByText('-- / 8 hrs')).toBeTruthy()
-    expect(getByText('-- / 10.0k steps')).toBeTruthy()
+    expect(getByText('-- / 20.0k steps')).toBeTruthy()
     expect(getByText('-- / 45 min')).toBeTruthy()
     expect(queryByText(/^0 /)).toBeNull()
     expect(
@@ -51,7 +51,7 @@ describe('FitnessRingsCard missing data', () => {
     expect(getByText('0 kcal / 600 kcal')).toBeTruthy()
     expect(getByText('0 L / 2.5 L')).toBeTruthy()
     expect(getByText('0 hrs / 8 hrs')).toBeTruthy()
-    expect(getByText('0 steps / 10.0k steps')).toBeTruthy()
+    expect(getByText('0 steps / 20.0k steps')).toBeTruthy()
     expect(getByText('0 min / 45 min')).toBeTruthy()
     expect(queryByText(/--/)).toBeNull()
     expect(
@@ -71,7 +71,7 @@ describe('FitnessRingsCard missing data', () => {
     )
 
     expect(getByText('-- / 600 kcal')).toBeTruthy()
-    expect(getByText('8,000 steps / 10.0k steps')).toBeTruthy()
+    expect(getByText('8,000 steps / 20.0k steps')).toBeTruthy()
     expect(
       getByRole('button', { name: /Sleep unavailable. Steps 8,000 steps/ }),
     ).toBeTruthy()

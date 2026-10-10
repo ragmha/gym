@@ -7,12 +7,20 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-import Header from '@/components/common/Header'
+import { ScreenHeader } from '@/components/common/ScreenHeader'
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import {
+  Elevation,
+  Layout,
+  Radii,
+  Spacing,
+  Typography,
+} from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
@@ -37,15 +45,14 @@ export default function SettingsScreen() {
     background: backgroundColor,
     text: textColor,
     cardBackground: cardBg,
-    icon: subtextColor,
+    subtitleText: subtextColor,
     accent: accentColor,
     success: successColor,
     danger: dangerColor,
     border: borderColor,
     separator: separatorColor,
-    surfaceElevated,
+    accentInactive,
     selectedText,
-    shadow: shadowColor,
   } = useTheme()
   const {
     isDemoMode,
@@ -71,267 +78,283 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor }}
-      contentContainerStyle={styles.container}
+    <SafeAreaView
+      testID="settings-screen"
+      edges={['top', 'left', 'right']}
+      style={[styles.safe, { backgroundColor }]}
     >
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Header>Settings</Header>
-      <TouchableOpacity
-        style={styles.backBtn}
-        onPress={() => router.back()}
-        hitSlop={12}
-        accessibilityRole="button"
-        accessibilityLabel="Back"
+      <ScreenHeader title="Settings" backLabel="Back" />
+      <ScrollView
+        style={{ backgroundColor }}
+        contentContainerStyle={styles.container}
+        contentInsetAdjustmentBehavior="automatic"
       >
-        <Ionicons name="chevron-back" size={22} color={textColor} />
-      </TouchableOpacity>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: textColor }]}>Health</Text>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: cardBg, borderColor, shadowColor },
-          ]}
-        >
-          <Text style={[styles.rowTitle, { color: textColor }]}>
-            Apple Health
-          </Text>
-          <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
-            {showHealthKit
-              ? 'Read-only access to your health data. Apple does not disclose which read permissions you have enabled.'
-              : 'Apple Health is unavailable here. The dashboard shows demo data, not your health records.'}
-          </Text>
-          {showHealthKit && (
-            <>
-              <Pressable
-                testID="review-health-access"
-                accessibilityRole="button"
-                accessibilityState={{
-                  disabled: isRequestingAccess,
-                  busy: isRequestingAccess,
-                }}
-                disabled={isRequestingAccess}
-                onPress={() => void requestAuthorization()}
-                style={[
-                  styles.accessButton,
-                  { backgroundColor: accentColor },
-                  isRequestingAccess && styles.disabledButton,
-                ]}
-              >
-                <Text
-                  style={[styles.accessButtonText, { color: selectedText }]}
-                >
-                  {isRequestingAccess
-                    ? 'Requesting Health access…'
-                    : 'Connect / Review Health access'}
-                </Text>
-              </Pressable>
-              {authorizationStatus === 'completed' && (
-                <Text
-                  selectable
-                  style={[styles.accessMessage, { color: successColor }]}
-                >
-                  Access request completed. Read permissions remain private to
-                  you.
-                </Text>
-              )}
-              {authorizationError && (
-                <Text
-                  selectable
-                  accessibilityRole="alert"
-                  style={[styles.accessMessage, { color: dangerColor }]}
-                >
-                  {authorizationError}
-                </Text>
-              )}
-              <Text style={[styles.accessMessage, { color: subtextColor }]}>
-                New permissions may show a prompt. To change previously denied
-                access, review this app’s permissions in Health or iOS Settings.
-              </Text>
-              <TouchableOpacity
-                style={[styles.manageLink, { borderTopColor: separatorColor }]}
-                accessibilityRole="button"
-                onPress={() => void openHealth()}
-              >
-                <Text style={[styles.manageLinkText, { color: accentColor }]}>
-                  {'Manage in Health app →'}
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </View>
-
-      {Platform.OS === 'ios' && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>
-            Experimental
-          </Text>
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: '/phone-rest',
-                params: { date: localDateKey(new Date()) },
-              })
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Phone rest"
-            accessibilityHint="Set up an optional Screen Time inactivity estimate"
-            style={[styles.card, { backgroundColor: cardBg, borderColor }]}
+          <Text
+            accessibilityRole="header"
+            style={[styles.sectionTitle, { color: textColor }]}
           >
+            Health
+          </Text>
+          <View style={[styles.card, { backgroundColor: cardBg }]}>
             <Text style={[styles.rowTitle, { color: textColor }]}>
-              Phone rest
+              Apple Health
             </Text>
             <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
-              Optional Screen Time estimate, separate from sleep.
+              {showHealthKit
+                ? 'Dashboard access is read-only. Add weight asks separately to save only body mass to Apple Health. Apple does not disclose which read permissions you have enabled.'
+                : 'Apple Health is unavailable here. The dashboard shows demo data, not your health records.'}
             </Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* Appearance */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: textColor }]}>
-          Appearance
-        </Text>
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: cardBg, borderColor, shadowColor },
-          ]}
-        >
-          <View style={styles.themeRow} accessibilityRole="radiogroup">
-            {THEME_OPTIONS.map((opt) => {
-              const isSelected = preference === opt.value
-              return (
+            {showHealthKit && (
+              <>
                 <Pressable
-                  key={opt.value}
-                  style={[
-                    styles.themeOption,
+                  testID="review-health-access"
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    disabled: isRequestingAccess,
+                    busy: isRequestingAccess,
+                  }}
+                  disabled={isRequestingAccess}
+                  onPress={() => void requestAuthorization()}
+                  style={({ pressed }) => [
+                    styles.accessButton,
                     {
-                      backgroundColor: isSelected
-                        ? accentColor
-                        : surfaceElevated,
-                      borderColor: isSelected ? accentColor : borderColor,
+                      backgroundColor: accentColor,
+                      opacity: pressed ? 0.7 : 1,
                     },
+                    isRequestingAccess && styles.disabledButton,
                   ]}
-                  onPress={() => setPreference(opt.value)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: isSelected }}
-                  accessibilityLabel={`${opt.label} theme`}
                 >
-                  <Ionicons
-                    name={opt.icon}
-                    size={20}
-                    color={isSelected ? selectedText : subtextColor}
-                  />
                   <Text
-                    style={[
-                      styles.themeLabel,
-                      { color: isSelected ? selectedText : textColor },
-                    ]}
+                    style={[styles.accessButtonText, { color: selectedText }]}
                   >
-                    {opt.label}
+                    {isRequestingAccess
+                      ? 'Requesting Health access…'
+                      : 'Connect / Review Health access'}
                   </Text>
                 </Pressable>
-              )
-            })}
+                {authorizationStatus === 'completed' && (
+                  <Text
+                    selectable
+                    style={[styles.accessMessage, { color: successColor }]}
+                  >
+                    Access request completed. Read permissions remain private to
+                    you.
+                  </Text>
+                )}
+                {authorizationError && (
+                  <Text
+                    selectable
+                    accessibilityRole="alert"
+                    style={[styles.accessMessage, { color: dangerColor }]}
+                  >
+                    {authorizationError}
+                  </Text>
+                )}
+                <Text style={[styles.accessMessage, { color: subtextColor }]}>
+                  New permissions may show a prompt. To change previously denied
+                  access, review this app’s permissions in Health or iOS
+                  Settings.
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.manageLink,
+                    { borderTopColor: separatorColor },
+                  ]}
+                  accessibilityRole="button"
+                  onPress={() => void openHealth()}
+                >
+                  <Text style={[styles.manageLinkText, { color: accentColor }]}>
+                    {'Manage in Health app →'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
-      </View>
-    </ScrollView>
+
+        {Platform.OS === 'ios' && (
+          <View style={styles.section}>
+            <Text
+              accessibilityRole="header"
+              style={[styles.sectionTitle, { color: textColor }]}
+            >
+              Experimental
+            </Text>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/phone-rest',
+                  params: { date: localDateKey(new Date()) },
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Phone rest"
+              accessibilityHint="Set up an optional Screen Time inactivity estimate"
+              style={({ pressed }) => [
+                styles.card,
+                styles.experimentalRow,
+                { backgroundColor: cardBg, opacity: pressed ? 0.65 : 1 },
+              ]}
+            >
+              <View style={styles.experimentalCopy}>
+                <Text style={[styles.rowTitle, { color: textColor }]}>
+                  Phone rest
+                </Text>
+                <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
+                  Optional Screen Time estimate, separate from sleep.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={accentColor} />
+            </Pressable>
+          </View>
+        )}
+
+        <View style={styles.section}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.sectionTitle, { color: textColor }]}
+          >
+            Appearance
+          </Text>
+          <View style={[styles.appearance, { backgroundColor: cardBg }]}>
+            <View
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Appearance"
+            >
+              {THEME_OPTIONS.map((opt, index) => {
+                const isSelected = preference === opt.value
+                return (
+                  <Pressable
+                    key={opt.value}
+                    style={({ pressed }) => [
+                      styles.themeOption,
+                      {
+                        backgroundColor: isSelected ? accentInactive : cardBg,
+                        borderBottomColor:
+                          index < THEME_OPTIONS.length - 1
+                            ? borderColor
+                            : 'transparent',
+                        opacity: pressed ? 0.65 : 1,
+                      },
+                    ]}
+                    onPress={() => setPreference(opt.value)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: isSelected }}
+                    accessibilityLabel={`${opt.label} theme`}
+                  >
+                    <Ionicons
+                      name={opt.icon}
+                      size={20}
+                      color={isSelected ? accentColor : subtextColor}
+                    />
+                    <Text style={[styles.themeLabel, { color: textColor }]}>
+                      {opt.label}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark"
+                        size={22}
+                        color={accentColor}
+                      />
+                    )}
+                  </Pressable>
+                )
+              })}
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safe: { flex: 1 },
   container: {
     flexGrow: 1,
-    paddingTop: 50,
-    paddingBottom: 24,
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xxxl,
+    gap: Spacing.xl,
   },
-  backBtn: {
-    position: 'absolute',
-    top: 104,
-    left: 12,
-    width: 40,
-    height: 40,
+  section: {
+    gap: Spacing.sm,
+  },
+  sectionTitle: {
+    ...Typography.headingMd,
+    paddingHorizontal: Spacing.xxs,
+  },
+  card: {
+    ...Elevation.soft,
+    borderRadius: Radii.panel,
+    borderCurve: 'continuous',
+    padding: Spacing.xl,
+  },
+  appearance: {
+    ...Elevation.soft,
+    borderRadius: Radii.panel,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+  },
+  experimentalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  experimentalCopy: { flex: 1 },
+  rowTitle: {
+    ...Typography.headingSm,
+    marginBottom: Spacing.xs,
+  },
+  rowSubtitle: {
+    ...Typography.bodySm,
+  },
+  accessButton: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    minHeight: Layout.controlSize,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  section: {
-    paddingHorizontal: 16,
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  card: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  rowTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  rowSubtitle: {
-    fontSize: 13,
-  },
-  accessButton: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
   accessButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.labelLg,
+    textAlign: 'center',
   },
   disabledButton: {
     opacity: 0.6,
   },
   accessMessage: {
-    marginTop: 12,
-    fontSize: 13,
+    marginTop: Spacing.md,
+    ...Typography.bodySm,
   },
   manageLink: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    minHeight: 48,
+    justifyContent: 'center',
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   manageLinkText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  themeRow: {
-    flexDirection: 'row',
-    gap: 8,
+    ...Typography.labelLg,
   },
   themeOption: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
+    gap: Spacing.md,
+    minHeight: 64,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   themeLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodyMd,
+    flex: 1,
   },
 })

@@ -11,18 +11,28 @@ export interface DailyHealthSnapshot {
   flightsClimbed: number | null
   /** Most recent body mass sample in kilograms, not a same-day-only reading. */
   bodyMassKg: number | null
+  /** Observed weigh-ins from the selected day and the preceding 13 days. */
+  bodyMassHistory: HealthBodyMassSample[] | null
   /** Dietary energy consumed for the day in kcal. */
   dietaryCalories: number | null
   workouts: HealthWorkout[]
 }
 
 export interface HealthWorkout {
+  kind: 'running' | 'stairClimber' | 'strength' | 'other'
   activityName: string
+  /** A workout-specific average, never evidence of time in a heart-rate zone. */
+  averageHeartRate: number | null
   calories: number | null
   distance: number | null
   durationMinutes: number
   startISO: string
   endISO: string
+}
+
+export interface HealthBodyMassSample {
+  kilograms: number
+  startISO: string
 }
 
 export type IntensityMap = Map<string, number>
@@ -32,6 +42,8 @@ export interface HealthSnapshotSource {
   getDailySnapshot(date: Date): Promise<DailyHealthSnapshot>
   /** Heatmap input — one bulk query, not N daily ones. */
   getRangeIntensity(daysBack: number): Promise<IntensityMap>
+  /** Observe saved workout changes. Null means observation is unavailable. */
+  subscribeToWorkoutChanges(onChange: () => void): (() => void) | null
   /** True means the request completed, not that read access was granted; HealthKit hides read-grant state. Mock returns true. */
   requestAuthorization(): Promise<boolean>
   /** Cheap synchronous check. Mock returns false (it's not "real"); iOS adapter returns Platform.OS === 'ios'. */

@@ -22,6 +22,7 @@ describe('HealthSnapshotSource adapters', () => {
     waterLiters: null,
     flightsClimbed: null,
     bodyMassKg: null,
+    bodyMassHistory: null,
     dietaryCalories: null,
     workouts: [],
   }
@@ -36,6 +37,7 @@ describe('HealthSnapshotSource adapters', () => {
     hk.queryWorkoutSamples.mockResolvedValue([])
     hk.isHealthDataAvailable.mockResolvedValue(true)
     hk.requestAuthorization.mockResolvedValue(true)
+    hk.subscribeToChanges.mockReturnValue({ remove: jest.fn() })
     Object.defineProperty(Platform, 'OS', { configurable: true, value: 'ios' })
   })
 
@@ -97,10 +99,13 @@ describe('HealthSnapshotSource adapters', () => {
       waterLiters: 1.5,
       flightsClimbed: 5,
       bodyMassKg: 78.5,
+      bodyMassHistory: null,
       dietaryCalories: 1841,
       workouts: [
         {
+          kind: 'running',
           activityName: 'Running',
+          averageHeartRate: null,
           calories: 250,
           distance: 5.25,
           durationMinutes: 45,
@@ -138,20 +143,37 @@ describe('HealthSnapshotSource adapters', () => {
   })
 
   it.each([
-    { activityType: 37, label: 'Running' },
-    { activityType: 13, label: 'Cycling' },
-    { activityType: 63, label: 'High intensity interval training' },
-    { activityType: 50, label: 'Traditional strength training' },
-    { activityType: 3000, label: 'Other' },
+    { activityType: 37, label: 'Running', kind: 'running' },
+    { activityType: 13, label: 'Cycling', kind: 'other' },
+    {
+      activityType: 63,
+      label: 'High intensity interval training',
+      kind: 'other',
+    },
+    {
+      activityType: 50,
+      label: 'Traditional strength training',
+      kind: 'strength',
+    },
+    {
+      activityType: 20,
+      label: 'Functional strength training',
+      kind: 'strength',
+    },
+    { activityType: 44, label: 'Stair climbing', kind: 'stairClimber' },
+    { activityType: 68, label: 'Stairs', kind: 'other' },
+    { activityType: 69, label: 'Step training', kind: 'other' },
+    { activityType: 3000, label: 'Other', kind: 'other' },
   ])(
     'decodes native workout type $activityType as $label',
-    async ({ activityType, label }) => {
+    async ({ activityType, label, kind }) => {
       hk.queryWorkoutSamples.mockResolvedValue([
         {
           workoutActivityType: activityType,
           duration: { quantity: 1800, unit: 's' },
           startDate: '2026-02-15T08:00:00.000Z',
           endDate: '2026-02-15T08:30:00.000Z',
+          getStatistic: jest.fn(async () => undefined),
         },
       ])
 
@@ -162,6 +184,7 @@ describe('HealthSnapshotSource adapters', () => {
       expect(snapshot.workouts).toHaveLength(1)
       expect(snapshot.workouts[0]).toMatchObject({
         activityName: label,
+        kind,
         durationMinutes: 30,
         calories: null,
         distance: null,
@@ -240,7 +263,13 @@ describe('HealthSnapshotSource adapters', () => {
   })
 
   it('preserves observed zero quantities, including workout values', async () => {
-    hk.queryQuantitySamples.mockResolvedValue([{ quantity: 0 }])
+    hk.queryQuantitySamples.mockImplementation((identifier: string) =>
+      Promise.resolve([
+        identifier === 'HKQuantityTypeIdentifierBodyMass'
+          ? { quantity: 0, startDate: '2026-02-15T07:00:00.000Z' }
+          : { quantity: 0 },
+      ]),
+    )
     hk.queryStatisticsForQuantity.mockResolvedValue({
       sumQuantity: { quantity: 0 },
     })
@@ -278,10 +307,13 @@ describe('HealthSnapshotSource adapters', () => {
       waterLiters: 0,
       flightsClimbed: 0,
       bodyMassKg: 0,
+      bodyMassHistory: [{ kilograms: 0, startISO: '2026-02-15T07:00:00.000Z' }],
       dietaryCalories: 0,
       workouts: [
         {
+          kind: 'running',
           activityName: 'Running',
+          averageHeartRate: null,
           calories: 0,
           distance: 0,
           durationMinutes: 0,
@@ -308,7 +340,9 @@ describe('HealthSnapshotSource adapters', () => {
 
     expect(snapshot.workouts).toEqual([
       {
+        kind: 'running',
         activityName: 'Running',
+        averageHeartRate: null,
         calories: null,
         distance: null,
         durationMinutes: 30,
@@ -353,7 +387,7 @@ describe('HealthSnapshotSource adapters', () => {
         new Date('2026-02-15T12:00:00.000Z'),
       ),
     ).resolves.toEqual(emptySnapshot)
-    expect(consoleWarnSpy).toHaveBeenCalledTimes(11)
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(12)
     expect(consoleWarnSpy.mock.calls).toEqual(
       expect.arrayContaining([
         ['[HealthSnapshotSource] steps read failed (Error)'],
@@ -525,10 +559,13 @@ describe('HealthSnapshotSource adapters', () => {
     hk.queryStatisticsForQuantity.mockResolvedValue({
       sumQuantity: { quantity: 1200 },
     })
-    hk.queryQuantitySamples.mockResolvedValue([
-      { quantity: 1200 },
-      { quantity: 1200 },
-    ])
+    hk.queryQuantitySamples.mockImplementation((identifier: string) =>
+      Promise.resolve(
+        identifier === 'HKQuantityTypeIdentifierBodyMass'
+          ? []
+          : [{ quantity: 1200 }, { quantity: 1200 }],
+      ),
+    )
     const date = new Date(2026, 1, 15, 12)
 
     const snapshot = await iosHealthKitAdapter.getDailySnapshot(date)
@@ -700,6 +737,7 @@ describe('HealthSnapshotSource adapters', () => {
     const readOnlyMethods: Record<keyof HealthSnapshotSource, true> = {
       getDailySnapshot: true,
       getRangeIntensity: true,
+      subscribeToWorkoutChanges: true,
       requestAuthorization: true,
       isAvailable: true,
     }
@@ -784,6 +822,9 @@ describe('HealthSnapshotSource adapters', () => {
       await expect(iosHealthKitAdapter.getRangeIntensity(7)).resolves.toEqual(
         new Map(),
       )
+      expect(
+        iosHealthKitAdapter.subscribeToWorkoutChanges(jest.fn()),
+      ).toBeNull()
 
       for (const nativeMethod of Object.values(hk)) {
         expect(nativeMethod).not.toHaveBeenCalled()
@@ -801,5 +842,172 @@ describe('HealthSnapshotSource adapters', () => {
 
     expect(iosHealthKitAdapter.isAvailable()).toBe(false)
     expect(deterministicMockAdapter.isAvailable()).toBe(false)
+  })
+
+  it('queries weigh-in history once within a strict 14-day local window', async () => {
+    const morning = new Date(2026, 1, 15, 7)
+    hk.queryQuantitySamples.mockImplementation((identifier: string) =>
+      Promise.resolve(
+        identifier === 'HKQuantityTypeIdentifierBodyMass'
+          ? [{ quantity: 78.46, startDate: morning }]
+          : [],
+      ),
+    )
+    const snapshot = await iosHealthKitAdapter.getDailySnapshot(
+      new Date(2026, 1, 15, 12),
+    )
+    expect(snapshot.bodyMassHistory).toEqual([
+      { kilograms: 78.46, startISO: morning.toISOString() },
+    ])
+    const calls = hk.queryQuantitySamples.mock.calls.filter(
+      ([identifier]: [string]) =>
+        identifier === 'HKQuantityTypeIdentifierBodyMass',
+    )
+    expect(calls).toEqual([
+      [
+        'HKQuantityTypeIdentifierBodyMass',
+        {
+          limit: 0,
+          ascending: true,
+          unit: 'kg',
+          filter: {
+            date: {
+              startDate: new Date(2026, 1, 2),
+              endDate: new Date(2026, 1, 16),
+              strictStartDate: true,
+            },
+          },
+        },
+      ],
+    ])
+  })
+
+  it('keeps a failed weigh-in history separate from the latest known body mass', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation()
+    hk.getMostRecentQuantitySample.mockResolvedValue({ quantity: 78.4 })
+    hk.queryQuantitySamples.mockImplementation((identifier: string) =>
+      identifier === 'HKQuantityTypeIdentifierBodyMass'
+        ? Promise.reject(new Error('private weight details'))
+        : Promise.resolve([]),
+    )
+    const snapshot = await iosHealthKitAdapter.getDailySnapshot(
+      new Date(2026, 1, 15, 12),
+    )
+    expect(snapshot.bodyMassKg).toBe(78.4)
+    expect(snapshot.bodyMassHistory).toBeNull()
+    expect(warn.mock.calls).toEqual([
+      ['[HealthSnapshotSource] body mass history read failed (Error)'],
+    ])
+  })
+
+  it('does not round a 29:59 run up to the 30-minute goal', async () => {
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 37,
+        duration: { quantity: 1799, unit: 's' },
+        startDate: new Date(2026, 1, 15, 8),
+        endDate: new Date(2026, 1, 15, 8, 29, 59),
+      },
+    ])
+    const snapshot = await iosHealthKitAdapter.getDailySnapshot(
+      new Date(2026, 1, 15, 12),
+    )
+    expect(snapshot.workouts[0].durationMinutes).toBe(1799 / 60)
+    expect(snapshot.workouts[0].durationMinutes).toBeLessThan(30)
+  })
+
+  it('reads heart rate for only the longest selected-day stair workout, not daily heart rate', async () => {
+    const shortStats = jest.fn()
+    const longStats = jest.fn(async () => ({
+      averageQuantity: { quantity: 142.6 },
+    }))
+    const yesterdayStats = jest.fn()
+    const stairs = (day: number, seconds: number, getStatistic: jest.Mock) => ({
+      workoutActivityType: 44,
+      duration: { quantity: seconds, unit: 's' },
+      startDate: new Date(2026, 1, day, 8),
+      endDate: new Date(2026, 1, day, 9),
+      getStatistic,
+    })
+    hk.queryWorkoutSamples.mockResolvedValue([
+      stairs(15, 1200, shortStats),
+      stairs(15, 2400, longStats),
+      stairs(14, 3600, yesterdayStats),
+    ])
+    const snapshot = await iosHealthKitAdapter.getDailySnapshot(
+      new Date(2026, 1, 15, 12),
+    )
+    expect(snapshot.workouts[1]).toMatchObject({
+      kind: 'stairClimber',
+      durationMinutes: 40,
+      averageHeartRate: 143,
+    })
+    expect(longStats).toHaveBeenCalledWith(
+      'HKQuantityTypeIdentifierHeartRate',
+      'count/min',
+    )
+    expect(shortStats).not.toHaveBeenCalled()
+    expect(yesterdayStats).not.toHaveBeenCalled()
+  })
+
+  it('keeps a synced stair session when its heart-rate statistics fail', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation()
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 44,
+        duration: { quantity: 1800, unit: 's' },
+        startDate: new Date(2026, 1, 15, 8),
+        endDate: new Date(2026, 1, 15, 8, 30),
+        getStatistic: jest.fn(async () => {
+          throw new Error('private heart rate')
+        }),
+      },
+    ])
+    const snapshot = await iosHealthKitAdapter.getDailySnapshot(
+      new Date(2026, 1, 15, 12),
+    )
+    expect(snapshot.workouts[0]).toMatchObject({
+      kind: 'stairClimber',
+      durationMinutes: 30,
+      averageHeartRate: null,
+    })
+    expect(warn.mock.calls).toEqual([
+      ['[HealthSnapshotSource] stair workout heart rate read failed (Error)'],
+    ])
+  })
+
+  it('observes saved workouts and removes the native subscription', () => {
+    const remove = jest.fn()
+    hk.subscribeToChanges.mockReturnValue({ remove })
+    const onChange = jest.fn()
+    const unsubscribe = iosHealthKitAdapter.subscribeToWorkoutChanges(onChange)
+    expect(hk.subscribeToChanges).toHaveBeenCalledWith(
+      'HKWorkoutTypeIdentifier',
+      expect.any(Function),
+    )
+    hk.subscribeToChanges.mock.calls[0][1]({
+      typeIdentifier: 'HKWorkoutTypeIdentifier',
+    })
+    expect(onChange).toHaveBeenCalledTimes(1)
+    unsubscribe?.()
+    expect(remove).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports observation failures without exposing native error details', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation()
+    const onChange = jest.fn()
+    iosHealthKitAdapter.subscribeToWorkoutChanges(onChange)
+    hk.subscribeToChanges.mock.calls[0][1]({
+      errorMessage: 'private native details',
+    })
+    expect(onChange).not.toHaveBeenCalled()
+    hk.subscribeToChanges.mockImplementationOnce(() => {
+      throw new Error('private native details')
+    })
+    expect(iosHealthKitAdapter.subscribeToWorkoutChanges(onChange)).toBeNull()
+    expect(warn.mock.calls).toEqual([
+      ['[HealthSnapshotSource] workout observation failed (Error)'],
+      ['[HealthSnapshotSource] workout observation failed (Error)'],
+    ])
   })
 })

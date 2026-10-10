@@ -1,6 +1,7 @@
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
+  HealthBodyMassSample,
   HealthSnapshotSource,
   HealthWorkout,
   IntensityMap,
@@ -32,16 +33,31 @@ function createMockWorkout(
   const start = new Date(date)
   start.setHours(7, 30, 0, 0)
   const end = new Date(date)
-  end.setHours(8, 15, 0, 0)
+  const durationMinutes = rand(20, 60, 11)
+  end.setTime(start.getTime() + durationMinutes * 60_000)
 
   return {
+    kind: 'running',
     activityName: 'Running',
+    averageHeartRate: null,
     calories: rand(180, 400, 9),
     distance: decimalFromSeed(seed + 10, 2, 8),
-    durationMinutes: rand(20, 60, 11),
+    durationMinutes,
     startISO: start.toISOString(),
     endISO: end.toISOString(),
   }
+}
+
+function createMockBodyMassHistory(date: Date): HealthBodyMassSample[] {
+  return Array.from({ length: 14 }, (_, index) => {
+    const morning = new Date(date)
+    morning.setDate(morning.getDate() - index)
+    morning.setHours(7, 0, 0, 0)
+    return {
+      kilograms: decimalFromSeed(seedForDate(morning) + 12, 70, 82),
+      startISO: morning.toISOString(),
+    }
+  })
 }
 
 export function createDeterministicMockSnapshot(
@@ -64,6 +80,7 @@ export function createDeterministicMockSnapshot(
     waterLiters: decimalFromSeed(seed + 7, 0.5, 3),
     flightsClimbed: rand(0, 20, 8),
     bodyMassKg: decimalFromSeed(seed + 12, 70, 82),
+    bodyMassHistory: createMockBodyMassHistory(date),
     dietaryCalories: rand(1_400, 2_900, 13),
     workouts: [createMockWorkout(date, seed, rand)],
   }
@@ -89,6 +106,10 @@ export const deterministicMockAdapter: HealthSnapshotSource = {
 
   async requestAuthorization(): Promise<boolean> {
     return true
+  },
+
+  subscribeToWorkoutChanges() {
+    return null
   },
 
   isAvailable(): boolean {

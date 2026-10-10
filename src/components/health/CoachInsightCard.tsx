@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
+import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { Elevation, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
 import type { CoachInsight } from '@/lib/validators'
 
@@ -81,16 +83,15 @@ export function CoachInsightCard({ insight, status }: CoachInsightCardProps) {
       testID="coach-insight-card"
     >
       <Header accentColor={accentColor} />
-      <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
-      <Text style={[styles.headline, { color: theme.text }]}>
+      <Text selectable style={[styles.headline, { color: theme.text }]}>
         {insight.headline}
       </Text>
-      <Text style={[styles.body, { color: theme.subtitleText }]}>
+      <Text selectable style={[styles.body, { color: theme.subtitleText }]}>
         {insight.body}
       </Text>
       <View style={styles.suggestionRow}>
         <Ionicons name="bulb" size={15} color={accentColor} />
-        <Text style={[styles.suggestion, { color: theme.text }]}>
+        <Text selectable style={[styles.suggestion, { color: theme.text }]}>
           {insight.suggestion}
         </Text>
       </View>
@@ -105,13 +106,11 @@ function Header({ accentColor }: { accentColor: string }) {
     <View style={styles.headerRow}>
       <View style={styles.labelRow}>
         <View
-          style={[styles.iconBadge, { backgroundColor: `${accentColor}1A` }]}
+          style={[styles.iconBadge, { backgroundColor: theme.cardSurface }]}
         >
           <Ionicons name="sparkles" size={14} color={accentColor} />
         </View>
-        <Text style={[styles.label, { color: theme.subtitleText }]}>
-          AI Coach
-        </Text>
+        <Text style={[styles.label, { color: theme.text }]}>AI Coach</Text>
       </View>
       <View style={[styles.pill, { backgroundColor: theme.badgeBackground }]}>
         <Text style={[styles.pillText, { color: theme.subtitleText }]}>
@@ -124,15 +123,16 @@ function Header({ accentColor }: { accentColor: string }) {
 
 const styles = StyleSheet.create({
   card: {
+    ...Elevation.soft,
     width: '100%',
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 16,
-    gap: 10,
-    overflow: 'hidden',
+    borderRadius: Radii.panel,
+    borderCurve: 'continuous',
+    padding: Spacing.xl,
+    gap: Spacing.md,
   },
   headerRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
@@ -143,17 +143,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 9,
+    width: 36,
+    height: 36,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    ...Typography.headingSm,
   },
   pill: {
     borderRadius: 999,
@@ -161,23 +158,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   pillText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  accentBar: {
-    height: 3,
-    width: 44,
-    borderRadius: 999,
+    ...Typography.labelMd,
   },
   headline: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    ...Typography.headingMd,
   },
   body: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
+    ...Typography.bodyMd,
   },
   suggestionRow: {
     flexDirection: 'row',
@@ -187,9 +174,7 @@ const styles = StyleSheet.create({
   },
   suggestion: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: '700',
+    ...Typography.bodyMd,
   },
   skeletonStack: {
     gap: 8,
