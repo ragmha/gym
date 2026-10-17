@@ -8,6 +8,7 @@ import React, {
   type Ref,
 } from 'react'
 import {
+  AccessibilityInfo,
   Alert,
   Linking,
   Platform,
@@ -18,8 +19,11 @@ import {
   View,
   type ViewStyle,
 } from 'react-native'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
+  useAnimatedStyle,
   useReducedMotion,
+  useSharedValue,
   type CSSStyle,
 } from 'react-native-reanimated'
 import Svg, { Circle, Rect } from 'react-native-svg'
@@ -42,6 +46,16 @@ import { presentSteps } from '@/lib/fitnessMetrics/presenter'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 import { useGymLogStore } from '@/stores/GymLogStore'
+import { useThemeStore } from '@/stores/ThemeStore'
+
+const EDGE_FLIP = 32
+const FLIP_COOLDOWN_MS = 800
+
+function moveTile<T>(items: T[], from: number, to: number): T[] {
+  const next = [...items]
+  next.splice(to, 0, ...next.splice(from, 1))
+  return next
+}
 
 type Route = '/steps' | '/water' | '/gym' | '/fitness-metrics'
 
@@ -417,7 +431,32 @@ export function GoalGrid({
   const router = useRouter()
   const reducedMotion = useReducedMotion()
   const liftLogged = useLiftLogged(date)
-  const tiles = buildTiles(snapshot, date, liftLogged)
+  const tileOrder = useThemeStore((s) => s.tileOrder)
+  const setTileOrder = useThemeStore((s) => s.setTileOrder)
+  const rank = (label: string) => {
+    const index = tileOrder.indexOf(label)
+    return index === -1 ? tileOrder.length : index
+  }
+  const tiles = buildTiles(snapshot, date, liftLogged).sort(
+    (a, b) => rank(a.label) - rank(b.label),
+  )
+  const [drag, setDrag] = useState<{ from: number; over: number } | null>(null)
+  const preview = drag ? moveTile(tiles, drag.from, drag.over) : tiles
+  const dragRef = useRef<{
+    from: number | null
+    x: number
+    y: number
+    flippedAt: number
+  }>({ from: null, x: 0, y: 0, flippedAt: 0 })
+  const ghostX = useSharedValue(0)
+  const ghostY = useSharedValue(0)
+  const ghostStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: ghostX.value },
+      { translateY: ghostY.value },
+      { scale: 1.1 },
+    ],
+  }))
   const mono = [styles.mono, { color: theme.subtitleText }]
   const { fontScale } = useWindowDimensions()
   const [layout, setLayout] = useState({ width: 0, height: 0 })
@@ -439,19 +478,93 @@ export function GoalGrid({
     onPageChange?.({ index: page, count: pageCount })
   }, [page, pageCount, onPageChange])
 
-  useImperativeHandle(
-    ref,
-    () => ({
-      showPage: (index: number) => {
-        setPage(index)
-        pager.current?.scrollTo({
-          x: layout.width * index,
-          animated: !reducedMotion,
-        })
-      },
-    }),
-    [layout.width, reducedMotion],
-  )
+  const showPage = (index: number) => {
+    setPage(index)
+    pager.current?.scrollTo({
+      x: layout.width * index,
+      animated: !reducedMotion,
+    })
+  }
+
+  useImperativeHandle(ref, () => ({ showPage }))
+
+  const moveTo = (from: number, to: number) =>
+    setTileOrder(moveTile(tiles, from, to).map((tile) => tile.label))
+
+  // Preview by transform so the touched tile's view is never re-parented mid-drag.
+  const shift = (from: number, to: number) => [
+    {
+      translateX:
+        (Math.floor(to / 6) - Math.floor(from / 6)) * layout.width +
+        ((to % 2) - (from % 2)) * ((layout.width - Layout.gutter * 2) / 2),
+    },
+    {
+      translateY:
+        (Math.floor((to % 6) / 2) - Math.floor((from % 6) / 2)) *
+        (layout.height / 3),
+    },
+  ]
+
+  /** Slot under a point on a page; can pass the last tile on a partial page. */
+  const slotAt = (pageIndex: number, x: number, y: number) => {
+    const contentX = pageIndex * layout.width + x
+    const target = Math.max(
+      0,
+      Math.min(pageCount - 1, Math.floor(contentX / layout.width)),
+    )
+    const col = contentX - target * layout.width < layout.width / 2 ? 0 : 1
+    const row = Math.max(0, Math.min(2, Math.floor(y / (layout.height / 3))))
+    return target * 6 + row * 2 + col
+  }
+
+  // ponytail: one long-press pan per page, hit-tested against the fixed 2x3 grid.
+  const dragGesture = (pageIndex: number) =>
+    Gesture.Pan()
+      .withTestId(`goal-drag-${pageIndex + 1}`)
+      .activateAfterLongPress(400)
+      .runOnJS(true)
+      .onStart((e) => {
+        const from = slotAt(pageIndex, e.x, e.y)
+        if (from >= tiles.length) return
+        dragRef.current = {
+          from,
+          x: e.absoluteX - e.x,
+          y: e.absoluteY - e.y,
+          flippedAt: 0,
+        }
+        ghostX.value = e.x - tileSize / 2
+        ghostY.value = e.y - tileSize / 2
+        setDrag({ from, over: from })
+      })
+      .onUpdate((e) => {
+        const active = dragRef.current
+        if (active.from === null) return
+        const x = e.absoluteX - active.x
+        ghostX.value = x - tileSize / 2
+        ghostY.value = e.absoluteY - active.y - tileSize / 2
+        const over = Math.min(tiles.length - 1, slotAt(pageIndex, e.x, e.y))
+        setDrag((d) => (d && d.over !== over ? { ...d, over } : d))
+        const step = x < EDGE_FLIP ? -1 : x > layout.width - EDGE_FLIP ? 1 : 0
+        const now = Date.now()
+        if (
+          step !== 0 &&
+          page + step >= 0 &&
+          page + step < pageCount &&
+          now - active.flippedAt > FLIP_COOLDOWN_MS
+        ) {
+          active.flippedAt = now
+          showPage(page + step)
+        }
+      })
+      .onEnd((e) => {
+        const { from } = dragRef.current
+        if (from === null) return
+        moveTo(from, Math.min(tiles.length - 1, slotAt(pageIndex, e.x, e.y)))
+      })
+      .onFinalize(() => {
+        dragRef.current.from = null
+        setDrag(null)
+      })
 
   return (
     <View style={styles.container}>
@@ -473,6 +586,7 @@ export function GoalGrid({
           horizontal
           pagingEnabled
           bounces={false}
+          scrollEnabled={!drag}
           directionalLockEnabled
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}
@@ -493,100 +607,151 @@ export function GoalGrid({
           }}
         >
           {Array.from({ length: pageCount }, (_, pageIndex) => (
-            <View
-              key={pageIndex}
-              testID={`goal-page-${pageIndex + 1}`}
-              style={[styles.grid, layout]}
-              accessibilityElementsHidden={pageIndex !== page}
-              importantForAccessibility={
-                pageIndex === page ? 'auto' : 'no-hide-descendants'
-              }
-              aria-hidden={pageIndex !== page}
-            >
-              {tiles.slice(pageIndex * 6, (pageIndex + 1) * 6).map((tile) => {
-                const tileID = tile.label.toLowerCase()
-                const percent =
-                  tile.progress === null
-                    ? null
-                    : Math.floor(tile.progress * 100)
-                return (
-                  <Pressable
-                    key={tile.label}
-                    testID={`goal-tile-${tileID}`}
-                    style={({ pressed }) => [
-                      styles.cell,
-                      { opacity: pressed ? 0.7 : 1 },
-                    ]}
-                    accessibilityRole={tile.url ? 'link' : 'button'}
-                    accessibilityLabel={tile.accessibilityLabel}
-                    accessibilityHint={tile.hint}
-                    accessibilityValue={{
-                      text:
-                        tile.status ??
-                        (tile.done === null
-                          ? 'No goal'
-                          : percent === null
-                            ? 'Goal progress unavailable'
-                            : `${tile.done ? 'Goal met' : 'Goal not met'} (${percent}%)`),
-                    }}
-                    disabled={!tile.url && !tile.route}
-                    tabIndex={pageIndex === page ? 0 : -1}
-                    accessibilityState={{ disabled: !tile.url && !tile.route }}
-                    onPress={() => {
-                      if (tile.url) {
-                        Linking.openURL(tile.url).catch(() => {
-                          Alert.alert(
-                            `Couldn't open ${tile.caption}`,
-                            'Check that the app is installed or the link is available, then try again.',
-                          )
-                        })
-                      } else if (tile.route) {
-                        router.push({
-                          pathname: tile.route,
-                          params: { date: localDateKey(date) },
-                        })
-                      }
-                    }}
-                  >
-                    <GoalTileSurface
-                      id={tileID}
-                      icon={tile.icon}
-                      size={tileSize}
-                      progress={tile.progress}
-                      done={tile.done}
-                    />
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.label, { color: theme.text }]}
-                    >
-                      {tile.label}
-                    </Text>
-                    <Text
-                      selectable
-                      numberOfLines={1}
-                      style={[
-                        mono,
-                        styles.caption,
-                        tile.progress !== null &&
-                          tile.progress > 0 && {
-                            color: theme.goalProgressText,
+            <GestureDetector key={pageIndex} gesture={dragGesture(pageIndex)}>
+              <View
+                testID={`goal-page-${pageIndex + 1}`}
+                style={[styles.grid, layout]}
+                accessibilityElementsHidden={pageIndex !== page}
+                importantForAccessibility={
+                  pageIndex === page ? 'auto' : 'no-hide-descendants'
+                }
+                aria-hidden={pageIndex !== page}
+              >
+                {tiles
+                  .slice(pageIndex * 6, (pageIndex + 1) * 6)
+                  .map((tile, slot) => {
+                    const index = pageIndex * 6 + slot
+                    const at = preview.indexOf(tile)
+                    const tileID = tile.label.toLowerCase()
+                    const percent =
+                      tile.progress === null
+                        ? null
+                        : Math.floor(tile.progress * 100)
+                    return (
+                      <Pressable
+                        key={tile.label}
+                        testID={`goal-tile-${tileID}`}
+                        style={({ pressed }) => [
+                          styles.cell,
+                          {
+                            opacity:
+                              drag?.from === index ? 0 : pressed ? 0.7 : 1,
                           },
-                      ]}
-                    >
-                      {tile.caption}
-                    </Text>
-                  </Pressable>
-                )
-              })}
-            </View>
+                          at !== index && { transform: shift(index, at) },
+                        ]}
+                        accessibilityActions={[
+                          ...(index > 0
+                            ? [{ name: 'moveEarlier', label: 'Move earlier' }]
+                            : []),
+                          ...(index < tiles.length - 1
+                            ? [{ name: 'moveLater', label: 'Move later' }]
+                            : []),
+                        ]}
+                        onAccessibilityAction={({ nativeEvent }) => {
+                          const to =
+                            index +
+                            (nativeEvent.actionName === 'moveLater' ? 1 : -1)
+                          moveTo(index, to)
+                          if (Math.floor(to / 6) !== page) {
+                            showPage(Math.floor(to / 6))
+                          }
+                          AccessibilityInfo.announceForAccessibility(
+                            `${tile.label} moved to position ${to + 1} of ${tiles.length}`,
+                          )
+                        }}
+                        accessibilityRole={tile.url ? 'link' : 'button'}
+                        accessibilityLabel={tile.accessibilityLabel}
+                        accessibilityHint={tile.hint}
+                        accessibilityValue={{
+                          text:
+                            tile.status ??
+                            (tile.done === null
+                              ? 'No goal'
+                              : percent === null
+                                ? 'Goal progress unavailable'
+                                : `${tile.done ? 'Goal met' : 'Goal not met'} (${percent}%)`),
+                        }}
+                        disabled={!tile.url && !tile.route}
+                        tabIndex={pageIndex === page ? 0 : -1}
+                        accessibilityState={{
+                          disabled: !tile.url && !tile.route,
+                        }}
+                        onPress={() => {
+                          if (tile.url) {
+                            Linking.openURL(tile.url).catch(() => {
+                              Alert.alert(
+                                `Couldn't open ${tile.caption}`,
+                                'Check that the app is installed or the link is available, then try again.',
+                              )
+                            })
+                          } else if (tile.route) {
+                            router.push({
+                              pathname: tile.route,
+                              params: { date: localDateKey(date) },
+                            })
+                          }
+                        }}
+                      >
+                        <GoalTileSurface
+                          id={tileID}
+                          icon={tile.icon}
+                          size={tileSize}
+                          progress={tile.progress}
+                          done={tile.done}
+                        />
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.label, { color: theme.text }]}
+                        >
+                          {tile.label}
+                        </Text>
+                        <Text
+                          selectable
+                          numberOfLines={1}
+                          style={[
+                            mono,
+                            styles.caption,
+                            tile.progress !== null &&
+                              tile.progress > 0 && {
+                                color: theme.goalProgressText,
+                              },
+                          ]}
+                        >
+                          {tile.caption}
+                        </Text>
+                      </Pressable>
+                    )
+                  })}
+              </View>
+            </GestureDetector>
           ))}
         </ScrollView>
+        {drag && (
+          <Animated.View
+            testID="goal-drag-ghost"
+            style={[styles.ghost, ghostStyle]}
+          >
+            <GoalTileSurface
+              id="dragging"
+              icon={tiles[drag.from].icon}
+              size={tileSize}
+              progress={tiles[drag.from].progress}
+              done={tiles[drag.from].done}
+            />
+          </Animated.View>
+        )}
       </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  ghost: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    pointerEvents: 'none',
+  },
   container: {
     flex: 1,
     minHeight: 0,

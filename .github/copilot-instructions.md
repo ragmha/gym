@@ -53,7 +53,7 @@ App Group, Health writes, or coach input. Keep distribution blocked while
 | Language         | TypeScript (strict)                              | 5.9        |
 | Package Manager  | Bun                                              | 1.2        |
 | Backend / DB     | None — HealthKit is the only data source         | —          |
-| State Management | Zustand (theme preference, gym log)              | 5.x        |
+| State Management | Zustand (theme, tile order, gym log)             | 5.x        |
 | Charts           | react-native-svg                                 | —          |
 | Animations       | React Native Reanimated                          | 4.x        |
 | Health Data      | @kingstinct/react-native-healthkit               | 13.x       |
@@ -137,7 +137,8 @@ This project targets **iOS as the primary platform**.
 
 ## State Management
 
-- `ThemeStore` persists the user's theme preference through AsyncStorage.
+- `ThemeStore` persists two user-approved UI preferences through AsyncStorage:
+  the theme and the dashboard tile order (tile labels only).
 - `GymLogStore` is the approved on-device lifting log: programme start date and
   per-day sets, rating, and notes. Do not add Health readings to it.
 - Health data is not state to be managed. It is read per-day through

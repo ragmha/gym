@@ -55,7 +55,7 @@ src/components/          UI grouped by domain
 src/lib/healthSnapshot/  HealthKit and mock data adapters
 src/lib/coach/           On-device and mock coach engines
 src/lib/gymProgramme/    Bundled 8-week lifting programme
-src/stores/              Persisted theme preference and on-device gym log
+src/stores/              Persisted theme, dashboard tile order and on-device gym log
 modules/phone-rest/       Experimental native phone-rest prototype
 ```
 
