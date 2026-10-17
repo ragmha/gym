@@ -63,6 +63,15 @@ export default function SettingsScreen() {
   const isRequestingAccess = authorizationStatus === 'requesting'
   const preference = useThemeStore((s) => s.preference)
   const setPreference = useThemeStore((s) => s.setPreference)
+  const customOrder = useThemeStore(
+    (s) => s.tileOrder.length > 0 || s.gymTileOrder.length > 0,
+  )
+  const setTileOrder = useThemeStore((s) => s.setTileOrder)
+  const setGymTileOrder = useThemeStore((s) => s.setGymTileOrder)
+  const resetTileOrder = () => {
+    setTileOrder([])
+    setGymTileOrder([])
+  }
 
   const showHealthKit = Platform.OS === 'ios' && !isDemoMode
 
@@ -264,6 +273,37 @@ export default function SettingsScreen() {
               })}
             </View>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.sectionTitle, { color: textColor }]}
+          >
+            Layout
+          </Text>
+          <Pressable
+            testID="reset-tile-order"
+            onPress={resetTileOrder}
+            disabled={!customOrder}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !customOrder }}
+            accessibilityHint="Puts Home and Gym tiles back in their default order"
+            style={({ pressed }) => [
+              styles.card,
+              { backgroundColor: cardBg, opacity: pressed ? 0.65 : 1 },
+              !customOrder && styles.disabledButton,
+            ]}
+          >
+            <Text style={[styles.rowTitle, { color: textColor }]}>
+              Reset tile order
+            </Text>
+            <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
+              {customOrder
+                ? 'Home and Gym use your arrangement.'
+                : 'Home and Gym use the default order. Hold a tile to rearrange.'}
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>

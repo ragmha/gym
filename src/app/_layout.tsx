@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useMemo } from 'react'
 import { Alert } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import 'react-native-reanimated'
 
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
@@ -64,64 +65,66 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={navTheme}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <ErrorBoundary>
-        <Stack
-          screenOptions={{
-            contentStyle: { backgroundColor: navTheme.colors.background },
-            headerStyle: { backgroundColor: navTheme.colors.background },
-            headerTintColor: navTheme.colors.primary,
-            headerShadowVisible: false,
-            headerTitleStyle: { fontWeight: '600' },
-          }}
-        >
-          <Stack.Screen
-            name="index"
-            options={{ headerShown: false, title: '' }}
-          />
-          <Stack.Screen name="settings" options={{ headerShown: false }} />
-          <Stack.Screen name="insights" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="phone-rest"
-            options={{ title: 'Phone rest', headerShown: true }}
-          />
-          <Stack.Screen
-            name="fitness-metrics"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="gym" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="steps"
-            options={{
-              headerShown: false,
-              presentation: 'modal',
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={navTheme}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <ErrorBoundary>
+          <Stack
+            screenOptions={{
+              contentStyle: { backgroundColor: navTheme.colors.background },
+              headerStyle: { backgroundColor: navTheme.colors.background },
+              headerTintColor: navTheme.colors.primary,
+              headerShadowVisible: false,
+              headerTitleStyle: { fontWeight: '600' },
             }}
-          />
-          <Stack.Screen
-            name="water"
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-            }}
-          />
-          <Stack.Screen
-            name="coach"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="add-weight"
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-              title: 'Add weight',
-            }}
-          />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </ErrorBoundary>
-    </ThemeProvider>
+          >
+            <Stack.Screen
+              name="index"
+              options={{ headerShown: false, title: '' }}
+            />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="insights" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="phone-rest"
+              options={{ title: 'Phone rest', headerShown: true }}
+            />
+            <Stack.Screen
+              name="fitness-metrics"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen name="gym" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="steps"
+              options={{
+                headerShown: false,
+                presentation: 'modal',
+              }}
+            />
+            <Stack.Screen
+              name="water"
+              options={{
+                headerShown: false,
+                presentation: 'modal',
+              }}
+            />
+            <Stack.Screen
+              name="coach"
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="add-weight"
+              options={{
+                headerShown: false,
+                presentation: 'modal',
+                title: 'Add weight',
+              }}
+            />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </ErrorBoundary>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   )
 }

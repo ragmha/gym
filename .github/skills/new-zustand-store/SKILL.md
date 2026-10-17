@@ -5,7 +5,7 @@ description: 'Guards Zustand state under the ThemeStore-only policy and shows th
 
 # New Zustand Store
 
-`ThemeStore` persists one UI preference, and `GymLogStore` is the user-approved
+`ThemeStore` persists UI preferences (theme and Home/Gym tile order), and `GymLogStore` is the user-approved
 on-device lifting log (sets and reps HealthKit cannot hold). Health data
 is read per day with `useHealthSnapshot(date)` and never stored. There is no
 backend, network client, or environment configuration.

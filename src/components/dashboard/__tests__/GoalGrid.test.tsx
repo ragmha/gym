@@ -7,7 +7,18 @@ import {
 } from '@testing-library/react-native'
 import { useRouter } from 'expo-router'
 import { createRef } from 'react'
-import { Alert, Linking, processColor, StyleSheet } from 'react-native'
+import {
+  AccessibilityInfo,
+  Alert,
+  Linking,
+  processColor,
+  StyleSheet,
+} from 'react-native'
+import { State } from 'react-native-gesture-handler'
+import {
+  fireGestureHandler,
+  getByGestureTestId,
+} from 'react-native-gesture-handler/jest-utils'
 import { useReducedMotion } from 'react-native-reanimated'
 
 import {
@@ -21,6 +32,7 @@ import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/hooks/useThemeColor'
 import type { HealthWorkout } from '@/lib/healthSnapshot/types'
 import { useGymLogStore } from '@/stores/GymLogStore'
+import { useThemeStore } from '@/stores/ThemeStore'
 
 jest.mock('@/hooks/useThemeColor', () => {
   const { Colors } =
@@ -75,6 +87,7 @@ describe('GoalGrid', () => {
     jest.clearAllMocks()
     jest.mocked(useTheme).mockReturnValue(Colors.light)
     jest.mocked(useReducedMotion).mockReturnValue(false)
+    useThemeStore.setState({ tileOrder: [] })
   })
 
   it.each([
@@ -653,6 +666,83 @@ describe('GoalGrid', () => {
     expect(openURL).not.toHaveBeenCalled()
     expect(push).not.toHaveBeenCalled()
     openURL.mockRestore()
+  })
+
+  it('reorders tiles by long-press drag or accessibility action and saves the order', async () => {
+    const onEdit = jest.fn()
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} onEdit={onEdit} />)
+    swipeToPage(0)
+    // Gesture callbacks pick up the measured layout in a microtask.
+    await act(async () => {})
+    const at = (x: number, y: number) => ({
+      x,
+      y,
+      absoluteX: x,
+      absoluteY: y,
+    })
+
+    act(() =>
+      fireGestureHandler(getByGestureTestId('goal-drag-1'), [
+        { state: State.BEGAN, ...at(50, 50) },
+        { state: State.ACTIVE, ...at(50, 50) },
+        at(300, 550),
+        { state: State.END, ...at(300, 550) },
+      ]),
+    )
+
+    expect(onEdit).toHaveBeenCalledTimes(1)
+    expect(useThemeStore.getState().tileOrder).toEqual([
+      'Gym',
+      'Water',
+      'Reading',
+      'Praying',
+      'Journal',
+      'Steps',
+      'Speaking',
+      'All metrics',
+    ])
+    expect(
+      within(screen.getByTestId('goal-page-1')).getByTestId('goal-tile-steps'),
+    ).toBeTruthy()
+
+    fireEvent(screen.getByTestId('goal-tile-steps'), 'accessibilityAction', {
+      nativeEvent: { actionName: 'moveLater' },
+    })
+    expect(useThemeStore.getState().tileOrder.slice(5)).toEqual([
+      'Speaking',
+      'Steps',
+      'All metrics',
+    ])
+    expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
+      'Steps moved to position 7 of 8',
+    )
+    expect(
+      screen.getByTestId('goal-page-2').props.accessibilityElementsHidden,
+    ).toBe(false)
+  })
+
+  it('ignores tile taps while rearranging and swaps Settings for Done', () => {
+    const push = jest.fn()
+    const onDone = jest.fn()
+    jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} editing />)
+    fireEvent.press(screen.getByRole('button', { name: /^Steps/ }))
+    expect(push).not.toHaveBeenCalled()
+
+    render(
+      <GoalSummary
+        snapshot={null}
+        date={date}
+        refreshing={false}
+        onRefresh={jest.fn()}
+        onSettingsPress={jest.fn()}
+        editing
+        onDone={onDone}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull()
+    fireEvent.press(screen.getByRole('button', { name: 'Done' }))
+    expect(onDone).toHaveBeenCalled()
   })
 })
 

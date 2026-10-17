@@ -1,5 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { State } from 'react-native-gesture-handler'
+import {
+  fireGestureHandler,
+  getByGestureTestId,
+} from 'react-native-gesture-handler/jest-utils'
 
 import GymScreen from '@/app/gym'
 import CardioScreen from '@/app/gym/cardio'
@@ -10,6 +15,7 @@ import { currentStreak, streakStats } from '@/components/gym/ActivityDetail'
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 import { useGymLogStore } from '@/stores/GymLogStore'
+import { useThemeStore } from '@/stores/ThemeStore'
 
 jest.mock('@/hooks/useThemeColor', () => {
   const { Colors } =
@@ -50,6 +56,7 @@ beforeEach(() => {
   jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-10-17' })
   jest.mocked(useWorkoutHistory).mockReturnValue(null)
   useGymLogStore.setState({ programmeStart: null, logs: {} })
+  useThemeStore.setState({ gymTileOrder: [] })
 })
 
 describe('Gym hub', () => {
@@ -70,6 +77,58 @@ describe('Gym hub', () => {
         params: { date: '2026-10-17' },
       })
     }
+  })
+
+  it('rearranges tiles with a long-press drag, ignores cancelled drags and taps until Done', async () => {
+    const push = jest.fn()
+    jest.mocked(useRouter).mockReturnValue({ push } as never)
+    render(<GymScreen />)
+    fireEvent(screen.getByTestId('gym-grid'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 400 } },
+    })
+    await act(async () => {})
+    const at = (x: number, y: number) => ({
+      x,
+      y,
+      absoluteX: x,
+      absoluteY: y,
+    })
+
+    act(() =>
+      fireGestureHandler(getByGestureTestId('gym-reorder'), [
+        { state: State.BEGAN, ...at(50, 50) },
+        { state: State.ACTIVE, ...at(50, 50) },
+        at(300, 350),
+        { state: State.CANCELLED, ...at(300, 350) },
+      ]),
+    )
+    expect(useThemeStore.getState().gymTileOrder).toEqual([])
+
+    act(() =>
+      fireGestureHandler(getByGestureTestId('gym-reorder'), [
+        { state: State.BEGAN, ...at(50, 50) },
+        { state: State.ACTIVE, ...at(50, 50) },
+        at(300, 350),
+        { state: State.END, ...at(300, 350) },
+      ]),
+    )
+
+    expect(useThemeStore.getState().gymTileOrder).toEqual([
+      'cardio',
+      'lifting',
+      'weight',
+      'stairmaster',
+    ])
+    fireEvent.press(screen.getByTestId('gym-tile-cardio'))
+    expect(push).not.toHaveBeenCalled()
+
+    fireEvent.press(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull()
+    fireEvent.press(screen.getByTestId('gym-tile-cardio'))
+    expect(push).toHaveBeenCalledWith({
+      pathname: '/gym/cardio',
+      params: { date: '2026-10-17' },
+    })
   })
 
   it('shows lifting set progress for the programme day', () => {
