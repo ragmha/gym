@@ -46,6 +46,16 @@ describe.each(['light', 'dark'] as const)('%s visual system', (mode) => {
   it('keeps the measured step-progress stroke distinct from its track', () => {
     expect(contrast(theme.progress, theme.separator)).toBeGreaterThanOrEqual(3)
   })
+
+  it('keeps goal captions and icons readable on partial and completed tiles', () => {
+    expect(
+      contrast(theme.goalProgressText, theme.homeBackground),
+    ).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(theme.text, theme.goalFill)).toBeGreaterThanOrEqual(3)
+    expect(
+      contrast(theme.goalOnComplete, theme.goalComplete),
+    ).toBeGreaterThanOrEqual(4.5)
+  })
 })
 
 describe('Shared visual tokens', () => {

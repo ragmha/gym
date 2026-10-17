@@ -48,9 +48,9 @@ export function HealthDateRoute({
           accessibilityRole="alert"
           style={[Typography.bodyMd, { color: theme.text }]}
         >
-          Invalid date. Choose a day from Home.
+          Invalid date. Choose a day in Insights.
         </Text>
-        <Link href="/" asChild>
+        <Link href="/insights" asChild>
           <Pressable
             accessibilityRole="button"
             style={({ pressed }) => [
@@ -59,7 +59,7 @@ export function HealthDateRoute({
             ]}
           >
             <Text style={[Typography.labelLg, { color: theme.selectedText }]}>
-              Back to home
+              Open Insights
             </Text>
           </Pressable>
         </Link>

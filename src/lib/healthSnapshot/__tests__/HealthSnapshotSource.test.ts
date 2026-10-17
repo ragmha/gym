@@ -1,7 +1,10 @@
 import { Platform } from 'react-native'
 
 import { iosHealthKitAdapter } from '@/lib/healthSnapshot/iosAdapter'
-import { deterministicMockAdapter } from '@/lib/healthSnapshot/mockAdapter'
+import {
+  createDeterministicMockSnapshot,
+  deterministicMockAdapter,
+} from '@/lib/healthSnapshot/mockAdapter'
 import type { HealthSnapshotSource } from '@/lib/healthSnapshot/types'
 
 jest.mock('@kingstinct/react-native-healthkit')
@@ -555,6 +558,138 @@ describe('HealthSnapshotSource adapters', () => {
     jest.useRealTimers()
   })
 
+  it('reads water history in one daily statistics query, keeping missing days null and observed zero', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date(2026, 1, 20, 10))
+    hk.queryStatisticsCollectionForQuantity.mockResolvedValue([
+      { sumQuantity: { quantity: 1.26 }, startDate: new Date(2026, 1, 18) },
+      { sumQuantity: { quantity: 0 }, startDate: new Date(2026, 1, 19) },
+      { sumQuantity: null, startDate: new Date(2026, 1, 20) },
+    ])
+
+    const history = await iosHealthKitAdapter.getWaterHistory(
+      new Date(2026, 1, 20, 12),
+      4,
+    )
+
+    expect(hk.queryStatisticsCollectionForQuantity).toHaveBeenCalledTimes(1)
+    expect(hk.queryStatisticsCollectionForQuantity).toHaveBeenCalledWith(
+      'HKQuantityTypeIdentifierDietaryWater',
+      ['cumulativeSum'],
+      new Date(2026, 1, 17),
+      { day: 1 },
+      {
+        unit: 'l',
+        filter: {
+          date: {
+            startDate: new Date(2026, 1, 17),
+            endDate: new Date(2026, 1, 20, 10),
+          },
+        },
+      },
+    )
+    expect(history).toEqual([
+      { date: '2026-02-17', liters: null },
+      { date: '2026-02-18', liters: 1.3 },
+      { date: '2026-02-19', liters: 0 },
+      { date: '2026-02-20', liters: null },
+    ])
+  })
+
+  it('reads workout history in one bulk query bucketed by local start day', async () => {
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 37,
+        startDate: new Date(2026, 1, 18, 7),
+        endDate: new Date(2026, 1, 18, 7, 30),
+        duration: { quantity: 1800, unit: 's' },
+      },
+      {
+        workoutActivityType: 37,
+        startDate: new Date(2026, 1, 19, 7),
+        endDate: new Date(2026, 1, 19, 7, 10),
+        duration: { quantity: 600, unit: 's' },
+      },
+    ])
+
+    const history = await iosHealthKitAdapter.getWorkoutHistory(
+      new Date(2026, 1, 20, 12),
+      3,
+    )
+
+    expect(hk.queryWorkoutSamples).toHaveBeenCalledTimes(1)
+    expect(hk.queryWorkoutSamples).toHaveBeenCalledWith({
+      limit: 0,
+      filter: {
+        date: {
+          startDate: new Date(2026, 1, 18),
+          endDate: new Date(2026, 1, 21),
+        },
+      },
+    })
+    expect(history.map((d) => [d.date, d.workouts.length])).toEqual([
+      ['2026-02-18', 1],
+      ['2026-02-19', 1],
+      ['2026-02-20', 0],
+    ])
+    expect(history[0].workouts[0].durationMinutes).toBe(30)
+  })
+
+  it('rejects a failed workout history read instead of reporting empty days', async () => {
+    hk.queryWorkoutSamples.mockRejectedValue(new Error('workout denied'))
+
+    await expect(
+      iosHealthKitAdapter.getWorkoutHistory(new Date(2026, 1, 20, 12), 7),
+    ).rejects.toThrow('workout denied')
+  })
+
+  it('serves deterministic mock workout history off iOS', async () => {
+    const date = new Date(2026, 1, 20, 12)
+    const history = await deterministicMockAdapter.getWorkoutHistory(date, 2)
+    expect(history.map((d) => d.date)).toEqual(['2026-02-19', '2026-02-20'])
+    expect(history[1].workouts).toEqual(
+      createDeterministicMockSnapshot(date).workouts,
+    )
+  })
+
+  it('rejects a failed water history read instead of reporting empty days', async () => {
+    hk.queryStatisticsCollectionForQuantity.mockRejectedValue(
+      new Error('water denied'),
+    )
+
+    await expect(
+      iosHealthKitAdapter.getWaterHistory(new Date(2026, 1, 20, 12), 7),
+    ).rejects.toThrow('water denied')
+  })
+
+  it('returns null water days without querying when HealthKit is unavailable', async () => {
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'web',
+    })
+
+    await expect(
+      iosHealthKitAdapter.getWaterHistory(new Date(2026, 1, 20, 12), 2),
+    ).resolves.toEqual([
+      { date: '2026-02-19', liters: null },
+      { date: '2026-02-20', liters: null },
+    ])
+    expect(hk.queryStatisticsCollectionForQuantity).not.toHaveBeenCalled()
+  })
+
+  it('keeps mock water history consistent with the daily snapshot', async () => {
+    const date = new Date(2026, 1, 20, 12)
+    const history = await deterministicMockAdapter.getWaterHistory(date, 3)
+    const snapshot = await deterministicMockAdapter.getDailySnapshot(date)
+
+    expect(history.map((day) => day.date)).toEqual([
+      '2026-02-18',
+      '2026-02-19',
+      '2026-02-20',
+    ])
+    expect(history[2].liters).toBe(snapshot.waterLiters)
+  })
+
   it('uses HealthKit cumulative totals instead of summing overlapping device samples', async () => {
     hk.queryStatisticsForQuantity.mockResolvedValue({
       sumQuantity: { quantity: 1200 },
@@ -737,6 +872,8 @@ describe('HealthSnapshotSource adapters', () => {
     const readOnlyMethods: Record<keyof HealthSnapshotSource, true> = {
       getDailySnapshot: true,
       getRangeIntensity: true,
+      getWaterHistory: true,
+      getWorkoutHistory: true,
       subscribeToWorkoutChanges: true,
       requestAuthorization: true,
       isAvailable: true,

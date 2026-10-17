@@ -47,6 +47,7 @@ jest.mock('react-native-reanimated', () => {
     useAnimatedStyle: jest.fn(() => ({})),
     useAnimatedProps: jest.fn(() => ({})),
     useAnimatedReaction: jest.fn(),
+    useReducedMotion: jest.fn(() => false),
     runOnJS: jest.fn((fn: any) => fn),
     withTiming: jest.fn((val: any) => val),
     withRepeat: jest.fn((val: any) => val),
@@ -97,3 +98,9 @@ console.warn = (...args: any[]) => {
   }
   originalWarn(...args)
 }
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual(
+    '@react-native-async-storage/async-storage/jest/async-storage-mock',
+  ),
+)

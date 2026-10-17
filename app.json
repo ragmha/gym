@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "io.raghib.gym",
@@ -54,7 +54,7 @@
         "@kingstinct/react-native-healthkit",
         {
           "NSHealthShareUsageDescription": "This app reads your activity, sleep, heart metrics, weight, hydration, and nutrition data from Apple Health to display your daily dashboard.",
-          "NSHealthUpdateUsageDescription": "Save the body weight and measurement time you enter and explicitly confirm to Apple Health."
+          "NSHealthUpdateUsageDescription": "Save the water amount you explicitly confirm and the body weight and measurement time you enter and explicitly confirm to Apple Health."
         }
       ],
       "@react-native-community/datetimepicker"

@@ -84,6 +84,7 @@ export function presentHydration(
     accentColorToken: 'metricHydration',
     actual: liters,
     goal: DASHBOARD_GOALS.waterLitersGoal,
+    route: '/water',
   })
 }
 

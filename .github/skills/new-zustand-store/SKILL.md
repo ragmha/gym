@@ -1,50 +1,66 @@
 ---
 name: new-zustand-store
-description: 'Creates repo-consistent Zustand stores with persistence, selectors, initialization, and Supabase-aware actions. Use when adding a new domain store or extending state management in src/stores.'
+description: 'Guards Zustand state under the ThemeStore-only policy and shows the persisted preference-store pattern. Use when adding or changing state in src/stores, or before persisting any app state.'
 ---
 
 # New Zustand Store
 
+`ThemeStore` persists one UI preference, and `GymLogStore` is the user-approved
+on-device lifting log (sets and reps HealthKit cannot hold). Health data
+is read per day with `useHealthSnapshot(date)` and never stored. There is no
+backend, network client, or environment configuration.
+
 ## Quick start
 
-Create `src/stores/<Domain>Store.ts` and expose a small public interface:
+Before you create a store, classify the state:
+
+1. HealthKit data: read it through `useHealthSnapshot`. Do not create a store.
+2. Form input, such as the weight form or Water draft: keep it in component
+   state. Writes go only through the approved HealthKit writer ports.
+3. A device-local UI preference: follow the `ThemeStore` pattern, but only after
+   explicit user sign-off.
+
+This is the pattern from `src/stores/ThemeStore.ts`:
 
 ```ts
-export interface DomainState {
-  items: DomainItem[]
-  isLoading: boolean
-  error: string | null
-  initialize: () => Promise<void>
-}
+export const usePreferenceStore = create<State>()(
+  persist(
+    (set) => ({
+      preference: 'system',
+      setPreference: (preference) => set({ preference }),
+    }),
+    {
+      name: 'preference-key',
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
+)
 ```
-
-Use `create<State>()`, `persist`, `createJSONStorage(() => AsyncStorage)`, `partialize`, and selector hooks with `useShallow`.
 
 ## Workflow
 
-1. Define the domain state interface first: persisted data fields, ephemeral UI fields, and action signatures.
-2. Keep business logic in the store and UI logic in components; do not put derived values into raw store state.
-3. Use `create<State>()(persist(...))` for stores that need persistence, with `partialize` to exclude loading flags, errors, and initialization flags.
-4. For Supabase-backed stores, validate inputs with existing Zod schemas, map snake_case rows to camelCase models explicitly, and surface errors through the store's existing error pattern.
-5. Export focused selector hooks or a convenience hook using `useShallow` so components do not rerender for unrelated state changes.
-6. Initialize stores from screens or layouts with a guarded `useEffect` that calls `initialize()` once.
+1. Get explicit sign-off before adding a store or a persisted field. This is a
+   scope decision; see `.github/copilot-instructions.md` → State Management.
+2. Prefer adding a field to an existing preference store over creating a store.
+3. Persist only the preference. If the store gains volatile fields, exclude them
+   with `partialize`.
+4. Select single fields, such as `useThemeStore((s) => s.preference)`. Use
+   `useShallow` only when you select several fields together.
+5. Never store health readings, entered measurements, snapshot caches,
+   profiles, or network data.
 
 ## Validation
 
-For each behavior, add or update tests through the public store hook/API rather than internal implementation details.
-
-Run:
+Test behavior through the public store hook, not its internals.
 
 ```bash
 bun run lint
 bun run typecheck
-bunx jest --runInBand
+bunx jest --bail
 ```
 
 ## Guardrails
 
-- Never mutate arrays or objects from Zustand state directly; use immutable updates.
-- Do not persist volatile fields such as `isLoading`, `error`, or in-flight promises.
-- Do not use `any` for store state, actions, or Supabase rows.
-- Prefer Zod v4 top-level schemas such as `z.uuid()` and `z.iso.datetime()` when adding validators.
-- Keep store modules deep: small component-facing API, deeper implementation inside actions.
+- Do not add Supabase, other backends, or environment variables.
+- Do not use `any` in state or actions.
+- Update state immutably.

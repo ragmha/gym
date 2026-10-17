@@ -12,9 +12,11 @@ import {
 import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
 
-import { localDateKey } from '@/lib/healthSnapshot/dateKey'
+import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
+  DailyWaterReading,
+  DailyWorkouts,
   HealthBodyMassSample,
   HealthSnapshotSource,
   HealthWorkout,
@@ -478,6 +480,80 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
     }
 
     return intensity
+  },
+
+  async getWaterHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyWaterReading[]> {
+    const range = localDaysEnding(endDate, days)
+    const totals = new Map<string, number>()
+    const startDate = dayWindow(range[0]).startDate
+    const end = dayWindow(endDate).endDate
+
+    if (this.isAvailable() && startDate < end) {
+      const daily = await queryStatisticsCollectionForQuantity(
+        'HKQuantityTypeIdentifierDietaryWater',
+        ['cumulativeSum'],
+        startDate,
+        { day: 1 },
+        { unit: 'l', filter: { date: { startDate, endDate: end } } },
+      )
+      for (const statistics of daily) {
+        const liters = statistics.sumQuantity?.quantity
+        if (
+          !statistics.startDate ||
+          liters == null ||
+          !Number.isFinite(liters) ||
+          liters < 0
+        ) {
+          continue
+        }
+        totals.set(
+          localDateKey(toDate(statistics.startDate)),
+          roundTenths(liters),
+        )
+      }
+    }
+
+    return range.map((day) => {
+      const date = localDateKey(day)
+      return { date, liters: totals.get(date) ?? null }
+    })
+  },
+
+  async getWorkoutHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyWorkouts[]> {
+    const range = localDaysEnding(endDate, days)
+    const byDay = new Map<string, HealthWorkout[]>()
+    const startDate = dayWindow(range[0]).startDate
+    const end = dayWindow(endDate).endDate
+
+    if (this.isAvailable() && startDate < end) {
+      try {
+        const samples = await queryWorkoutSamples({
+          limit: 0,
+          filter: { date: { startDate, endDate: end } },
+        })
+        for (const sample of samples) {
+          const workout = mapWorkout(sample)
+          const day = localDateKey(new Date(workout.startISO))
+          const workouts = byDay.get(day) ?? []
+          workouts.push(workout)
+          byDay.set(day, workouts)
+        }
+      } catch (err) {
+        warnHealthSnapshotFailure('workout history read', err)
+        throw err
+      }
+    }
+
+    return range.map((day) => {
+      const date = localDateKey(day)
+      return { date, workouts: byDay.get(date) ?? [] }
+    })
   },
 
   subscribeToWorkoutChanges(onChange) {

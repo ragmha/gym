@@ -17,7 +17,7 @@ export const METRIC_IDS = [
 ] as const
 
 export type MetricId = (typeof METRIC_IDS)[number]
-export type MetricRoute = '/steps'
+export type MetricRoute = '/steps' | '/water'
 export type MetricStatus = 'empty' | 'progress' | 'reached' | 'over'
 export type MetricIconName = keyof typeof Ionicons.glyphMap
 

@@ -15,6 +15,7 @@ import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap'
 import { ScreenHeader } from '@/components/common/ScreenHeader'
 import { DailyActivityRows } from '@/components/dashboard/DailyActivityRows'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { WeightCard } from '@/components/dashboard/WeightCard'
 import { CoachInsightCard } from '@/components/health/CoachInsightCard'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { HealthReadState } from '@/components/health/HealthReadState'
@@ -93,7 +94,7 @@ function MetricRow({
       }
       accessibilityHint={
         onPress
-          ? `${metric.subtitle}. Opens step details for the selected day`
+          ? `${metric.subtitle}. Opens ${metric.route === '/water' ? 'water history' : 'step details'} for the selected day`
           : undefined
       }
     >
@@ -284,6 +285,15 @@ function FitnessMetricsForDate({ date }: { date: Date }) {
                 </View>
               )
             })}
+            <View
+              style={[
+                styles.panel,
+                styles.weightPanel,
+                { backgroundColor: theme.cardBackground },
+              ]}
+            >
+              <WeightCard snapshot={snapshot} date={date} />
+            </View>
             <DailyActivityRows snapshot={snapshot} showSummaryMetrics={false} />
             {(insight || insightStatus === 'loading') && (
               <ReadingDisclosure
@@ -345,6 +355,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     paddingHorizontal: Spacing.lg,
   },
+  weightPanel: { paddingHorizontal: 0 },
   metricRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -113,15 +113,14 @@ describe('HomeScreen health data', () => {
     'keeps missing steps honest without filling home with empty metrics: %j',
     (snapshot) => {
       mockSnapshot = snapshot
-      const { getByLabelText, getByText, queryByText, queryByLabelText } =
-        render(<HomeScreen />)
+      const { getByLabelText, queryByText, queryByLabelText } = render(
+        <HomeScreen />,
+      )
 
       expect(queryByLabelText('Recovery unavailable')).toBeNull()
       expect(queryByLabelText('Active calories unavailable')).toBeNull()
       expect(getByLabelText('Steps unavailable')).toBeTruthy()
-      expect(
-        getByText('No morning weigh-in available for this day'),
-      ).toBeTruthy()
+      expect(getByLabelText(/^Gym,.*Weight, no morning weigh-in/)).toBeTruthy()
       expect(queryByText('30%')).toBeNull()
     },
   )
@@ -132,7 +131,7 @@ describe('HomeScreen health data', () => {
 
     expect(queryByText(/Recovery/i)).toBeNull()
     expect(getByLabelText('Steps 8,000')).toBeTruthy()
-    expect(getByLabelText('Morning weight 78.4 kilograms')).toBeTruthy()
+    expect(getByLabelText(/^Gym,.*Weight, 78\.4 kg weigh-in/)).toBeTruthy()
   })
 
   it('updates priority readings without introducing secondary metrics', () => {
@@ -163,8 +162,9 @@ describe('HomeScreen health data', () => {
     const { getByLabelText, queryByText } = render(<HomeScreen />)
 
     expect(getByLabelText('Steps 0')).toBeTruthy()
-    expect(queryByText('Sleep')).toBeNull()
     expect(queryByText('0%')).toBeNull()
+    expect(queryByText('Sleep')).toBeNull()
+    expect(queryByText(/Recovery/i)).toBeNull()
   })
 
   describe('Selected-day health routes', () => {
@@ -208,6 +208,39 @@ describe('HomeScreen health data', () => {
       })
     })
 
+    it('passes the same date from all metrics to water history', () => {
+      const push = jest.fn()
+      jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
+      jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-11' })
+      mockSnapshot = completeSnapshot
+      const { getByRole } = render(<FitnessMetricsScreen />)
+
+      const row = getByRole('button', { name: /^Hydration / })
+      expect(row.props.accessibilityHint).toMatch(
+        /Opens water history for the selected day$/,
+      )
+      fireEvent.press(row)
+
+      expect(push).toHaveBeenCalledWith({
+        pathname: '/water',
+        params: { date: '2026-09-11' },
+      })
+    })
+
+    it('keeps Add weight reachable on the same day through Gym fitness details', () => {
+      const push = jest.fn()
+      jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
+      jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-11' })
+      const { getByRole } = render(<FitnessMetricsScreen />)
+
+      fireEvent.press(getByRole('button', { name: 'Add weight' }))
+
+      expect(push).toHaveBeenCalledWith({
+        pathname: '/add-weight',
+        params: { date: '2026-09-11' },
+      })
+    })
+
     it.each([
       { date: 'invalid' },
       { date: '2026-02-31' },
@@ -220,7 +253,7 @@ describe('HomeScreen health data', () => {
         const { getByRole, getByText } = render(<FitnessMetricsScreen />)
 
         expect(getByRole('alert')).toBeTruthy()
-        expect(getByText('Back to home')).toBeTruthy()
+        expect(getByText('Open Insights')).toBeTruthy()
         expect(useHealthSnapshot).not.toHaveBeenCalled()
       },
     )
@@ -230,7 +263,7 @@ describe('HomeScreen health data', () => {
 describe('FitnessMetricsScreen health data', () => {
   it('leads with all measurements instead of repeated explanations', () => {
     mockSnapshot = completeSnapshot
-    const { getByText, getByRole, queryByText } = render(
+    const { getByText, getByRole, getByLabelText, queryByText } = render(
       <FitnessMetricsScreen />,
     )
 
@@ -253,6 +286,9 @@ describe('FitnessMetricsScreen health data', () => {
     expect(queryByText('No reading available')).toBeNull()
     expect(queryByText('Goal: 20,000')).toBeNull()
     expect(queryByText('Latest weigh-in')).toBeNull()
+    expect(getByLabelText('Morning weight 78.4 kilograms')).toBeTruthy()
+    expect(getByText('7-day average: 78.4 kg')).toBeTruthy()
+    expect(getByRole('button', { name: 'Add weight' })).toBeTruthy()
     expect(
       getByRole('button', { name: 'About these readings' }).props
         .accessibilityState,
@@ -261,7 +297,7 @@ describe('FitnessMetricsScreen health data', () => {
 
   it('keeps data caveats available behind a single expandable explanation', () => {
     mockSnapshot = completeSnapshot
-    const { getByText, getByRole, queryByText } = render(
+    const { getAllByText, getByText, getByRole, queryByText } = render(
       <FitnessMetricsScreen />,
     )
     const about = getByRole('button', { name: 'About these readings' })
@@ -277,7 +313,8 @@ describe('FitnessMetricsScreen health data', () => {
     fireEvent.press(about)
     expect(queryByText(/means unavailable, not zero/)).toBeNull()
     expect(about.props.accessibilityState).toEqual({ expanded: false })
-    expect(getByText('78.4 kg')).toBeTruthy()
+    // Latest-weight row plus the morning weight panel.
+    expect(getAllByText('78.4 kg')).toHaveLength(2)
   })
 
   it('keeps coach prose collapsed without removing access to the full insight', () => {
