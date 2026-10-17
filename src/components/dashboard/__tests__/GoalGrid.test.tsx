@@ -669,7 +669,8 @@ describe('GoalGrid', () => {
   })
 
   it('reorders tiles by long-press drag or accessibility action and saves the order', async () => {
-    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
+    const onEdit = jest.fn()
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} onEdit={onEdit} />)
     swipeToPage(0)
     // Gesture callbacks pick up the measured layout in a microtask.
     await act(async () => {})
@@ -689,6 +690,7 @@ describe('GoalGrid', () => {
       ]),
     )
 
+    expect(onEdit).toHaveBeenCalledTimes(1)
     expect(useThemeStore.getState().tileOrder).toEqual([
       'Gym',
       'Water',
@@ -717,6 +719,30 @@ describe('GoalGrid', () => {
     expect(
       screen.getByTestId('goal-page-2').props.accessibilityElementsHidden,
     ).toBe(false)
+  })
+
+  it('ignores tile taps while rearranging and swaps Settings for Done', () => {
+    const push = jest.fn()
+    const onDone = jest.fn()
+    jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} editing />)
+    fireEvent.press(screen.getByRole('button', { name: /^Steps/ }))
+    expect(push).not.toHaveBeenCalled()
+
+    render(
+      <GoalSummary
+        snapshot={null}
+        date={date}
+        refreshing={false}
+        onRefresh={jest.fn()}
+        onSettingsPress={jest.fn()}
+        editing
+        onDone={onDone}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull()
+    fireEvent.press(screen.getByRole('button', { name: 'Done' }))
+    expect(onDone).toHaveBeenCalled()
   })
 })
 

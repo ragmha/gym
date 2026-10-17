@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import type { ReactNode } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
@@ -12,12 +13,15 @@ export function ScreenHeader({
   backLabel = 'Go back',
   onBack,
   backDisabled = false,
+  action,
 }: {
   title: string
   subtitle?: string
   backLabel?: string
   onBack?: () => void
   backDisabled?: boolean
+  /** Optional trailing control, e.g. Done. */
+  action?: ReactNode
 }) {
   const router = useRouter()
   const theme = useTheme()
@@ -54,6 +58,7 @@ export function ScreenHeader({
           </Text>
         ) : null}
       </View>
+      {action}
     </View>
   )
 }

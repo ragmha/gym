@@ -11,6 +11,9 @@ interface ThemeState {
   /** Dashboard tile labels in the user's order; unlisted tiles keep default order after them. */
   tileOrder: string[]
   setTileOrder: (tileOrder: string[]) => void
+  /** Gym hub tile ids in the user's order. */
+  gymTileOrder: string[]
+  setGymTileOrder: (gymTileOrder: string[]) => void
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -20,6 +23,8 @@ export const useThemeStore = create<ThemeState>()(
       setPreference: (preference) => set({ preference }),
       tileOrder: [],
       setTileOrder: (tileOrder) => set({ tileOrder }),
+      gymTileOrder: [],
+      setGymTileOrder: (gymTileOrder) => set({ gymTileOrder }),
     }),
     {
       name: 'theme-preference',

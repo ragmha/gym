@@ -34,6 +34,7 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
   const insets = useSafeAreaInsets()
 
   const [refreshing, setRefreshing] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [pagination, setPagination] = useState({ index: 0, count: 0 })
   const goalGrid = useRef<GoalGridHandle>(null)
 
@@ -88,6 +89,8 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
           refreshing={refreshing}
           onRefresh={onRefresh}
           onSettingsPress={() => router.push('/settings')}
+          editing={editing}
+          onDone={() => setEditing(false)}
         />
 
         {isDemoMode && (
@@ -107,6 +110,8 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
             date={selectedDate}
             ref={goalGrid}
             onPageChange={setPagination}
+            editing={editing}
+            onEdit={() => setEditing(true)}
           />
         )}
       </View>

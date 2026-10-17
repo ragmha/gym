@@ -36,8 +36,16 @@ jest.mock('@/stores/ThemeStore', () => ({
     selector: (state: {
       preference: ThemePreference
       setPreference: typeof mockSetPreference
+      tileOrder: string[]
+      gymTileOrder: string[]
     }) => unknown,
-  ) => selector({ preference: 'system', setPreference: mockSetPreference }),
+  ) =>
+    selector({
+      preference: 'system',
+      setPreference: mockSetPreference,
+      tileOrder: [],
+      gymTileOrder: [],
+    }),
 }))
 jest.mock('@/hooks/useDailyCoachInsight', () => ({
   useDailyCoachInsight: () => ({ insight: null, status: 'idle' }),

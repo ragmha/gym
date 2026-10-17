@@ -8,7 +8,6 @@ import React, {
   type Ref,
 } from 'react'
 import {
-  AccessibilityInfo,
   Alert,
   Linking,
   Platform,
@@ -19,11 +18,9 @@ import {
   View,
   type ViewStyle,
 } from 'react-native'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import { GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
-  useAnimatedStyle,
   useReducedMotion,
-  useSharedValue,
   type CSSStyle,
 } from 'react-native-reanimated'
 import Svg, { Circle, Rect } from 'react-native-svg'
@@ -34,6 +31,10 @@ import {
   type GoalMascotKind,
   type GoalMascotMood,
 } from '@/components/dashboard/GoalMascot'
+import {
+  sortByOrder,
+  useTileReorder,
+} from '@/components/dashboard/useTileReorder'
 import { Layout, Spacing } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
 import {
@@ -50,12 +51,6 @@ import { useThemeStore } from '@/stores/ThemeStore'
 
 const EDGE_FLIP = 32
 const FLIP_COOLDOWN_MS = 800
-
-function moveTile<T>(items: T[], from: number, to: number): T[] {
-  const next = [...items]
-  next.splice(to, 0, ...next.splice(from, 1))
-  return next
-}
 
 type Route = '/steps' | '/water' | '/gym' | '/fitness-metrics'
 
@@ -262,12 +257,16 @@ export function GoalSummary({
   refreshing,
   onRefresh,
   onSettingsPress,
+  editing = false,
+  onDone,
 }: {
   snapshot: DailyHealthSnapshot | null
   date: Date
   refreshing: boolean
   onRefresh: () => void
   onSettingsPress: () => void
+  editing?: boolean
+  onDone?: () => void
 }) {
   const theme = useTheme()
   const liftLogged = useLiftLogged(date)
@@ -312,19 +311,42 @@ export function GoalSummary({
         />
       </Pressable>
       <View style={styles.summaryActions}>
-        <Pressable
-          onPress={onSettingsPress}
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-          style={({ pressed }) => [
-            styles.pageButton,
-            { opacity: pressed ? 0.65 : 1 },
-          ]}
-        >
-          <Ionicons name="settings-outline" size={22} color={theme.text} />
-        </Pressable>
+        {editing ? (
+          <DoneButton onPress={onDone} />
+        ) : (
+          <Pressable
+            onPress={onSettingsPress}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            style={({ pressed }) => [
+              styles.pageButton,
+              { opacity: pressed ? 0.65 : 1 },
+            ]}
+          >
+            <Ionicons name="settings-outline" size={22} color={theme.text} />
+          </Pressable>
+        )}
       </View>
     </View>
+  )
+}
+
+/** Leaves tile edit mode. */
+export function DoneButton({ onPress }: { onPress?: () => void }) {
+  const theme = useTheme()
+  return (
+    <Pressable
+      testID="tiles-done"
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityHint="Stops rearranging tiles"
+      style={({ pressed }) => [
+        styles.doneButton,
+        { opacity: pressed ? 0.65 : 1 },
+      ]}
+    >
+      <Text style={[styles.label, { color: theme.text }]}>Done</Text>
+    </Pressable>
   )
 }
 
@@ -421,11 +443,16 @@ export function GoalGrid({
   date,
   ref,
   onPageChange,
+  editing = false,
+  onEdit = () => {},
 }: {
   snapshot: DailyHealthSnapshot | null
   date: Date
   ref?: Ref<GoalGridHandle>
   onPageChange?: (pagination: { index: number; count: number }) => void
+  /** iPhone-style edit mode: tiles wiggle and taps don't open them. */
+  editing?: boolean
+  onEdit?: () => void
 }) {
   const theme = useTheme()
   const router = useRouter()
@@ -433,30 +460,12 @@ export function GoalGrid({
   const liftLogged = useLiftLogged(date)
   const tileOrder = useThemeStore((s) => s.tileOrder)
   const setTileOrder = useThemeStore((s) => s.setTileOrder)
-  const rank = (label: string) => {
-    const index = tileOrder.indexOf(label)
-    return index === -1 ? tileOrder.length : index
-  }
-  const tiles = buildTiles(snapshot, date, liftLogged).sort(
-    (a, b) => rank(a.label) - rank(b.label),
+  const tiles = sortByOrder(
+    buildTiles(snapshot, date, liftLogged),
+    tileOrder,
+    (tile) => tile.label,
   )
-  const [drag, setDrag] = useState<{ from: number; over: number } | null>(null)
-  const preview = drag ? moveTile(tiles, drag.from, drag.over) : tiles
-  const dragRef = useRef<{
-    from: number | null
-    x: number
-    y: number
-    flippedAt: number
-  }>({ from: null, x: 0, y: 0, flippedAt: 0 })
-  const ghostX = useSharedValue(0)
-  const ghostY = useSharedValue(0)
-  const ghostStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: ghostX.value },
-      { translateY: ghostY.value },
-      { scale: 1.1 },
-    ],
-  }))
+  const flippedAt = useRef(0)
   const mono = [styles.mono, { color: theme.subtitleText }]
   const { fontScale } = useWindowDimensions()
   const [layout, setLayout] = useState({ width: 0, height: 0 })
@@ -473,6 +482,15 @@ export function GoalGrid({
         Spacing.xxs * 2,
     ),
   )
+  const { drag, preview, ghostStyle, gesture, moveActions, wiggle } =
+    useTileReorder({
+      items: tiles,
+      keyOf: (tile) => tile.label,
+      save: setTileOrder,
+      tileSize,
+      editing,
+      onEdit,
+    })
 
   useEffect(() => {
     onPageChange?.({ index: page, count: pageCount })
@@ -487,9 +505,6 @@ export function GoalGrid({
   }
 
   useImperativeHandle(ref, () => ({ showPage }))
-
-  const moveTo = (from: number, to: number) =>
-    setTileOrder(moveTile(tiles, from, to).map((tile) => tile.label))
 
   // Preview by transform so the touched tile's view is never re-parented mid-drag.
   const shift = (from: number, to: number) => [
@@ -519,52 +534,23 @@ export function GoalGrid({
 
   // ponytail: one long-press pan per page, hit-tested against the fixed 2x3 grid.
   const dragGesture = (pageIndex: number) =>
-    Gesture.Pan()
-      .withTestId(`goal-drag-${pageIndex + 1}`)
-      .activateAfterLongPress(400)
-      .runOnJS(true)
-      .onStart((e) => {
-        const from = slotAt(pageIndex, e.x, e.y)
-        if (from >= tiles.length) return
-        dragRef.current = {
-          from,
-          x: e.absoluteX - e.x,
-          y: e.absoluteY - e.y,
-          flippedAt: 0,
-        }
-        ghostX.value = e.x - tileSize / 2
-        ghostY.value = e.y - tileSize / 2
-        setDrag({ from, over: from })
-      })
-      .onUpdate((e) => {
-        const active = dragRef.current
-        if (active.from === null) return
-        const x = e.absoluteX - active.x
-        ghostX.value = x - tileSize / 2
-        ghostY.value = e.absoluteY - active.y - tileSize / 2
-        const over = Math.min(tiles.length - 1, slotAt(pageIndex, e.x, e.y))
-        setDrag((d) => (d && d.over !== over ? { ...d, over } : d))
+    gesture(
+      `goal-drag-${pageIndex + 1}`,
+      (e) => slotAt(pageIndex, e.x, e.y),
+      (x) => {
         const step = x < EDGE_FLIP ? -1 : x > layout.width - EDGE_FLIP ? 1 : 0
         const now = Date.now()
         if (
           step !== 0 &&
           page + step >= 0 &&
           page + step < pageCount &&
-          now - active.flippedAt > FLIP_COOLDOWN_MS
+          now - flippedAt.current > FLIP_COOLDOWN_MS
         ) {
-          active.flippedAt = now
+          flippedAt.current = now
           showPage(page + step)
         }
-      })
-      .onEnd((e) => {
-        const { from } = dragRef.current
-        if (from === null) return
-        moveTo(from, Math.min(tiles.length - 1, slotAt(pageIndex, e.x, e.y)))
-      })
-      .onFinalize(() => {
-        dragRef.current.from = null
-        setDrag(null)
-      })
+      },
+    )
 
   return (
     <View style={styles.container}>
@@ -639,26 +625,11 @@ export function GoalGrid({
                           },
                           at !== index && { transform: shift(index, at) },
                         ]}
-                        accessibilityActions={[
-                          ...(index > 0
-                            ? [{ name: 'moveEarlier', label: 'Move earlier' }]
-                            : []),
-                          ...(index < tiles.length - 1
-                            ? [{ name: 'moveLater', label: 'Move later' }]
-                            : []),
-                        ]}
-                        onAccessibilityAction={({ nativeEvent }) => {
-                          const to =
-                            index +
-                            (nativeEvent.actionName === 'moveLater' ? 1 : -1)
-                          moveTo(index, to)
+                        {...moveActions(index, tile.label, (to) => {
                           if (Math.floor(to / 6) !== page) {
                             showPage(Math.floor(to / 6))
                           }
-                          AccessibilityInfo.announceForAccessibility(
-                            `${tile.label} moved to position ${to + 1} of ${tiles.length}`,
-                          )
-                        }}
+                        })}
                         accessibilityRole={tile.url ? 'link' : 'button'}
                         accessibilityLabel={tile.accessibilityLabel}
                         accessibilityHint={tile.hint}
@@ -677,6 +648,7 @@ export function GoalGrid({
                           disabled: !tile.url && !tile.route,
                         }}
                         onPress={() => {
+                          if (editing) return
                           if (tile.url) {
                             Linking.openURL(tile.url).catch(() => {
                               Alert.alert(
@@ -692,13 +664,15 @@ export function GoalGrid({
                           }
                         }}
                       >
-                        <GoalTileSurface
-                          id={tileID}
-                          icon={tile.icon}
-                          size={tileSize}
-                          progress={tile.progress}
-                          done={tile.done}
-                        />
+                        <Animated.View style={wiggle(index)}>
+                          <GoalTileSurface
+                            id={tileID}
+                            icon={tile.icon}
+                            size={tileSize}
+                            progress={tile.progress}
+                            done={tile.done}
+                          />
+                        </Animated.View>
                         <Text
                           numberOfLines={1}
                           style={[styles.label, { color: theme.text }]}
@@ -763,6 +737,13 @@ const styles = StyleSheet.create({
   pageButton: {
     width: 44,
     height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneButton: {
+    minWidth: 44,
+    height: 44,
+    paddingHorizontal: Spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },

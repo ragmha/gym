@@ -57,6 +57,7 @@ App Group, Health writes, or coach input. Keep distribution blocked while
 | Charts           | react-native-svg                                 | —          |
 | Animations       | React Native Reanimated                          | 4.x        |
 | Health Data      | @kingstinct/react-native-healthkit               | 13.x       |
+| Haptics          | expo-haptics (tile rearranging)                  | 55.x       |
 | On-device AI     | react-native-apple-llm (Apple Foundation Models) | 1.x        |
 | Validation       | Zod (coach output only)                          | 4.x        |
 | Testing          | Jest + jest-expo + @testing-library/react-native | —          |
@@ -138,7 +139,7 @@ This project targets **iOS as the primary platform**.
 ## State Management
 
 - `ThemeStore` persists two user-approved UI preferences through AsyncStorage:
-  the theme and the dashboard tile order (tile labels only).
+  the theme and the Home and Gym tile order (tile labels or ids only).
 - `GymLogStore` is the approved on-device lifting log: programme start date and
   per-day sets, rating, and notes. Do not add Health readings to it.
 - Health data is not state to be managed. It is read per-day through

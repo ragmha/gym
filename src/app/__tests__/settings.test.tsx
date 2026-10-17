@@ -19,6 +19,9 @@ import SettingsScreen from '../settings'
 
 let mockSource: jest.Mocked<HealthSnapshotSource>
 const mockSetPreference = jest.fn()
+let mockTileOrder: string[] = []
+const mockSetTileOrder = jest.fn()
+const mockSetGymTileOrder = jest.fn()
 
 function useTestFocusEffect(effect: Parameters<typeof useFocusEffect>[0]) {
   useEffect(effect, [effect])
@@ -40,8 +43,20 @@ jest.mock('@/stores/ThemeStore', () => ({
     selector: (state: {
       preference: ThemePreference
       setPreference: typeof mockSetPreference
+      tileOrder: string[]
+      gymTileOrder: string[]
+      setTileOrder: typeof mockSetTileOrder
+      setGymTileOrder: typeof mockSetGymTileOrder
     }) => unknown,
-  ) => selector({ preference: 'system', setPreference: mockSetPreference }),
+  ) =>
+    selector({
+      preference: 'system',
+      setPreference: mockSetPreference,
+      tileOrder: mockTileOrder,
+      gymTileOrder: [],
+      setTileOrder: mockSetTileOrder,
+      setGymTileOrder: mockSetGymTileOrder,
+    }),
 }))
 
 const emptySnapshot: DailyHealthSnapshot = {
@@ -84,11 +99,25 @@ describe('SettingsScreen Health access', () => {
       isAvailable: jest.fn(() => true),
     }
     mockSetPreference.mockReset()
+    mockTileOrder = []
   })
 
   afterEach(() => {
     jest.useRealTimers()
     jest.restoreAllMocks()
+  })
+
+  it('resets Home and Gym tile order only when one has been customised', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    const { rerender } = render(<SettingsScreen />)
+    expect(screen.getByTestId('reset-tile-order')).toBeDisabled()
+
+    mockTileOrder = ['Gym', 'Steps']
+    rerender(<SettingsScreen />)
+    await user.press(screen.getByRole('button', { name: /Reset tile order/ }))
+
+    expect(mockSetTileOrder).toHaveBeenCalledWith([])
+    expect(mockSetGymTileOrder).toHaveBeenCalledWith([])
   })
 
   it('opens the optional native Phone rest setup without requesting Screen Time from Settings', async () => {
