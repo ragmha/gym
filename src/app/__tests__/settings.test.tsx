@@ -77,6 +77,8 @@ describe('SettingsScreen Health access', () => {
     mockSource = {
       getDailySnapshot: jest.fn(async (_date: Date) => emptySnapshot),
       getRangeIntensity: jest.fn(async (_daysBack: number) => new Map()),
+      getWaterHistory: jest.fn(async (_endDate: Date, _days: number) => []),
+      getWorkoutHistory: jest.fn(async (_endDate: Date, _days: number) => []),
       subscribeToWorkoutChanges: jest.fn((_onChange: () => void) => null),
       requestAuthorization: jest.fn(async () => true),
       isAvailable: jest.fn(() => true),

@@ -1,12 +1,12 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native'
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
 import {
-  AppState,
-  Platform,
-  StyleSheet,
-  type RefreshControlProps,
-} from 'react-native'
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react-native'
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { AppState, Platform, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap'
@@ -21,7 +21,6 @@ let mockState: ReturnType<typeof useHealthSnapshot>
 let mockInitialParams: Record<string, string> = {}
 const mockRefresh = jest.fn<Promise<void>, []>()
 const mockPush = jest.fn()
-const mockSetParams = jest.fn()
 const originalPlatform = Platform.OS
 const originalAppState = Object.getOwnPropertyDescriptor(
   AppState,
@@ -34,14 +33,6 @@ function focusHome(): void {
   if (!callback) throw new Error('Home did not register a focus effect')
   focusCleanup?.()
   focusCleanup = callback()
-}
-
-function useTestSearchParams() {
-  const [params, setParams] = useState(mockInitialParams)
-  mockSetParams.mockImplementation((next: Record<string, string>) =>
-    setParams((current) => ({ ...current, ...next })),
-  )
-  return params
 }
 
 jest.mock('@/hooks/useHealthSnapshot', () => ({
@@ -67,20 +58,6 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@/components/charts/ActivityHeatmap', () => ({
   ActivityHeatmap: jest.fn(() => null),
 }))
-
-// React Native's default mock drops the refresh control's props.
-jest.mock(
-  'react-native/Libraries/Components/RefreshControl/RefreshControl',
-  () => {
-    const React = jest.requireActual<typeof import('react')>('react')
-    const { View } =
-      jest.requireActual<typeof import('react-native')>('react-native')
-    return {
-      __esModule: true,
-      default: (props: RefreshControlProps) => React.createElement(View, props),
-    }
-  },
-)
 
 describe('HomeScreen', () => {
   beforeEach(() => {
@@ -109,11 +86,12 @@ describe('HomeScreen', () => {
       refresh: mockRefresh,
       requestAuthorization: jest.fn(async () => true),
     }
-    jest.mocked(useLocalSearchParams).mockImplementation(useTestSearchParams)
+    jest
+      .mocked(useLocalSearchParams)
+      .mockImplementation(() => mockInitialParams)
     jest.mocked(useRouter).mockReturnValue({
       ...useRouter(),
       push: mockPush,
-      setParams: mockSetParams,
     })
   })
 
@@ -129,20 +107,30 @@ describe('HomeScreen', () => {
     })
   })
 
-  it('shows only the five daily priorities, with other metrics behind their route', () => {
+  it('shows the daily priorities and habit links, with other metrics behind their route', () => {
     render(<HomeScreen />)
 
     expect(screen.queryByText(/Recovery/i)).toBeNull()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
     expect(screen.queryByLabelText('Active calories 300 kcal')).toBeNull()
     expect(screen.queryByLabelText('Sleep 8.0 hrs')).toBeNull()
-    expect(screen.getByText('Cardio')).toBeTruthy()
-    expect(screen.getByText('Lift')).toBeTruthy()
+    expect(screen.getByText('Gym')).toBeTruthy()
+    expect(screen.getByLabelText(/^Gym,.*Cardio,.*Lift,.*Weight,/)).toBeTruthy()
     expect(screen.getByText('Water')).toBeTruthy()
-    expect(screen.getByText('Morning weight')).toBeTruthy()
+    for (const formerTile of ['cardio', 'lift', 'weight']) {
+      expect(screen.queryByTestId(`goal-tile-${formerTile}`)).toBeNull()
+    }
+    for (const habit of ['Reading', 'Praying', 'Journal']) {
+      expect(screen.getByText(habit)).toBeTruthy()
+    }
+    expect(screen.queryByText('Morning weight')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Previous week' })).toBeNull()
     expect(ActivityHeatmap).not.toHaveBeenCalled()
     expect(screen.queryByText('More health data')).toBeNull()
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
+    )
+    expect(screen.getByText('Speaking')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'See all metrics' })).toBeTruthy()
   })
 
@@ -164,9 +152,7 @@ describe('HomeScreen', () => {
     expect(screen.queryByText('Sleep')).toBeNull()
     expect(screen.queryByText('Active calories')).toBeNull()
     expect(screen.queryByText(/Recovery|No workouts/i)).toBeNull()
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Review Health access' }),
-    )
+    fireEvent.press(screen.getByRole('button', { name: 'Settings' }))
     expect(mockPush).toHaveBeenCalledWith('/settings')
   })
 
@@ -178,7 +164,9 @@ describe('HomeScreen', () => {
     render(<HomeScreen />)
 
     expect(screen.getByLabelText('Steps 0')).toBeTruthy()
-    expect(screen.getByText('20,000 steps to go')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Steps 0' }).props.accessibilityValue,
+    ).toEqual({ text: 'Goal not met (0%)' })
     expect(
       screen.queryByRole('button', { name: 'Review Health access' }),
     ).toBeNull()
@@ -187,80 +175,126 @@ describe('HomeScreen', () => {
   it('shows the morning weigh-in without mounting the activity heatmap', () => {
     render(<HomeScreen />)
 
-    expect(screen.getByLabelText('Morning weight 78.4 kilograms')).toBeTruthy()
-    expect(screen.getByText('7-day average: 78.4 kg')).toBeTruthy()
+    expect(
+      screen.getByLabelText(/^Gym,.*Weight, 78\.4 kg weigh-in/),
+    ).toBeTruthy()
+    expect(screen.queryByText('7-day average: 78.4 kg')).toBeNull()
     expect(ActivityHeatmap).not.toHaveBeenCalled()
   })
 
-  it('selects a past day, closes the calendar, and blocks future days', () => {
+  it('keeps Settings in the header and icon-only navigation with page dots in the footer', () => {
     render(<HomeScreen />)
-    fireEvent.press(screen.getByRole('button', { name: 'Choose date, TODAY' }))
 
-    const futureDay = screen.getByRole('button', {
-      name: 'Sunday, September 13, 2026',
-    })
-    expect(futureDay.props.accessibilityState).toMatchObject({ disabled: true })
-    fireEvent.press(futureDay)
-    expect(jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.getDate()).toBe(
-      12,
-    )
-
+    expect(
+      screen.getByRole('header', {
+        name: 'Saturday, September 12, 2026',
+      }),
+    ).toBeTruthy()
+    expect(screen.getAllByRole('header')).toHaveLength(1)
+    expect(screen.getAllByText('Sat 12')).toHaveLength(1)
+    expect(screen.queryByText('Today')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Choose date/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Previous week' })).toBeNull()
+    for (const name of ['Insights', 'Open coach']) {
+      expect(
+        within(screen.getByTestId('home-content')).queryByRole('button', {
+          name,
+        }),
+      ).toBeNull()
+      expect(
+        within(screen.getByTestId('home-footer')).getByRole('button', {
+          name,
+        }),
+      ).toBeTruthy()
+    }
+    expect(
+      within(screen.getByTestId('home-content')).getByRole('button', {
+        name: 'Settings',
+      }),
+    ).toBeTruthy()
+    const footer = within(screen.getByTestId('home-footer'))
+    expect(footer.queryByRole('button', { name: 'Settings' })).toBeNull()
+    expect(footer.getAllByRole('button')).toHaveLength(4)
+    expect(
+      footer.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+    ).toBeSelected()
+    expect(screen.queryByText('0/2')).toBeNull()
+    for (const label of ['Insights', 'Settings', 'Chat']) {
+      expect(screen.queryByText(label)).toBeNull()
+    }
     fireEvent.press(
-      screen.getByRole('button', {
-        name: 'Friday, September 11, 2026',
+      within(screen.getByTestId('home-footer')).getByRole('button', {
+        name: 'Insights',
       }),
     )
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/insights',
+      params: { date: '2026-09-12' },
+    })
+  })
 
+  it('keeps footer page dots in sync with swipes and disables them when the grid is unavailable', () => {
+    const { rerender } = render(<HomeScreen />)
+    fireEvent(screen.getByTestId('goal-viewport'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 600 } },
+    })
+    fireEvent.scroll(screen.getByTestId('goal-pages'), {
+      nativeEvent: {
+        contentOffset: { x: 402, y: 0 },
+        contentSize: { width: 804, height: 600 },
+        layoutMeasurement: { width: 402, height: 600 },
+      },
+    })
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
+    ).toBeSelected()
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }).props[
+        'aria-pressed'
+      ],
+    ).toBe(true)
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }).props[
+        'aria-pressed'
+      ],
+    ).toBe(false)
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+    )
+    expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+    ).toBeSelected()
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }).props[
+        'aria-pressed'
+      ],
+    ).toBe(true)
+
+    mockState = {
+      ...mockState,
+      status: 'error',
+      error: 'Unable to load health data',
+    }
+    rerender(<HomeScreen />)
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Insights' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Open coach' })).toBeEnabled()
+  })
+
+  it('opens Insights on the day currently displayed on the dashboard', () => {
+    mockInitialParams = { date: '2026-09-11' }
+    render(<HomeScreen />)
+    fireEvent.press(screen.getByRole('button', { name: 'Insights' }))
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/insights',
+      params: { date: '2026-09-11' },
+    })
     expect(
       jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
     ).toBe(new Date(2026, 8, 11).toDateString())
-    expect(mockSetParams).toHaveBeenCalledWith({ date: '2026-09-11' })
-    expect(
-      screen.getByRole('button', { name: 'Choose date, SEP 11, 2026' }).props
-        .accessibilityState,
-    ).toMatchObject({ expanded: false })
-    expect(screen.queryByRole('button', { name: 'Previous week' })).toBeNull()
-  })
-
-  it('preserves week navigation while keeping the expanded picker open', () => {
-    render(<HomeScreen />)
-    fireEvent.press(screen.getByRole('button', { name: /Choose date/ }))
-    expect(
-      screen.getByRole('button', { name: 'Next week' }).props
-        .accessibilityState,
-    ).toMatchObject({ disabled: true })
-
-    fireEvent.press(screen.getByRole('button', { name: 'Previous week' }))
-    expect(jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.getDate()).toBe(5)
-    expect(
-      screen.getByRole('button', { name: 'Next week' }).props
-        .accessibilityState,
-    ).toMatchObject({ disabled: false })
-
-    fireEvent.press(screen.getByRole('button', { name: 'Next week' }))
-    expect(jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.getDate()).toBe(
-      12,
-    )
-    expect(
-      screen.getByRole('button', { name: 'Choose date, TODAY' }).props
-        .accessibilityState,
-    ).toMatchObject({ expanded: true })
-  })
-
-  it('allows returning to the current week before local noon', () => {
-    jest.setSystemTime(new Date(2026, 8, 12, 7))
-    mockInitialParams = { date: '2026-09-05' }
-    render(<HomeScreen />)
-    fireEvent.press(screen.getByRole('button', { name: /Choose date/ }))
-
-    expect(
-      screen.getByRole('button', { name: 'Next week' }).props
-        .accessibilityState,
-    ).toMatchObject({ disabled: false })
-    fireEvent.press(screen.getByRole('button', { name: 'Next week' }))
-    expect(
-      jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
-    ).toBe(new Date(2026, 8, 12).toDateString())
   })
 
   it('does not present an empty day while its data is still loading', () => {
@@ -310,7 +344,7 @@ describe('HomeScreen', () => {
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
   })
 
-  it('stops the refresh indicator when the hook reports a read failure', async () => {
+  it('re-enables the header refresh button when the hook reports a read failure', async () => {
     let finishRefresh: (() => void) | undefined
     mockRefresh.mockImplementationOnce(
       () =>
@@ -319,10 +353,15 @@ describe('HomeScreen', () => {
         }),
     )
     const { rerender } = render(<HomeScreen />)
-    fireEvent(screen.getByTestId('home-refresh'), 'refresh')
+    fireEvent.press(
+      screen.getByRole('button', { name: /^Refresh health data,/ }),
+    )
 
     expect(mockRefresh).toHaveBeenCalledTimes(1)
-    expect(screen.getByTestId('home-refresh').props.refreshing).toBe(true)
+    expect(screen.getByTestId('home-refresh')).toBeDisabled()
+    expect(
+      screen.getByTestId('home-refresh').props.accessibilityState.busy,
+    ).toBe(true)
 
     mockState = {
       ...mockState,
@@ -334,7 +373,7 @@ describe('HomeScreen', () => {
     })
     rerender(<HomeScreen />)
 
-    expect(screen.getByTestId('home-refresh').props.refreshing).toBe(false)
+    expect(screen.getByTestId('home-refresh')).toBeEnabled()
     expect(screen.getByRole('alert')).toBeTruthy()
   })
 
@@ -343,6 +382,9 @@ describe('HomeScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Settings' }))
     fireEvent.press(screen.getByRole('button', { name: 'Open coach' }))
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
+    )
     fireEvent.press(screen.getByRole('button', { name: 'See all metrics' }))
 
     expect(mockPush.mock.calls).toEqual([
@@ -352,7 +394,7 @@ describe('HomeScreen', () => {
     ])
   })
 
-  it('keeps the selected day after weight entry without synthesizing a returned reading', async () => {
+  it('keeps the selected day after Gym details without synthesizing a returned reading', async () => {
     mockInitialParams = { date: '2026-09-11' }
     mockState = {
       ...mockState,
@@ -360,9 +402,9 @@ describe('HomeScreen', () => {
     }
     render(<HomeScreen />)
     act(focusHome)
-    fireEvent.press(screen.getByRole('button', { name: 'Add weight' }))
+    fireEvent.press(screen.getByRole('button', { name: /^Gym,/ }))
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/add-weight',
+      pathname: '/gym',
       params: { date: '2026-09-11' },
     })
     await act(async () => focusHome())
@@ -370,18 +412,20 @@ describe('HomeScreen', () => {
     expect(
       jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
     ).toBe(new Date(2026, 8, 11).toDateString())
-    expect(screen.getByLabelText('Morning weight unavailable')).toBeTruthy()
+    expect(
+      screen.getByLabelText(/^Gym,.*Weight, no morning weigh-in/),
+    ).toBeTruthy()
   })
 
   it('carries the selected day into steps, coach, and the full metric breakdown', () => {
+    mockInitialParams = { date: '2026-09-11' }
     render(<HomeScreen />)
-    fireEvent.press(screen.getByRole('button', { name: 'Choose date, TODAY' }))
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Friday, September 11, 2026' }),
-    )
 
     fireEvent.press(screen.getByRole('button', { name: 'Steps 5,000' }))
     fireEvent.press(screen.getByRole('button', { name: 'Open coach' }))
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
+    )
     fireEvent.press(screen.getByRole('button', { name: 'See all metrics' }))
 
     expect(mockPush.mock.calls).toEqual([
@@ -401,7 +445,9 @@ describe('HomeScreen', () => {
       jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
     ).toBe(new Date(2026, 8, 11).toDateString())
     expect(
-      screen.getByRole('button', { name: 'Choose date, SEP 11, 2026' }),
+      screen.getByRole('header', {
+        name: 'Friday, September 11, 2026',
+      }),
     ).toBeTruthy()
   })
 
@@ -414,17 +460,12 @@ describe('HomeScreen', () => {
   })
 
   it('keeps the fallback on the selected day after returning from Health access settings', async () => {
+    mockInitialParams = { date: '2026-09-11' }
     mockState = { ...mockState, snapshot: null }
     const { rerender } = render(<HomeScreen />)
     act(focusHome)
     expect(mockRefresh).not.toHaveBeenCalled()
 
-    fireEvent.press(screen.getByRole('button', { name: 'Choose date, TODAY' }))
-    fireEvent.press(
-      screen.getByRole('button', {
-        name: 'Friday, September 11, 2026',
-      }),
-    )
     fireEvent.press(screen.getByRole('button', { name: 'Settings' }))
     mockRefresh.mockImplementationOnce(async () => {
       mockState = {
@@ -457,9 +498,7 @@ describe('HomeScreen', () => {
     expect(mockRefresh).toHaveBeenCalledTimes(1)
     expect(screen.queryByLabelText('Recovery unavailable')).toBeNull()
     expect(screen.getByLabelText('Steps unavailable')).toBeTruthy()
-    expect(
-      screen.getByRole('button', { name: 'Review Health access' }),
-    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy()
     expect(mockState.requestAuthorization).not.toHaveBeenCalled()
   })
 
@@ -492,10 +531,10 @@ describe('HomeScreen', () => {
     rerender(<HomeScreen />)
 
     expect(mockRefresh).toHaveBeenCalledTimes(1)
+    expect(screen.getByLabelText(/^Gym,.*Cardio, Stairs 32 min/)).toBeTruthy()
     expect(
-      screen.getByText('StairMaster: 32 min synced / 143 bpm avg'),
-    ).toBeTruthy()
-    expect(screen.queryByText('Goal met')).toBeNull()
+      screen.getByRole('button', { name: /^Gym,/ }).props.accessibilityValue,
+    ).toEqual({ text: 'Goal not met (33%)' })
   })
 
   it('limits periodic refreshes to twelve per hour while home stays active', async () => {
@@ -559,19 +598,17 @@ describe('HomeScreen', () => {
       platform: 'android',
       top: 32,
       bottom: 24,
-      expectedTop: 40,
-      expectedBottom: 56,
+      expectedTop: 32,
     },
     {
       platform: 'ios',
       top: 62,
       bottom: 34,
-      expectedTop: 8,
-      expectedBottom: 32,
+      expectedTop: 62,
     },
   ])(
-    'accounts for $platform safe areas without doubling automatic iOS insets',
-    ({ platform, top, bottom, expectedTop, expectedBottom }) => {
+    'accounts for $platform safe areas without relying on a vertical scroll view',
+    ({ platform, top, bottom, expectedTop }) => {
       Object.defineProperty(Platform, 'OS', {
         configurable: true,
         value: platform,
@@ -582,15 +619,22 @@ describe('HomeScreen', () => {
       render(<HomeScreen />)
 
       const style = StyleSheet.flatten(
-        screen.getByTestId('home-screen').props.contentContainerStyle,
+        screen.getByTestId('home-screen').props.style,
       )
       expect(style.paddingTop).toBe(expectedTop)
-      expect(style.paddingBottom).toBe(expectedBottom)
+      expect(
+        StyleSheet.flatten(screen.getByTestId('home-content').props.style)
+          .paddingTop,
+      ).toBe(8)
+      expect(
+        StyleSheet.flatten(screen.getByTestId('home-footer').props.style)
+          .paddingBottom,
+      ).toBe(bottom)
     },
   )
 
   it.each(['light', 'dark'] as const)(
-    'uses the %s home theme and automatic safe-area insets',
+    'uses the %s home theme with horizontal-only paging',
     (theme) => {
       mockTheme = theme
       render(<HomeScreen />)
@@ -599,7 +643,9 @@ describe('HomeScreen', () => {
       expect(StyleSheet.flatten(scroll.props.style).backgroundColor).toBe(
         Colors[theme].homeBackground,
       )
-      expect(scroll.props.contentInsetAdjustmentBehavior).toBe('automatic')
+      expect(scroll.props.contentContainerStyle).toBeUndefined()
+      expect(screen.getByTestId('goal-pages').props.horizontal).toBe(true)
+      expect(screen.getByTestId('goal-pages').props.pagingEnabled).toBe(true)
       expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
     },
   )

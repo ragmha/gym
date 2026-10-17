@@ -22,7 +22,14 @@ const requiredSkills: RequiredSkill[] = [
   },
   {
     name: 'new-zustand-store',
-    requiredTerms: ['create<State>()', 'partialize', 'useShallow'],
+    requiredTerms: [
+      'create<State>()',
+      'partialize',
+      'useShallow',
+      'ThemeStore',
+      'useHealthSnapshot',
+      'sign-off',
+    ],
   },
   {
     name: 'eas-release',

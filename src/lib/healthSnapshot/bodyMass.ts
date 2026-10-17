@@ -1,4 +1,5 @@
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
+import { supportsNativeApplicationVersion } from '@/lib/healthSnapshot/nativeApplicationVersion'
 
 export const BODY_MASS_IDENTIFIER = 'HKQuantityTypeIdentifierBodyMass'
 export const BODY_MASS_MIN_NATIVE_VERSION = '1.0.7'
@@ -127,14 +128,5 @@ export function initialBodyMassDate(selectedDay: Date, now = new Date()): Date {
 export function supportsBodyMassNativeVersion(
   version: string | null | undefined,
 ): boolean {
-  if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version))
-    return false
-  const parts = version.split('.').map(Number)
-  if (parts.some((part) => !Number.isSafeInteger(part))) return false
-  const minimum = BODY_MASS_MIN_NATIVE_VERSION.split('.').map(Number)
-  for (let index = 0; index < minimum.length; index += 1) {
-    if (parts[index] > minimum[index]) return true
-    if (parts[index] < minimum[index]) return false
-  }
-  return true
+  return supportsNativeApplicationVersion(version, BODY_MASS_MIN_NATIVE_VERSION)
 }

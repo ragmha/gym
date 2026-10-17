@@ -5,23 +5,31 @@ These instructions capture Expo team best practices from Expo docs, GitHub issue
 ## What this app is
 
 A daily health dashboard whose displayed readings come from Apple HealthKit.
-There is no backend or login. The sole user-approved manual-entry exception is
-body weight: a confirmed weight in kilograms and its actual measurement time
-can be saved directly to Apple Health on compatible iOS builds.
+There is no backend or login. The user-approved manual-entry exceptions are
+body weight and water: a confirmed weight in kilograms and its actual
+measurement time, or a water amount explicitly confirmed for today, can be
+saved directly to Apple Health on compatible iOS builds.
 
 This is the single most important constraint in the repo. The app previously
 carried a second, competing architecture — manual CRUD screens on a Supabase
 backend that duplicated data HealthKit already had — and that is what made it
-unmaintainable. Do not reintroduce it. Weight entry has ephemeral form state only:
-no local weight store/cache, profile, backend, optimistic readings, or editing
-or deleting existing Health samples. No other manual-entry feature is approved.
+unmaintainable. Do not reintroduce it. Weight entry and the Water amount draft
+have ephemeral form state only: no local data store/cache, profile, or backend.
+Water writes add new samples only; never edit or delete existing Health samples.
+The user also approved an on-device lifting log (`GymLogStore`, `/gym`): sets,
+reps, optional kilograms, rating, and notes for the bundled programme in
+`src/lib/gymProgramme/programme.json`, because HealthKit cannot store sets or
+reps. It stays on the device, never writes to Health, never caches Health
+readings, and is not coach input. Cardio on `/gym` is read from HealthKit.
+No other manual-entry feature is approved.
 
 Before adding a feature, check whether the data already exists in HealthKit. If
 it does, read it. If it does not, adding a form, a store that persists user
 input, or a network backend is a scope decision that needs explicit sign-off —
 not an implementation detail to decide while coding.
-The narrowly scoped Apple Health body-mass form is already approved; that
-approval does not authorize other forms or persistence.
+The body-mass form and Water page's ephemeral 250 mL +/- draft with explicit
+Apple Health save are approved. These approvals do not authorize other forms
+or persistence.
 
 The on-device AI coach (`src/lib/coach/`) inherits the same constraint. It reads
 the daily HealthKit snapshot and the recovery score, and nothing else. Do not
@@ -45,7 +53,7 @@ App Group, Health writes, or coach input. Keep distribution blocked while
 | Language         | TypeScript (strict)                              | 5.9        |
 | Package Manager  | Bun                                              | 1.2        |
 | Backend / DB     | None — HealthKit is the only data source         | —          |
-| State Management | Zustand (theme preference only)                  | 5.x        |
+| State Management | Zustand (theme preference, gym log)              | 5.x        |
 | Charts           | react-native-svg                                 | —          |
 | Animations       | React Native Reanimated                          | 4.x        |
 | Health Data      | @kingstinct/react-native-healthkit               | 13.x       |
@@ -65,6 +73,7 @@ src/
     settings.tsx        #   pushed from the dashboard header
     coach.tsx           #   streaming coach chat
     add-weight.tsx      #   explicit body-mass save to Apple Health
+    gym/                #   hub grid + stairmaster/cardio/lifting/weight screens
   components/
     dashboard/          #   dashboard sections + the ring builder
     charts/             #   heatmap and ring primitives
@@ -78,7 +87,7 @@ src/
     fitnessMetrics/     #   snapshot -> presentable metric mapping
     coach/              #   on-device AI coach engines and prompts
     validators/         #   zod schemas for coach output
-  stores/               # ThemeStore only
+  stores/               # ThemeStore, GymLogStore
   utils/                # recovery scoring and pure helpers
   assets/               # fonts, images
 ```
@@ -107,6 +116,9 @@ This project targets **iOS as the primary platform**.
 ### Development guidelines
 
 - Test all changes on **iOS simulator + web browser** before merging.
+- For dashboard UI requests, turn every named block and control into an acceptance checklist. Verify each appears in the rendered screens, and tap through requested navigation before reporting the work complete.
+- When a short request or reference could imply materially different behavior or targets, inspect the referenced UI first and ask one focused question before coding or switching to an unrelated tool or integration.
+- Preserve the dashboard's clean, Apple-style outline icon treatment; do not use dotted artwork or replace the established visual direction unless explicitly asked. Compare visual changes with the supplied reference.
 - Android testing is optional unless the change touches shared native modules.
 - When a library or API is iOS-only (e.g., HealthKit), gate it with `Platform.OS === 'ios'` and provide a graceful fallback or hidden UI on other platforms.
 - For web, ensure components degrade gracefully — avoid `react-native` APIs that have no `react-native-web` support without a web fallback.
@@ -125,8 +137,9 @@ This project targets **iOS as the primary platform**.
 
 ## State Management
 
-- `ThemeStore` is the only Zustand store, and it holds one thing: the user's
-  theme preference, persisted through AsyncStorage.
+- `ThemeStore` persists the user's theme preference through AsyncStorage.
+- `GymLogStore` is the approved on-device lifting log: programme start date and
+  per-day sets, rating, and notes. Do not add Health readings to it.
 - Health data is not state to be managed. It is read per-day through
   `useHealthSnapshot(date)` and rendered. Do not cache it into a store.
 - If you find yourself adding a store, first check that you are not
@@ -174,6 +187,7 @@ This project targets **iOS as the primary platform**.
 - Use `npx expo-doctor@latest` after dependency changes and resolve reported issues before merging.
 - Avoid broad ecosystem-wide upgrades (`ncu -u`) unless explicitly planned and validated.
 - Keep monorepo compatibility fixes conservative; prioritize Expo-supported versions first.
+- Look up Expo APIs in the SDK 55 versioned docs at `https://docs.expo.dev/versions/v55.0.0/`, not `latest`. Append `index.md` to a page URL for Markdown. Update this pin with each SDK upgrade.
 
 ## SDK Upgrade Workflow
 
@@ -266,4 +280,5 @@ Avoid filing feature requests on Expo GitHub issues; use Expo Canny for feature 
 - `.github/copilot-instructions.md` is the **canonical** project policy file.
 - Prefer short, focused, actionable rules; split large topics into separate rule files.
 - Avoid duplicating general style-guide content that is already enforced by tooling (ESLint/TypeScript/tests).
+- Keep `.github/skills/` for repo-specific skills only. Generic Expo and EAS guidance comes from the official `expo/skills` set (`bunx skills add expo/skills`); do not vendor copies into the repo.
 - Keep sensitive data out of instruction files; use environment variables and local-only config for secrets.

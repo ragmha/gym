@@ -1,0 +1,2624 @@
+[
+  {
+    "day": "1",
+    "week": "1",
+    "title": "Quads, Lower Abs & Calves",
+    "videoURL": "https://www.youtube.com/embed/P7ak9G2A8to",
+    "cardio": {
+      "morning": 20,
+      "evening": 20
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Hack Squats",
+        "sets": 3,
+        "reps": 15,
+        "variation": "1.5 rep variation"
+      },
+      {
+        "id": "exercise-2",
+        "title": "Squat Press",
+        "sets": 3,
+        "reps": 15,
+        "variation": "2-second pause at the bottom"
+      },
+      {
+        "id": "exercise-3",
+        "title": "Leg Extensions",
+        "sets": 3,
+        "reps": 10,
+        "variation": "Drop Set"
+      },
+      {
+        "id": "exercise-4",
+        "title": "Walking Forward Lunges",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Bodyweight Squats",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Walking Forward Lunges",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Seated Calf Press",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Hanging Leg Raises",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-9",
+        "title": "Lying Leg Raises",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "2",
+    "week": "1",
+    "title": "Chest & Shoulders",
+    "videoURL": "https://www.youtube.com/embed/d9GJksb0o3c",
+    "cardio": {
+      "morning": 20,
+      "evening": 20
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Dumbbell Chest Press",
+        "sets": 3,
+        "reps": 15,
+        "variation": "Drop Set"
+      },
+      {
+        "id": "exercise-2",
+        "title": "Incline Cable Fly",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Dumbbell Floor Press",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Decline Dumbbell Fly",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Pushups",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Smith Machine Alternating Military Press",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Lying Upright Cable Row",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Lying Cable Side Raises",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-9",
+        "title": "Lying Cable Front Raises",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-10",
+        "title": "Bent-Over Cable Rear Delt Raises",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-11",
+        "title": "Standing Rope Pulls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "3",
+    "week": "1",
+    "title": "Arms",
+    "videoURL": "https://www.youtube.com/embed/dDxyceJq_wI",
+    "cardio": {
+      "morning": 20,
+      "evening": 20
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Reverse-Grip Cable Triceps Pushdown",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Cable Overhead Triceps Extension",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Single-Arm Overhead Rope Extensions",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Bent-Over Single-Arm Kickbacks",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Close-Grip Pushups",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Bench Dips",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "EZ-Bar Spider Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Narrow-Grip EZ Bar Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-9",
+        "title": "Reverse-Grip Dumbbell Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-10",
+        "title": "Dumbbell Hammer Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-11",
+        "title": "Lying Cable Curls",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-12",
+        "title": "Alternating Cable Curls",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "4",
+    "week": "1",
+    "title": "Lower Back, Hamstrings & Upper Abs",
+    "videoURL": "https://www.youtube.com/embed/oLBvfFgnKmE?si=e6dGxug2QQxP5Fcz",
+    "cardio": {
+      "morning": 20,
+      "evening": 20
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Deadlifts",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Seated Leg Curl",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Glute Ham Raises",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Cable Stiff-Legged Deadlifts",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Decline Cross-body Situp",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Cross-body Situp",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "5",
+    "week": "1",
+    "title": "Upper Back & Calves",
+    "videoURL": "https://www.youtube.com/embed/_wzelL_oVdo",
+    "cardio": {
+      "morning": 20,
+      "evening": 20
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Lat Pulldowns",
+        "sets": 3,
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Pullups",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Rope Lat Pulldowns",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Single-Arm Dumbbell Row",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Single-Arm Inverted Row",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Dumbbell Pullovers",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Standing Dumbbell Shrugs",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Seated Calf Press",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "6",
+    "week": "1",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/CZ3waXuNhvM",
+    "cardio": {
+      "morning": 20,
+      "evening": 20
+    },
+    "exercises": []
+  },
+  {
+    "day": "7",
+    "week": "1",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/SWL-SU1wNpQ",
+    "cardio": {
+      "morning": 20,
+      "evening": 20
+    },
+    "exercises": []
+  },
+  {
+    "day": "8",
+    "week": "2",
+    "title": "Quads, Lower Abs & Calves",
+    "videoURL": "https://www.youtube.com/embed/FANSxLhUmMc",
+    "cardio": {
+      "morning": 25,
+      "evening": 25
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Leg Extensions",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Leg Press",
+        "sets": 5,
+        "reps": 15,
+        "variation": "2 second pause"
+      },
+      {
+        "id": "exercise-3",
+        "title": "Alt",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Seated Calf Press",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Lying Incline Leg Raise",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Exercise Ball Knee Tucks",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Bodyweight Plank",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "9",
+    "week": "2",
+    "title": "Chest & Shoulders",
+    "videoURL": "https://www.youtube.com/embed/pIegIZOK7z4",
+    "cardio": {
+      "morning": 25,
+      "evening": 25
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Hammer Press",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Incline Smith Machine Press",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Seated Cable Fly",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Wide-Hands Pushup",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Barbell Front Raise & Shoulder Press Combo",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Barbell Side Raise",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Dumbbell Rear Delt Fly",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "10",
+    "week": "2",
+    "title": "Arms",
+    "videoURL": "https://www.youtube.com/embed/Pp-MfvlVqpM",
+    "cardio": {
+      "morning": 25,
+      "evening": 25
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Overhead Tricep Extensions",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Seated Rope Extension",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Dips",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "EZ-Bar Spider Curls",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Standing Banded Bicep Curls",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Low Cable EZ-Bar Curls",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Low Banded Biceps Curl",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Incline Dumbbell Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-9",
+        "title": "Seated Banded Biceps Curl",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "11",
+    "week": "2",
+    "title": "Lower Back, Hamstrings & Upper Abs",
+    "videoURL": "https://www.youtube.com/embed/DpZXfPl9IWo",
+    "cardio": {
+      "morning": 25,
+      "evening": 25
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Deadlifts",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Rack Deadlifts",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Banded Good Mornings",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Lying Hamstring Curl",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Standing Cable Hamstring Curl",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Barbell Straight-Arm Situps",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Barbell Rollouts",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Crunches",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "12",
+    "week": "2",
+    "title": "Upper Back & Calves",
+    "videoURL": "https://www.youtube.com/embed/i9ekqAJBZBI",
+    "cardio": {
+      "morning": 25,
+      "evening": 25
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Pull-ups",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Hammer Row",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Supported Smith Machine Row",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Cable Straight-Arm Pulldown",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "High-Pulley Cable Row",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Single-Leg Standing Dumbbell Calf Raise",
+        "sets": 5,
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "13",
+    "week": "2",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/VgDeoYUOXDc",
+    "cardio": {
+      "morning": 25,
+      "evening": 25
+    },
+    "exercises": []
+  },
+  {
+    "day": "14",
+    "week": "2",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/C70zdLl6pOY",
+    "cardio": {
+      "morning": 25,
+      "evening": 25
+    },
+    "exercises": []
+  },
+  {
+    "day": "15",
+    "week": "3",
+    "title": "Legs, Calves & Lower Abs",
+    "videoURL": "https://www.youtube.com/embed/J_sCt1HYOGo",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Leg Extension",
+        "sets": 1,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Landmine Squat",
+        "sets": "To Failure",
+        "reps": 25,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Hex Bar Squat",
+        "sets": "To Failure",
+        "reps": 25,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Bulgarian Split",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Smith Machine Front Squat",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Seated Calf Raises",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Captains Chair Leg Raises",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Medicine Ball Pass",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-9",
+        "title": "Cross-Body Mountain Climbers",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "16",
+    "week": "3",
+    "title": "Chest & Shoulders",
+    "videoURL": "https://www.youtube.com/embed/zvLNd70bqNA",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Incline Dumbbell Fly & Press Combo",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Incline Close-grip Dumbbell Press",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Incline Dumbbell Press",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Rollout Fly",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Pushups",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Smith Machine Weighted Pushups",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Smith Machine Close-Grip Press",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Squat Press Shoulder Press",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-9",
+        "title": "Single-Arm Landmine Shoulder Press",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-10",
+        "title": "Single-Arm Bent Over Rear Delt",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-11",
+        "title": "Leg Extension Single-Arm Rear Delt Raise",
+        "sets": "To Failure",
+        "reps": 12,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "17",
+    "week": "3",
+    "title": "Arms",
+    "videoURL": "https://www.youtube.com/embed/g26gYXJor-k",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Kneeling Cable Overhead Triceps Extension",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Machine Triceps Extension",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Machine Triceps Pressdown",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Standing Cable Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Lying Cable Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Lying High Cable Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Standing High Cable Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Reverse-Grip EZ-Bar Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-9",
+        "title": "Close-Grip EZ-Bar Curls",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "18",
+    "week": "3",
+    "title": "Hamstrings, Lower Back & Upper Abs",
+    "videoURL": "https://www.youtube.com/embed/Ht-465kJBl0",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Single-Leg Hamstring Curl",
+        "sets": 5,
+        "reps": 6,
+        "variation": "Each Leg"
+      },
+      {
+        "id": "exercise-2",
+        "title": "Dumbbell Stiff-Legged Deadlift",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Weighted Hyperextensions",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Barbell Good Mornings",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Weighted Crunches",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Cross-Body Crunches",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Exercise Ball Rollouts",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Ab Twists",
+        "sets": "To Failure",
+        "reps": 50,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "19",
+    "week": "3",
+    "title": "Back & Calves",
+    "videoURL": "https://www.youtube.com/embed/ms_3z4FjGgA",
+    "cardio": {
+      "morning": 30,
+      "evening": 30
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Dumbbell Seal Row",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Incline Straight-Arm Pullover",
+        "sets": 3,
+        "reps": 12,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Barbell Bentover Row",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Seated EZ-Bar Shrugs",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Calf Press",
+        "sets": 5,
+        "reps": 20,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "20",
+    "week": "3",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/mcWZ5NHGCng",
+    "cardio": {
+      "morning": 30,
+      "evening": 30
+    },
+    "exercises": []
+  },
+  {
+    "day": "21",
+    "week": "3",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/6Xe3QIqXEvU",
+    "cardio": {
+      "morning": 30,
+      "evening": 30
+    },
+    "exercises": []
+  },
+  {
+    "day": "22",
+    "week": "4",
+    "title": "Quads, Calves, and Lower Abs",
+    "videoURL": "https://www.youtube.com/embed/r1VvIN3l6P0",
+    "cardio": {
+      "morning": 35,
+      "evening": 35
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Single-Leg Extension",
+        "sets": 5,
+        "reps": 6,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Single-Leg Press",
+        "sets": 5,
+        "reps": 6,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Single-Leg Hack Squat",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Smith Machine Lunge",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Seated Single-Leg Calf Raise",
+        "sets": 5,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Alternating Hanging Leg Raises",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Alternating Lying Leg Raises",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Alternating Exercise Ball Knee Tucks",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "23",
+    "week": "4",
+    "title": "Chest & Shoulders",
+    "videoURL": "https://www.youtube.com/embed/A180W6XkNi8",
+    "cardio": {
+      "morning": 35,
+      "evening": 35
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Incline One-Arm Dumbbell Press",
+        "sets": 4,
+        "reps": 5,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Incline One-Arm Crossover",
+        "sets": 4,
+        "reps": 5,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Decline One-Arm Dumbbell Press",
+        "sets": 4,
+        "reps": 5,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "One-Arm Cable Crossover",
+        "sets": 4,
+        "reps": 5,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Standing One-Arm Shoulder Press",
+        "sets": 4,
+        "reps": 5,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "One-Arm Cable Rear Delt Fly",
+        "sets": 4,
+        "reps": 5,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "One-Arm Lying Cable Front Raises",
+        "sets": 4,
+        "reps": 5,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "One-Arm Cable Side Raises",
+        "sets": 4,
+        "reps": 5,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "24",
+    "week": "4",
+    "title": "Arms",
+    "videoURL": "https://www.youtube.com/embed/uMdsN-v-i5Q",
+    "cardio": {
+      "morning": 35,
+      "evening": 35
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Seated Single-Arm Dumbbell Curls",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Lying Single-Arm OverheadDumbbell Extension",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Incline Single-Arm OverheadCable Extensions",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Single-Arm Cable Concentration Curls",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Single-Arm PreacherMachine Curls",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Single-Arm Cable Pushdowns",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "25",
+    "week": "4",
+    "title": "Hamstrings, Lower Back & Abs",
+    "videoURL": "https://www.youtube.com/embed/pb9T4aodtrs",
+    "cardio": {
+      "morning": 35,
+      "evening": 35
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Single-Arm Dumbbell Deadlift",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Hyperextensions",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Single-Leg Hamstring Curl",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Cable Single-Leg Stiff-Legged Deadlift",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Dumbbell Weighted Crunches",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Crunches",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Cable Cross-Body Pulls",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "26",
+    "week": "4",
+    "title": "Back and Calves",
+    "videoURL": "https://www.youtube.com/embed/VJHR7ZX-ggA",
+    "cardio": {
+      "morning": 35,
+      "evening": 35
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Single-Arm Barbell Row",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Single-Arm Cable Rows",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Single-Arm Smith Machine Shrugs",
+        "sets": 3,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Single-Arm Overhead Machine Pulldowns",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Seated Single Leg Calf Press",
+        "sets": 5,
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "27",
+    "week": "4",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/TVHKeIC_-3M",
+    "cardio": {
+      "morning": 35,
+      "evening": 35
+    },
+    "exercises": []
+  },
+  {
+    "day": "28",
+    "week": "4",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/v1vPHGEuyj4",
+    "cardio": {
+      "morning": 35,
+      "evening": 35
+    },
+    "exercises": []
+  },
+  {
+    "day": "29",
+    "week": "5",
+    "title": "Quads",
+    "videoURL": "https://www.youtube.com/embed/dkWMSTJKnoo",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Leg Extensions",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Hack Squat",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Reverse Hack Squat",
+        "sets": "To Failure",
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Leg Press",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Seated Calf Raises",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Hanging Windshield Wipers",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Lying Windshield Wipers",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "30",
+    "week": "5",
+    "title": "Chest & Shoulders",
+    "videoURL": "https://www.youtube.com/embed/GszJfy0MmyU",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Incline Dumbbell Chest Press",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Decline Dumbbell Chest Press",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Flat Chest Press Machine",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Front Plate Raises",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Bent-Over Reverse Plate Flyes",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Side Lateral Plate Raises",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "31",
+    "week": "5",
+    "title": "Arms",
+    "videoURL": "https://www.youtube.com/embed/fEN5FCdVcgU",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Triceps Extensions",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Dumbbell Biceps Curl",
+        "sets": 6,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "EZ-Bar Skull Crushers",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Cable EZ-Bar Preacher Curls",
+        "sets": 6,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Dips",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Hammer Curls",
+        "sets": 6,
+        "reps": 20,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "32",
+    "week": "5",
+    "title": "Hamstrings, Lower Back & Upper Abs",
+    "videoURL": "https://www.youtube.com/embed/9USIrEUB_PQ",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Deadlifts",
+        "sets": 6,
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Lying leg Curls",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Seated leg Curls",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Standing Cable Crunches",
+        "sets": "To Failure",
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Exercise Ball Alternating Crunches",
+        "sets": "To Failure",
+        "reps": 30,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "33",
+    "week": "5",
+    "title": "Upper back & calves",
+    "videoURL": "https://www.youtube.com/embed/bftWCf64AKY",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Pullup",
+        "sets": 6,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "T-Bar Rows",
+        "sets": 6,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Seated Machine Row",
+        "sets": 6,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Machine Shrugs",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Standing Calf Raises",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "34",
+    "week": "5",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/5bhA5P8DsZ4",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": []
+  },
+  {
+    "day": "35",
+    "week": "5",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/xTbLxfKhfZ8",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": []
+  },
+  {
+    "day": "36",
+    "week": "6",
+    "title": "Quads & Calves",
+    "videoURL": "https://www.youtube.com/embed/6ZlhxlKa6BE",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Leg Extensions",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Squats",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Leg Press",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Hack Squats (narrow)",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Seated Calf Raises",
+        "sets": 6,
+        "reps": 20,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "37",
+    "week": "6",
+    "title": "Chest & Shoulders",
+    "videoURL": "https://www.youtube.com/embed/p05tHzqgxpE",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Flat Dumbbell Press",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Incline Dumbbell Flyes",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Decline Smith Machine Press",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Cable Crossover",
+        "sets": 4,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Incline Front Barbell Raises",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Incline Front Dumbbell Raises",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Rear Delt Flyes",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Incline Bench Rear Dumbbell Flyes",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-9",
+        "title": "Dumbbell Lateral Raise",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-10",
+        "title": "Seated Side Lateral Dumbbell Raises",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "38",
+    "week": "6",
+    "title": "Arms",
+    "videoURL": "https://www.youtube.com/embed/NOvuvP7ZoZU",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Machine Preacher Curls",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Rope Pressdown",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Reverse-Grip Triceps Extensions",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Reverse-Grip Cable Biceps Curl",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Smith Machine Drag Curls",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Smith Machine Close-Grip Bench",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Incline Overhead Dumbbell Extensions",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Spider Curls",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "39",
+    "week": "6",
+    "title": "Hamstrings, Lower Back & Upper Abs",
+    "videoURL": "https://www.youtube.com/embed/_-AjnfDmH6c",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Glute-Ham Raise",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Seated Leg Curls",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Lying Hamstring Curls",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Reverse Hack Squat",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Hyperextensions",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Dumbbell Deadlifts",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Exercise Ball Cable Crunches",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Ab wheel Rollouts",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "40",
+    "week": "6",
+    "title": "Upper back & Calves",
+    "videoURL": "https://www.youtube.com/embed/rTA1L7bleuY",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Machine Pullover",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Straight-Arm Dumbbell Pullover",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Straight-Arm Pulldowns",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Lat Pulldown",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Machine Shrugs",
+        "sets": 6,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Standing Calf Raise",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Donkey Calf Raises",
+        "sets": 3,
+        "reps": 30,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "41",
+    "week": "6",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/0ipboDKtlv4",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": []
+  },
+  {
+    "day": "42",
+    "week": "6",
+    "title": "Active Rest day",
+    "videoURL": "https://www.youtube.com/embed/fRK6nc7mwqs",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": []
+  },
+  {
+    "day": "43",
+    "week": "7",
+    "title": "Quads, Calves & Lower Abs",
+    "videoURL": "https://www.youtube.com/embed/uyOY8lBpPcg",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Leg Extensions",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Seated Leg Press",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Barbell Squat",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Hack Squat",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Seated Calf Raise",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Flat Bench Lying Leg Raises",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "44",
+    "week": "7",
+    "title": "Chest & Shoulders",
+    "videoURL": "https://www.youtube.com/embed/2mD3_V4bHZ8",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Incline Dumbbell Fly",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Decline Dumbbell Press",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Machine Seated Chest Press",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Pec Deck Fly",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Upright rows",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Front Dumbbell Raise",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-7",
+        "title": "Smith Machine Behind-the-Neck Press",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-8",
+        "title": "Seated Lateral Raise",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "45",
+    "week": "7",
+    "title": "Arms",
+    "videoURL": "https://www.youtube.com/embed/5DbhD1vkG80",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Cable Triceps Extensions",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Seated Biceps Cable Curl",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Overhead Machine Triceps Extension",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Machine Preacher Curl",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Standing EZ-bar Curl",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Bench Dips",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "46",
+    "week": "7",
+    "title": "Hamstrings, Lower Back & Upper Abs",
+    "videoURL": "https://www.youtube.com/embed/4B5DVaGu9IY",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Machine Deadlifts",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Hyperextension",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Lying hamstring Curls",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Stiff-Legged Deadlift",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Banded Crunches",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Dumbbell Crunches",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "47",
+    "week": "7",
+    "title": "Back & calves",
+    "videoURL": "https://www.youtube.com/embed/CdqzY6THYDs",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Lat Pulldown",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Seated Machine Row",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Bent-Over Row",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Behind-the-Neck Pulldown",
+        "sets": "To Failure",
+        "reps": 20,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Calf Press",
+        "sets": 3,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Smith Machine Standing Calf Raises",
+        "sets": 3,
+        "reps": 20,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "48",
+    "week": "7",
+    "title": "Active Rest day",
+    "videoURL": "https://www.youtube.com/embed/a1DbKqq9Yt8",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": []
+  },
+  {
+    "day": "49",
+    "week": "7",
+    "title": "Active Rest Day",
+    "videoURL": "https://www.youtube.com/embed/wdFN6H40acM",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": []
+  },
+  {
+    "day": "50",
+    "week": "8",
+    "title": "Quads, Calves & Lower Abs",
+    "videoURL": "https://www.youtube.com/embed/LOKilx-Hpsw",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Hack Squat",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Leg press",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Seated Calf Raises",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Decline Lying Leg Raises",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Decline Lying Leg Raises",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Seated Calf Raises",
+        "sets": "To Failure",
+        "reps": 10,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "51",
+    "week": "8",
+    "title": "Chest & Shoulders",
+    "videoURL": "https://www.youtube.com/embed/inEDOt6azNg",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Incline Dumbbell Fly",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Decline Dumbbell Fly",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Front Dumbbell Raise & Press Combo",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Incline rear Delt raises",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "52",
+    "week": "8",
+    "title": "Arms",
+    "videoURL": "https://www.youtube.com/embed/hNdDBbhEAQA",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Cable Incline Triceps Extension",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Decline Barbell Triceps Extension",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "High-Pulley Cable Curls",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Seated Dumbbell Curls",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "53",
+    "week": "8",
+    "title": "Hamstrings, Lower Back & Upper Abs",
+    "videoURL": "https://www.youtube.com/embed/cEQU6o6dlyA",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Rack Deadlifts",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Seated Cable Deadlift",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Single-Leg Hamstring Curl",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Sissy Squat",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Ab Crunch Machine",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Decline Situp",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      }
+    ]
+  },
+  {
+    "day": "54",
+    "week": "8",
+    "title": "Upper back & calves",
+    "videoURL": "https://www.youtube.com/embed/vTbOM-0C0-8",
+    "cardio": {
+      "morning": 0,
+      "evening": 0
+    },
+    "exercises": [
+      {
+        "id": "exercise-1",
+        "title": "Incline Dumbbell Row",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-2",
+        "title": "Bent Over Dumbbell Row",
+        "sets": "To Failure",
+        "reps": 15,
+        "variation": null
+      },
+      {
+        "id": "exercise-3",
+        "title": "Wide-Grip Lat Pulldown",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-4",
+        "title": "Rope Lat Pulldown",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      },
+      {
+        "id": "exercise-5",
+        "title": "Calf Press",
+        "sets": 5,
+        "reps": 10,
+        "variation": null
+      },
+      {
+        "id": "exercise-6",
+        "title": "Standing Calf Raises",
+        "sets": 5,
+        "reps": 30,
+        "variation": null
+      }
+    ]
+  }
+]

@@ -1,42 +1,23 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useMemo, useState } from 'react'
-import {
-  AppState,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native'
+import React, { useCallback, useRef, useState } from 'react'
+import { AppState, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { CalendarStrip } from '@/components/dashboard/CalendarStrip'
-import { DailyPriorities } from '@/components/dashboard/DailyPriorities'
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
-import { StepsOverview } from '@/components/dashboard/StepsOverview'
-import { WeightCard } from '@/components/dashboard/WeightCard'
+import {
+  GoalGrid,
+  GoalSummary,
+  type GoalGridHandle,
+} from '@/components/dashboard/GoalGrid'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { HealthReadState } from '@/components/health/HealthReadState'
-import {
-  Elevation,
-  Layout,
-  Radii,
-  Spacing,
-  Typography,
-} from '@/constants/DesignSystem'
+import { Layout, Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useTheme } from '@/hooks/useThemeColor'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
-
-const isSameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate()
 
 export default function HomeScreen() {
   return (
@@ -52,21 +33,13 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
   const colorScheme = useColorScheme()
   const insets = useSafeAreaInsets()
 
-  const [focusDate, setFocusDate] = useState(selectedDate)
   const [refreshing, setRefreshing] = useState(false)
-  const [calendarExpanded, setCalendarExpanded] = useState(false)
-
-  const handleDateSelected = useCallback(
-    (date: Date) => {
-      router.setParams({ date: localDateKey(date) })
-      setFocusDate(date)
-      setCalendarExpanded(false)
-    },
-    [router],
-  )
+  const [pagination, setPagination] = useState({ index: 0, count: 0 })
+  const goalGrid = useRef<GoalGridHandle>(null)
 
   const { snapshot, status, error, isDemoMode, refresh } =
     useHealthSnapshot(selectedDate)
+  const canPage = status !== 'error' && !(status === 'loading' && !snapshot)
   useFocusEffect(
     useCallback(() => {
       if (isDemoMode) return
@@ -93,244 +66,174 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
     }
   }, [refresh])
 
-  const shiftWeek = useCallback(
-    (weeks: number) => {
-      const next = new Date(focusDate)
-      next.setDate(next.getDate() + weeks * 7)
-      if (weeks > 0 && localDateKey(next) > localDateKey(new Date())) return
-      setFocusDate(next)
-      router.setParams({ date: localDateKey(next) })
-    },
-    [focusDate, router],
-  )
-
-  const dateLabel = useMemo(() => {
-    if (isSameDay(selectedDate, new Date())) return 'TODAY'
-    return selectedDate
-      .toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-      .toUpperCase()
-  }, [selectedDate])
-
-  const nextWeek = new Date(focusDate)
-  nextWeek.setDate(nextWeek.getDate() + 7)
-  const canGoForward = localDateKey(nextWeek) <= localDateKey(new Date())
-
   return (
-    <ScrollView
+    <View
       testID="home-screen"
-      style={[styles.container, { backgroundColor: theme.homeBackground }]}
-      contentContainerStyle={[
-        styles.content,
-        Platform.OS !== 'ios' && {
-          paddingTop: insets.top + Spacing.xs,
-          paddingBottom: insets.bottom + Spacing.xxl,
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.homeBackground,
+          paddingTop: insets.top,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
         },
       ]}
-      contentInsetAdjustmentBehavior="automatic"
-      refreshControl={
-        <RefreshControl
-          testID="home-refresh"
+    >
+      <View testID="home-content" style={styles.content}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+
+        <GoalSummary
+          snapshot={snapshot}
+          date={selectedDate}
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor={theme.homeAccent}
+          onSettingsPress={() => router.push('/settings')}
         />
-      }
-    >
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-      <DashboardHeader
-        dateLabel={dateLabel}
-        calendarExpanded={calendarExpanded}
-        onDatePress={() => {
-          setFocusDate(selectedDate)
-          setCalendarExpanded((expanded) => !expanded)
-        }}
-        onCoachPress={() =>
-          router.push({
-            pathname: '/coach',
-            params: { date: localDateKey(selectedDate) },
-          })
-        }
-        onSettingsPress={() => router.push('/settings')}
-      />
+        {isDemoMode && (
+          <Text style={[styles.demo, { color: theme.subtitleText }]}>
+            Demo data - Apple Health is available on iOS.
+          </Text>
+        )}
 
-      {calendarExpanded && (
-        <View>
-          <View style={styles.weekNavigation}>
-            <Pressable
-              onPress={() => shiftWeek(-1)}
-              style={styles.weekButton}
-              accessibilityRole="button"
-              accessibilityLabel="Previous week"
-            >
-              <Ionicons name="chevron-back" size={20} color={theme.text} />
-            </Pressable>
-            <Text style={[styles.month, { color: theme.text }]}>
-              {focusDate.toLocaleDateString('en-US', {
-                month: 'long',
-                year: 'numeric',
-              })}
-            </Text>
-            <Pressable
-              onPress={() => shiftWeek(1)}
-              disabled={!canGoForward}
-              style={styles.weekButton}
-              accessibilityRole="button"
-              accessibilityLabel="Next week"
-              accessibilityState={{ disabled: !canGoForward }}
-            >
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={canGoForward ? theme.text : theme.disabled}
-              />
-            </Pressable>
-          </View>
-          <CalendarStrip
-            focusDate={focusDate}
-            selectedDate={selectedDate}
-            onFocusDateChange={setFocusDate}
-            onDateSelected={handleDateSelected}
-            compact
-          />
-        </View>
-      )}
-
-      {isDemoMode && (
-        <Text style={[styles.demo, { color: theme.subtitleText }]}>
-          Demo data - Apple Health is available on iOS.
-        </Text>
-      )}
-
-      {status === 'loading' && !snapshot ? (
-        <HealthReadState loading />
-      ) : status === 'error' ? (
-        <HealthReadState error={error} onRetry={onRefresh} />
-      ) : (
-        <>
-          <StepsOverview
+        {status === 'loading' && !snapshot ? (
+          <HealthReadState loading />
+        ) : status === 'error' ? (
+          <HealthReadState error={error} onRetry={onRefresh} />
+        ) : (
+          <GoalGrid
+            key={localDateKey(selectedDate)}
             snapshot={snapshot}
+            date={selectedDate}
+            ref={goalGrid}
+            onPageChange={setPagination}
+          />
+        )}
+      </View>
+      <View
+        testID="home-footer"
+        style={[
+          styles.footer,
+          {
+            paddingBottom: Math.max(insets.bottom, Spacing.xs),
+          },
+        ]}
+      >
+        <View style={styles.footerNavigation}>
+          <Pressable
             onPress={() =>
               router.push({
-                pathname: '/steps',
+                pathname: '/insights',
                 params: { date: localDateKey(selectedDate) },
               })
             }
-          />
-          <View
-            style={[
-              styles.dailyPanel,
-              { backgroundColor: theme.cardBackground },
+            style={({ pressed }) => [
+              styles.footerButton,
+              { opacity: pressed ? 0.65 : 1 },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel="Insights"
+            accessibilityHint="Opens the calendar to review past days"
           >
-            <DailyPriorities snapshot={snapshot} />
-            <WeightCard snapshot={snapshot} date={selectedDate} />
-          </View>
-          {!isDemoMode &&
-            (snapshot?.steps == null ||
-              (snapshot.waterLiters === null &&
-                snapshot.bodyMassHistory === null &&
-                snapshot.workouts.length === 0)) && (
+            <Ionicons name="bar-chart-outline" size={22} color={theme.text} />
+          </Pressable>
+          <View style={styles.pageIndicators}>
+            {Array.from({ length: pagination.count }, (_, index) => (
               <Pressable
-                onPress={() => router.push('/settings')}
-                style={styles.metricsLink}
+                key={index}
+                style={styles.footerButton}
+                disabled={!canPage}
                 accessibilityRole="button"
-                accessibilityLabel="Review Health access"
+                accessibilityLabel={`Show dashboard page ${index + 1} of ${pagination.count}`}
+                aria-pressed={index === pagination.index}
+                accessibilityState={{
+                  selected: index === pagination.index,
+                  disabled: !canPage,
+                }}
+                onPress={() => goalGrid.current?.showPage(index)}
               >
-                <Text style={[Typography.bodySm, { color: theme.homeAccent }]}>
-                  Missing readings? Review Health access
-                </Text>
+                <View
+                  style={[
+                    styles.pageDot,
+                    {
+                      backgroundColor:
+                        index === pagination.index
+                          ? theme.text
+                          : theme.goalTrack,
+                      opacity: canPage ? 1 : 0.4,
+                    },
+                  ]}
+                />
               </Pressable>
-            )}
-        </>
-      )}
-
-      <Pressable
-        onPress={() =>
-          router.push({
-            pathname: '/fitness-metrics',
-            params: { date: localDateKey(selectedDate) },
-          })
-        }
-        style={({ pressed }) => [
-          styles.metricsLink,
-          styles.allMetrics,
-          {
-            backgroundColor: theme.accentInactive,
-            opacity: pressed ? 0.65 : 1,
-          },
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel="See all metrics"
-      >
-        <Text style={[styles.linkLabel, { color: theme.homeAccent }]}>
-          See all metrics
-        </Text>
-        <Ionicons name="chevron-forward" size={20} color={theme.homeAccent} />
-      </Pressable>
-    </ScrollView>
+            ))}
+          </View>
+          <Pressable
+            testID="open-coach"
+            onPress={() =>
+              router.push({
+                pathname: '/coach',
+                params: { date: localDateKey(selectedDate) },
+              })
+            }
+            style={({ pressed }) => [
+              styles.footerButton,
+              { opacity: pressed ? 0.65 : 1 },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Open coach"
+            accessibilityHint="Opens your AI coach chat"
+          >
+            <Ionicons name="chatbubble-outline" size={22} color={theme.text} />
+          </Pressable>
+        </View>
+      </View>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    overflow: 'hidden',
   },
   content: {
+    flex: 1,
+    minHeight: 0,
     width: '100%',
     maxWidth: Layout.contentMaxWidth,
     alignSelf: 'center',
     paddingTop: Spacing.xs,
-    paddingBottom: Spacing.xxl,
-    gap: Spacing.lg,
+    gap: Spacing.xs,
   },
-  dailyPanel: {
-    ...Elevation.soft,
-    marginHorizontal: Spacing.sm,
-    borderRadius: Radii.panel,
-    borderCurve: 'continuous',
+  footer: {
+    paddingTop: Spacing.xxs,
   },
-  weekNavigation: {
-    marginHorizontal: Spacing.lg,
+  footerNavigation: {
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.gutter,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  weekButton: {
-    minWidth: 44,
-    minHeight: 44,
-    padding: Spacing.xs,
+  footerButton: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  month: {
-    ...Typography.labelLg,
-    flexShrink: 1,
-    textAlign: 'center',
+  pageIndicators: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  pageDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
   },
   demo: {
     ...Typography.bodySm,
     marginHorizontal: Layout.gutter,
-  },
-  metricsLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    minHeight: 44,
-    marginHorizontal: Layout.gutter,
-  },
-  allMetrics: {
-    minHeight: 56,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-  },
-  linkLabel: {
-    ...Typography.labelLg,
-    flex: 1,
   },
 })

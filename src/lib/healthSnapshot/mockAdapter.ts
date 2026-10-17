@@ -1,6 +1,8 @@
-import { localDateKey } from '@/lib/healthSnapshot/dateKey'
+import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
+  DailyWaterReading,
+  DailyWorkouts,
   HealthBodyMassSample,
   HealthSnapshotSource,
   HealthWorkout,
@@ -48,6 +50,10 @@ function createMockWorkout(
   }
 }
 
+function mockWaterLiters(date: Date): number {
+  return decimalFromSeed(seedForDate(date) + 7, 0.5, 3)
+}
+
 function createMockBodyMassHistory(date: Date): HealthBodyMassSample[] {
   return Array.from({ length: 14 }, (_, index) => {
     const morning = new Date(date)
@@ -77,7 +83,7 @@ export function createDeterministicMockSnapshot(
     hrv: rand(20, 90, 5),
     // lgtm[js/insecure-randomness] -- demo fallback data, not a security context
     restingHeartRate: rand(48, 72, 6),
-    waterLiters: decimalFromSeed(seed + 7, 0.5, 3),
+    waterLiters: mockWaterLiters(date),
     flightsClimbed: rand(0, 20, 8),
     bodyMassKg: decimalFromSeed(seed + 12, 70, 82),
     bodyMassHistory: createMockBodyMassHistory(date),
@@ -102,6 +108,26 @@ export const deterministicMockAdapter: HealthSnapshotSource = {
     }
 
     return intensity
+  },
+
+  async getWaterHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyWaterReading[]> {
+    return localDaysEnding(endDate, days).map((day) => ({
+      date: localDateKey(day),
+      liters: mockWaterLiters(day),
+    }))
+  },
+
+  async getWorkoutHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyWorkouts[]> {
+    return localDaysEnding(endDate, days).map((day) => ({
+      date: localDateKey(day),
+      workouts: createDeterministicMockSnapshot(day).workouts,
+    }))
   },
 
   async requestAuthorization(): Promise<boolean> {

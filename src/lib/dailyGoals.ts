@@ -9,7 +9,7 @@ export const DAILY_STEP_GOAL = 20_000
 export const CARDIO_MINUTES_GOAL = 30
 
 export function longestWorkout(
-  snapshot: DailyHealthSnapshot | null,
+  snapshot: Pick<DailyHealthSnapshot, 'date' | 'workouts'> | null,
   kind: HealthWorkout['kind'],
 ): HealthWorkout | null {
   let longest: HealthWorkout | null = null

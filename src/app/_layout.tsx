@@ -81,6 +81,7 @@ export default function RootLayout() {
             options={{ headerShown: false, title: '' }}
           />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="insights" options={{ headerShown: false }} />
           <Stack.Screen
             name="phone-rest"
             options={{ title: 'Phone rest', headerShown: true }}
@@ -89,8 +90,16 @@ export default function RootLayout() {
             name="fitness-metrics"
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="gym" options={{ headerShown: false }} />
           <Stack.Screen
             name="steps"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="water"
             options={{
               headerShown: false,
               presentation: 'modal',

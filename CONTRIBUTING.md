@@ -174,7 +174,7 @@ Native dependency added (e.g. `expo-camera`, `expo-image-picker`)? **Re-run a de
 
 ## 9. Asking for help
 
-- **Build/run problem on a clean clone** → check `.github/skills/expo-cicd-workflows/`, then ask in the team chat.
+- **Build/run problem on a clean clone** → run `bun run expo:doctor` and check the official Expo skills (`bunx skills add expo/skills`), then ask in the team chat.
 - **Architecture question** → invoke the `improve-codebase-architecture` skill; we use it for reviews.
 - **Bug** → file an issue with reproduction steps, `bunx expo-env-info`, and `bunx expo-doctor` output.
 - **Idea or feature request** → discuss in chat first; large changes need an ADR before implementation.

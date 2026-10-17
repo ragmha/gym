@@ -7,3 +7,13 @@ export function localDateKey(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+
+/** `count` local calendar days ending on `endDate`, oldest first, each at local noon. */
+export function localDaysEnding(endDate: Date, count: number): Date[] {
+  return Array.from({ length: count }, (_, index) => {
+    const day = new Date(endDate)
+    day.setHours(12, 0, 0, 0)
+    day.setDate(day.getDate() - (count - 1 - index))
+    return day
+  })
+}
