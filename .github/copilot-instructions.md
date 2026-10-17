@@ -17,10 +17,14 @@ unmaintainable. Do not reintroduce it. Weight entry and the Water amount draft
 have ephemeral form state only: no local data store/cache, profile, or backend.
 Water writes add new samples only; never edit or delete existing Health samples.
 The user also approved an on-device lifting log (`GymLogStore`, `/gym`): sets,
-reps, optional kilograms, rating, and notes for the bundled programme in
+reps, optional kilograms, and a workout rating for the bundled programme in
 `src/lib/gymProgramme/programme.json`, because HealthKit cannot store sets or
 reps. It stays on the device, never writes to Health, never caches Health
 readings, and is not coach input. Cardio on `/gym` is read from HealthKit.
+Each lifting exercise's info sheet fetches a reference demo (animation, muscles,
+steps) from ExerciseDB only on tap, using a curated ID in `exerciseMedia.json`.
+That read-only lookup sends only the ID, stores nothing, and is not coach input;
+it is the app's only in-app data fetch, and media must not be bundled.
 No other manual-entry feature is approved.
 
 Before adding a feature, check whether the data already exists in HealthKit. If
@@ -139,7 +143,7 @@ This project targets **iOS as the primary platform**.
 
 - `ThemeStore` persists the user's theme preference through AsyncStorage.
 - `GymLogStore` is the approved on-device lifting log: programme start date and
-  per-day sets, rating, and notes. Do not add Health readings to it.
+  per-day sets and rating. Do not add Health readings to it.
 - Health data is not state to be managed. It is read per-day through
   `useHealthSnapshot(date)` and rendered. Do not cache it into a store.
 - If you find yourself adding a store, first check that you are not

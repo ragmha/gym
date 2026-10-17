@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ScreenHeader } from '@/components/common/ScreenHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { ExerciseInfoButton } from '@/components/gym/ExerciseInfoSheet'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
@@ -36,6 +37,8 @@ import {
   type LoggedSet,
 } from '@/stores/GymLogStore'
 
+// To Failure exercises show five set rows; extra sets add rows past it.
+const FAILURE_ROWS = 5
 const pad = (n: number) => String(n).padStart(2, '0')
 
 export default function LiftingScreen() {
@@ -200,7 +203,10 @@ function LiftingDay({
               )
             }
           />
-          <FinishCard dateKey={dateKey} log={log} />
+          {/* ponytail: the day is "complete" once its final exercise has a set. */}
+          {(log?.finishedAt ||
+            (log?.sets[day.exercises[day.exercises.length - 1].id]?.length ??
+              0) > 0) && <FinishCard dateKey={dateKey} log={log} />}
         </>
       )}
     </>
@@ -258,7 +264,7 @@ function ExerciseFocus({
   const target = typeof exercise.sets === 'number' ? exercise.sets : null
   const rowCount = target
     ? Math.max(target, logged.length)
-    : logged.length + (locked ? 0 : 1)
+    : Math.max(FAILURE_ROWS, logged.length + (locked ? 0 : 1))
   const setBand = locked
     ? `${logged.length} ${logged.length === 1 ? 'set' : 'sets'} logged`
     : target !== null && logged.length >= target
@@ -291,6 +297,7 @@ function ExerciseFocus({
               : `${exercise.reps} reps per set`}
           </Text>
         </View>
+        <ExerciseInfoButton title={exercise.title} />
       </View>
       <View style={[styles.setBand, { backgroundColor: theme.goalComplete }]}>
         <Text
@@ -653,7 +660,6 @@ function FinishCard({
   const theme = useTheme()
   const finishWorkout = useGymLogStore((s) => s.finishWorkout)
   const [rating, setRating] = useState(7)
-  const [notes, setNotes] = useState('')
   const setCount = Object.values(log?.sets ?? {}).reduce(
     (sum, sets) => sum + sets.length,
     0,
@@ -674,11 +680,6 @@ function FinishCard({
           })}{' '}
           · {setCount} {setCount === 1 ? 'set' : 'sets'} · rated {log.rating}/10
         </Text>
-        {log.notes ? (
-          <Text style={[Typography.bodyMd, { color: theme.goalOnComplete }]}>
-            {log.notes}
-          </Text>
-        ) : null}
       </View>
     )
   }
@@ -686,23 +687,6 @@ function FinishCard({
   return (
     <View style={[styles.card, { borderColor: theme.goalTrack }]}>
       <View style={styles.cardBody}>
-        <Text style={[styles.mono, styles.center, { color: theme.text }]}>
-          Describe your workout
-        </Text>
-        <TextInput
-          testID="gym-notes"
-          accessibilityLabel="Workout notes"
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          maxLength={500}
-          placeholder="Tap to write"
-          placeholderTextColor={theme.subtitleText}
-          style={[
-            styles.notes,
-            { color: theme.text, borderColor: theme.goalTrack },
-          ]}
-        />
         <Text style={[styles.mono, styles.center, { color: theme.text }]}>
           Rate this workout
         </Text>
@@ -718,7 +702,7 @@ function FinishCard({
           label={setCount ? 'Finish workout' : 'Save a set to finish'}
           disabled={setCount === 0}
           onPress={() =>
-            finishWorkout(dateKey, { rating, notes, finishedAt: new Date() })
+            finishWorkout(dateKey, { rating, finishedAt: new Date() })
           }
         />
       </View>
@@ -953,13 +937,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: Spacing.xxs,
     borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  notes: {
-    minHeight: 64,
-    borderWidth: 2,
-    borderRadius: Radii.sm,
-    padding: Spacing.sm,
-    textAlignVertical: 'top',
-    ...Typography.bodyMd,
   },
 })
