@@ -12,7 +12,9 @@ import StairmasterScreen from '@/app/gym/stairmaster'
 import WeightScreen from '@/app/gym/weight'
 import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot'
 import { currentStreak, streakStats } from '@/components/gym/ActivityDetail'
+import { heartRateZone, zoneMinutes } from '@/components/gym/activities'
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory'
+import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 import { useGymLogStore } from '@/stores/GymLogStore'
 import { useThemeStore } from '@/stores/ThemeStore'
@@ -141,19 +143,57 @@ describe('Gym hub', () => {
 })
 
 describe('Gym detail screens', () => {
-  it('shows stairmaster progress, streak and recent days', () => {
+  it('shows stairmaster progress, streak and a calendar of sessions', async () => {
     jest.mocked(useWorkoutHistory).mockReturnValue(
       [11, 12, 13, 14, 15, 16, 17].map((d) => ({
         date: `2026-10-${d}`,
         workouts: d === 13 || d === 16 ? [] : [stairs(`2026-10-${d}`, 30)],
       })),
     )
+    const setParams = jest.fn()
+    jest.mocked(useRouter).mockReturnValue({ setParams } as never)
+    jest.spyOn(healthSnapshot, 'getStairHeartRate').mockResolvedValue({
+      workout: { ...stairs('2026-10-17', 45), averageHeartRate: 150 },
+      samples: [
+        { bpm: 120, startISO: '2026-10-17T06:00:00' },
+        { bpm: 170, startISO: '2026-10-17T06:00:30' },
+      ],
+      maxHeartRate: 180,
+    })
     render(<StairmasterScreen />)
     expect(screen.getByText('Today complete')).toBeTruthy()
     expect(screen.getByLabelText('Streak: 1D')).toBeTruthy()
     expect(screen.getByLabelText('This week: 5/7')).toBeTruthy()
-    expect(screen.getByTestId('recent-6-done')).toBeTruthy()
-    expect(screen.getByTestId('recent-5-missed')).toBeTruthy()
+
+    expect(
+      screen.getByLabelText('October 15, 30/30 min').props.accessibilityState,
+    ).toMatchObject({ selected: false })
+    expect(screen.getByLabelText('October 16, no session')).toBeTruthy()
+    fireEvent.press(screen.getByTestId('stair-day-2026-10-15'))
+    expect(setParams).toHaveBeenCalledWith({ date: '2026-10-15' })
+
+    expect(await screen.findByTestId('stair-session')).toBeTruthy()
+    expect(screen.getByLabelText('Avg BPM: 150')).toBeTruthy()
+    expect(screen.getByLabelText('Max BPM: 170')).toBeTruthy()
+    expect(screen.getByLabelText('Main zone: Z5')).toBeTruthy()
+    expect(screen.getByLabelText('Zone 2: 0:30')).toBeTruthy()
+    expect(screen.getByTestId('stair-hr-chart')).toBeTruthy()
+  })
+
+  it('shows -- instead of zero zones when a session has no heart-rate samples', async () => {
+    jest.mocked(useWorkoutHistory).mockReturnValue([])
+    jest.mocked(useRouter).mockReturnValue({ setParams: jest.fn() } as never)
+    jest.spyOn(healthSnapshot, 'getStairHeartRate').mockResolvedValue({
+      workout: stairs('2026-10-17', 30),
+      samples: [],
+      maxHeartRate: 180,
+    })
+    render(<StairmasterScreen />)
+    expect(
+      await screen.findByText('No heart-rate samples for this session.'),
+    ).toBeTruthy()
+    expect(screen.getByLabelText('Main zone: --')).toBeTruthy()
+    expect(screen.queryByLabelText(/^Zone \d/)).toBeNull()
   })
 
   it('shows the cardio plan once the programme has started', () => {
@@ -196,5 +236,24 @@ describe('currentStreak', () => {
       done: true,
     }))
     expect(streakStats(history)[0].value).toBe('30D+')
+  })
+})
+
+describe('heart-rate zones', () => {
+  it('splits session time across zones of max heart rate, capping sensor gaps at a minute', () => {
+    expect([100, 108, 126, 144, 162].map((b) => heartRateZone(b, 180))).toEqual(
+      [1, 2, 3, 4, 5],
+    )
+    expect(
+      zoneMinutes(
+        [
+          { bpm: 100, startISO: '2026-10-17T06:00:00' },
+          { bpm: 130, startISO: '2026-10-17T06:00:30' },
+          { bpm: 170, startISO: '2026-10-17T06:10:00' },
+        ],
+        '2026-10-17T06:10:30',
+        180,
+      ),
+    ).toEqual([0.5, 0, 1, 0, 0.5])
   })
 })

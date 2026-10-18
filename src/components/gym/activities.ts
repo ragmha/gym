@@ -4,7 +4,10 @@ import {
   summarizeMorningWeights,
 } from '@/lib/dailyGoals'
 import { STAIRMASTER_MINUTES_GOAL, type ProgrammeDay } from '@/lib/gymProgramme'
-import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
+import type {
+  DailyHealthSnapshot,
+  HealthHeartRateSample,
+} from '@/lib/healthSnapshot/types'
 import type { GymDayLog } from '@/stores/GymLogStore'
 
 type DayWorkouts = Pick<DailyHealthSnapshot, 'date' | 'workouts'>
@@ -46,6 +49,35 @@ export function stairmasterSummary(
     stairs?.durationMinutes ?? null,
     STAIRMASTER_MINUTES_GOAL,
   )
+}
+
+/** Lower bounds of zones 2–5 as a share of max heart rate; zone 1 is everything below. */
+export const HEART_RATE_ZONE_BOUNDS = [0.6, 0.7, 0.8, 0.9]
+
+/** Zone (1–5) for a heart rate against `maxHeartRate`. */
+export function heartRateZone(bpm: number, maxHeartRate: number): number {
+  return (
+    1 + HEART_RATE_ZONE_BOUNDS.filter((b) => bpm >= b * maxHeartRate).length
+  )
+}
+
+/** Minutes spent in each of the five zones; a sample lasts until the next one or the session end. */
+export function zoneMinutes(
+  samples: HealthHeartRateSample[],
+  endISO: string,
+  maxHeartRate: number,
+): number[] {
+  const minutes = [0, 0, 0, 0, 0]
+  samples.forEach((sample, i) => {
+    const next = Date.parse(samples[i + 1]?.startISO ?? endISO)
+    // ponytail: a sensor gap counts as at most 60 s so a dropout can't inflate one zone
+    const seconds = Math.min(
+      Math.max((next - Date.parse(sample.startISO)) / 1000, 0),
+      60,
+    )
+    minutes[heartRateZone(sample.bpm, maxHeartRate) - 1] += seconds / 60
+  })
+  return minutes
 }
 
 export function cardioSummary(snapshot: DayWorkouts | null): ActivitySummary {

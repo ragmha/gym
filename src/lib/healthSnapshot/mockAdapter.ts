@@ -7,6 +7,7 @@ import type {
   HealthSnapshotSource,
   HealthWorkout,
   IntensityMap,
+  StairSessionHeartRate,
 } from '@/lib/healthSnapshot/types'
 
 function seededRand(seed: number, min: number, max: number): number {
@@ -50,6 +51,31 @@ function createMockWorkout(
   }
 }
 
+function createMockStairWorkout(
+  date: Date,
+  rand: (min: number, max: number, offset: number) => number,
+): HealthWorkout[] {
+  // ponytail: roughly 3 in 5 days have a session, so the calendar has gaps
+  if (rand(0, 9, 20) >= 6) return []
+  const start = new Date(date)
+  start.setHours(6, 0, 0, 0)
+  const durationMinutes = rand(18, 42, 21)
+  return [
+    {
+      kind: 'stairClimber',
+      activityName: 'Stair Climbing',
+      averageHeartRate: rand(128, 156, 22),
+      calories: rand(180, 420, 23),
+      distance: null,
+      durationMinutes,
+      startISO: start.toISOString(),
+      endISO: new Date(
+        start.getTime() + durationMinutes * 60_000,
+      ).toISOString(),
+    },
+  ]
+}
+
 function mockWaterLiters(date: Date): number {
   return decimalFromSeed(seedForDate(date) + 7, 0.5, 3)
 }
@@ -88,7 +114,10 @@ export function createDeterministicMockSnapshot(
     bodyMassKg: decimalFromSeed(seed + 12, 70, 82),
     bodyMassHistory: createMockBodyMassHistory(date),
     dietaryCalories: rand(1_400, 2_900, 13),
-    workouts: [createMockWorkout(date, seed, rand)],
+    workouts: [
+      createMockWorkout(date, seed, rand),
+      ...createMockStairWorkout(date, rand),
+    ],
   }
 }
 
@@ -128,6 +157,32 @@ export const deterministicMockAdapter: HealthSnapshotSource = {
       date: localDateKey(day),
       workouts: createDeterministicMockSnapshot(day).workouts,
     }))
+  },
+
+  async getStairHeartRate(date: Date): Promise<StairSessionHeartRate | null> {
+    const workout = createDeterministicMockSnapshot(date).workouts.find(
+      (w) => w.kind === 'stairClimber',
+    )
+    if (!workout) return null
+    const start = Date.parse(workout.startISO)
+    const seed = seedForDate(date)
+    const avg = workout.averageHeartRate ?? 140
+    const samples = Array.from(
+      { length: Math.floor(workout.durationMinutes * 6) },
+      (_, i) => {
+        const warmUp = Math.min(i / 30, 1)
+        return {
+          bpm: Math.round(
+            95 +
+              (avg + 8 - 95) * warmUp +
+              12 * Math.sin(i / 25 + seed) +
+              seededRand(seed + i, -3, 3),
+          ),
+          startISO: new Date(start + i * 10_000).toISOString(),
+        }
+      },
+    )
+    return { workout, samples, maxHeartRate: 188 }
   },
 
   async requestAuthorization(): Promise<boolean> {

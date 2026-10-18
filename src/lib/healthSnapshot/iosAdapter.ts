@@ -1,4 +1,5 @@
 import {
+  getDateOfBirthAsync,
   getMostRecentQuantitySample,
   isHealthDataAvailable,
   queryCategorySamples,
@@ -12,6 +13,7 @@ import {
 import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
 
+import { longestWorkout } from '@/lib/dailyGoals'
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
@@ -21,6 +23,7 @@ import type {
   HealthSnapshotSource,
   HealthWorkout,
   IntensityMap,
+  StairSessionHeartRate,
 } from '@/lib/healthSnapshot/types'
 
 const READ_PERMISSIONS = [
@@ -35,6 +38,7 @@ const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierDietaryEnergyConsumed',
   'HKCategoryTypeIdentifierSleepAnalysis',
   'HKWorkoutTypeIdentifier',
+  'HKCharacteristicTypeIdentifierDateOfBirth',
 ] as const
 
 const ASLEEP_SLEEP_VALUES = new Set([1, 3, 4, 5])
@@ -554,6 +558,50 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       const date = localDateKey(day)
       return { date, workouts: byDay.get(date) ?? [] }
     })
+  },
+
+  async getStairHeartRate(date: Date): Promise<StairSessionHeartRate | null> {
+    if (!this.isAvailable()) return null
+    const workout = longestWorkout(
+      { date: localDateKey(date), workouts: await readWorkouts(date) },
+      'stairClimber',
+    )
+    if (!workout) return null
+    const [samples, birth] = await Promise.all([
+      queryQuantitySamples('HKQuantityTypeIdentifierHeartRate', {
+        limit: 0,
+        ascending: true,
+        unit: 'count/min',
+        filter: {
+          date: {
+            startDate: new Date(workout.startISO),
+            endDate: new Date(workout.endISO),
+          },
+        },
+      }),
+      readMetric('date of birth', () => getDateOfBirthAsync()),
+    ])
+    const session = new Date(workout.startISO)
+    let age = birth ? session.getFullYear() - birth.getFullYear() : null
+    if (
+      age !== null &&
+      birth &&
+      (session.getMonth() < birth.getMonth() ||
+        (session.getMonth() === birth.getMonth() &&
+          session.getDate() < birth.getDate()))
+    ) {
+      age--
+    }
+    return {
+      workout,
+      samples: samples
+        .filter((s) => Number.isFinite(s.quantity) && s.quantity > 0)
+        .map((s) => ({
+          bpm: roundInt(s.quantity),
+          startISO: toDate(s.startDate).toISOString(),
+        })),
+      maxHeartRate: age !== null && age > 0 && age < 120 ? 220 - age : null,
+    }
   },
 
   subscribeToWorkoutChanges(onChange) {
