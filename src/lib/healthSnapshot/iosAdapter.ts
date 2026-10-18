@@ -19,6 +19,7 @@ import { Platform } from 'react-native'
 
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
+  DailyActivityReading,
   DailyFoodLog,
   DailyHealthSnapshot,
   DailyStepReading,
@@ -34,6 +35,8 @@ import type {
 const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierStepCount',
   'HKQuantityTypeIdentifierActiveEnergyBurned',
+  'HKQuantityTypeIdentifierDistanceWalkingRunning',
+  'HKQuantityTypeIdentifierAppleExerciseTime',
   'HKQuantityTypeIdentifierHeartRate',
   'HKQuantityTypeIdentifierRestingHeartRate',
   'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
@@ -88,8 +91,11 @@ function sleepWindow(date: Date): { startDate: Date; endDate: Date } {
 async function dailyTotals(
   identifier:
     | 'HKQuantityTypeIdentifierStepCount'
-    | 'HKQuantityTypeIdentifierDietaryWater',
-  unit: 'count' | 'l',
+    | 'HKQuantityTypeIdentifierDietaryWater'
+    | 'HKQuantityTypeIdentifierActiveEnergyBurned'
+    | 'HKQuantityTypeIdentifierDistanceWalkingRunning'
+    | 'HKQuantityTypeIdentifierAppleExerciseTime',
+  unit: 'count' | 'l' | 'kcal' | 'km' | 'min',
   endDate: Date,
   days: number,
 ): Promise<Map<string, number>> {
@@ -537,6 +543,76 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       const date = localDateKey(day)
       const steps = totals.get(date)
       return { date, steps: steps === undefined ? null : roundInt(steps) }
+    })
+  },
+
+  async getActivityHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyActivityReading[]> {
+    const results = this.isAvailable()
+      ? await Promise.all([
+          readMetric('step history', () =>
+            dailyTotals(
+              'HKQuantityTypeIdentifierStepCount',
+              'count',
+              endDate,
+              days,
+            ),
+          ),
+          readMetric('calorie history', () =>
+            dailyTotals(
+              'HKQuantityTypeIdentifierActiveEnergyBurned',
+              'kcal',
+              endDate,
+              days,
+            ),
+          ),
+          readMetric('walking distance history', () =>
+            dailyTotals(
+              'HKQuantityTypeIdentifierDistanceWalkingRunning',
+              'km',
+              endDate,
+              days,
+            ),
+          ),
+          readMetric('active minutes history', () =>
+            dailyTotals(
+              'HKQuantityTypeIdentifierAppleExerciseTime',
+              'min',
+              endDate,
+              days,
+            ),
+          ),
+        ])
+      : null
+    if (results?.every((totals) => totals === null)) {
+      throw new Error('Activity history unavailable')
+    }
+    const [steps, calories, distance, activeMinutes] = results ?? [
+      null,
+      null,
+      null,
+      null,
+    ]
+    const total = (
+      totals: Map<string, number> | null,
+      date: string,
+      round: (value: number) => number,
+    ) => {
+      const value = totals?.get(date)
+      return value === undefined ? null : round(value)
+    }
+
+    return localDaysEnding(endDate, days).map((day) => {
+      const date = localDateKey(day)
+      return {
+        date,
+        steps: total(steps, date, roundInt),
+        calories: total(calories, date, roundInt),
+        walkingDistanceKm: total(distance, date, roundTenths),
+        activeMinutes: total(activeMinutes, date, roundInt),
+      }
     })
   },
 

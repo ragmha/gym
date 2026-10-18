@@ -1,5 +1,6 @@
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
+  DailyActivityReading,
   DailyFoodLog,
   DailyHealthSnapshot,
   DailyStepReading,
@@ -162,6 +163,23 @@ export const deterministicMockAdapter: HealthSnapshotSource = {
       date: localDateKey(day),
       steps: createDeterministicMockSnapshot(day).steps,
     }))
+  },
+
+  async getActivityHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyActivityReading[]> {
+    return localDaysEnding(endDate, days).map((date) => {
+      const seed = seedForDate(date)
+      const snapshot = createDeterministicMockSnapshot(date)
+      return {
+        date: localDateKey(date),
+        steps: snapshot.steps,
+        calories: snapshot.calories,
+        walkingDistanceKm: decimalFromSeed(seed + 15, 0, 12),
+        activeMinutes: seededRand(seed + 16, 0, 180),
+      }
+    })
   },
 
   async getWaterHistory(
