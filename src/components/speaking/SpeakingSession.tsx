@@ -120,11 +120,15 @@ export function SpeakingSession({
   useEffect(() => {
     mounted.current = true
     if (capture === 'live') {
-      transcript.start(
-        { interimResults: true, continuous: true, iosTaskHint: 'dictation' },
-        true,
-      )
-      begin()
+      // Time only real listening, not the permission prompt or a failure.
+      transcript
+        .start(
+          { interimResults: true, continuous: true, iosTaskHint: 'dictation' },
+          true,
+        )
+        .then((started) => {
+          if (started && mounted.current && !stopped.current) begin()
+        })
     }
     return () => {
       mounted.current = false
@@ -225,7 +229,9 @@ export function SpeakingSession({
               ? startedAt
                 ? 'Recording · look at the lens'
                 : 'Starting camera…'
-              : 'Listening · pause instead of a filler'}
+              : startedAt
+                ? 'Listening · pause instead of a filler'
+                : 'Starting microphone…'}
           </Text>
         </View>
       </View>

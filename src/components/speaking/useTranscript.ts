@@ -22,6 +22,7 @@ export function useTranscript() {
   const [listening, setListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const interimRef = useRef('')
+  const generation = useRef(0)
   const session = useRef<{
     options: ExpoSpeechRecognitionOptions
     keepAlive: boolean
@@ -64,42 +65,53 @@ export function useTranscript() {
     async (
       options: Omit<ExpoSpeechRecognitionOptions, 'lang'>,
       keepAlive = false,
-    ) => {
+    ): Promise<boolean> => {
+      const gen = ++generation.current
       setError(null)
       if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
         setError('Speech recognition is not available on this device.')
-        return
+        return false
       }
-      if (Platform.OS !== 'web') {
+      const native = Platform.OS !== 'web'
+      if (native) {
+        if (!ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) {
+          setError(
+            "On-device speech recognition isn't available on this device, so no transcript is made.",
+          )
+          return false
+        }
         const { granted } =
           await ExpoSpeechRecognitionModule.requestPermissionsAsync()
+        // stop(), reset(), or unmount ran while the prompt was open.
+        if (gen !== generation.current) return false
         if (!granted) {
           setError(PERMISSION_COPY)
-          return
+          return false
         }
       }
       const full: ExpoSpeechRecognitionOptions = {
         lang: 'en-US',
         addsPunctuation: true,
-        // Server recognition on iOS cuts off after about a minute.
-        requiresOnDeviceRecognition:
-          Platform.OS === 'ios' &&
-          ExpoSpeechRecognitionModule.supportsOnDeviceRecognition(),
         ...options,
+        // Native transcripts must never leave the device.
+        requiresOnDeviceRecognition: native,
       }
       session.current = { options: full, keepAlive }
       setListening(true)
       ExpoSpeechRecognitionModule.start(full)
+      return true
     },
     [],
   )
 
   const stop = useCallback(() => {
+    generation.current++
     if (session.current) session.current.keepAlive = false
     ExpoSpeechRecognitionModule.stop()
   }, [])
 
   const reset = useCallback(() => {
+    generation.current++
     session.current = null
     ExpoSpeechRecognitionModule.abort()
     interimRef.current = ''
@@ -111,6 +123,7 @@ export function useTranscript() {
 
   useEffect(
     () => () => {
+      generation.current++
       session.current = null
       ExpoSpeechRecognitionModule.abort()
     },

@@ -2,6 +2,7 @@ import {
   act,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
 } from '@testing-library/react-native'
@@ -10,6 +11,7 @@ import { Alert } from 'react-native'
 
 import SpeakingScreen from '@/app/speaking'
 import SpeakingHistoryScreen from '@/app/speaking-history'
+import { useTranscript } from '@/components/speaking/useTranscript'
 import { useSpeakingLogStore } from '@/stores/SpeakingLogStore'
 
 const mockHandlers: Record<string, (event?: unknown) => void> = {}
@@ -17,7 +19,7 @@ const mockHandlers: Record<string, (event?: unknown) => void> = {}
 jest.mock('expo-speech-recognition', () => ({
   ExpoSpeechRecognitionModule: {
     isRecognitionAvailable: () => true,
-    supportsOnDeviceRecognition: () => true,
+    supportsOnDeviceRecognition: jest.fn(() => true),
     requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
     start: jest.fn(),
     stop: jest.fn(),
@@ -45,7 +47,14 @@ jest.mock('@/hooks/useThemeColor', () => ({
     ).Colors.dark,
 }))
 
-beforeEach(() => useSpeakingLogStore.setState({ sessions: [] }))
+const speech = jest.mocked(ExpoSpeechRecognitionModule)
+type Permission = Awaited<ReturnType<typeof speech.requestPermissionsAsync>>
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  useSpeakingLogStore.setState({ sessions: [] })
+})
+afterEach(() => jest.useRealTimers())
 
 describe('SpeakingScreen', () => {
   it('runs a live session from setup through the transcript review', async () => {
@@ -63,7 +72,11 @@ describe('SpeakingScreen', () => {
     expect(screen.getByText('Solo · 15 min')).toBeOnTheScreen()
     await waitFor(() =>
       expect(ExpoSpeechRecognitionModule.start).toHaveBeenCalledWith(
-        expect.objectContaining({ continuous: true, lang: 'en-US' }),
+        expect.objectContaining({
+          continuous: true,
+          lang: 'en-US',
+          requiresOnDeviceRecognition: true,
+        }),
       ),
     )
     act(() =>
@@ -117,6 +130,37 @@ describe('SpeakingScreen', () => {
     )
   })
 
+  it('refuses to transcribe without on-device recognition', async () => {
+    speech.supportsOnDeviceRecognition.mockReturnValueOnce(false)
+    render(<SpeakingScreen />)
+    fireEvent.press(screen.getByRole('button', { name: 'Start' }))
+
+    expect(
+      await screen.findByText(
+        "On-device speech recognition isn't available on this device, so no transcript is made.",
+      ),
+    ).toBeOnTheScreen()
+    expect(speech.requestPermissionsAsync).not.toHaveBeenCalled()
+    expect(speech.start).not.toHaveBeenCalled()
+  })
+
+  it('keeps the timer stopped when speech permission is denied', async () => {
+    jest.useFakeTimers()
+    speech.requestPermissionsAsync.mockResolvedValueOnce({
+      granted: false,
+    } as Permission)
+    render(<SpeakingScreen />)
+    fireEvent.press(screen.getByRole('button', { name: 'Start' }))
+
+    expect(
+      await screen.findByText(/Microphone and speech recognition access/),
+    ).toBeOnTheScreen()
+    act(() => jest.advanceTimersByTime(3000))
+    expect(screen.getByLabelText('5:00 left')).toBeOnTheScreen()
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled()
+    expect(speech.start).not.toHaveBeenCalled()
+  })
+
   it('does not show the foundation talk attribution', () => {
     render(<SpeakingScreen />)
 
@@ -124,6 +168,32 @@ describe('SpeakingScreen', () => {
       screen.queryByText('Built on Patrick Winston’s How to Speak'),
     ).not.toBeOnTheScreen()
   })
+})
+
+describe('useTranscript', () => {
+  it.each(['stop', 'reset', 'unmount'] as const)(
+    'never starts recognition after %s during the permission prompt',
+    async (cancel) => {
+      let grant!: (value: Permission) => void
+      speech.requestPermissionsAsync.mockReturnValueOnce(
+        new Promise<Permission>((resolve) => {
+          grant = resolve
+        }),
+      )
+      const { result, unmount } = renderHook(() => useTranscript())
+      let started!: Promise<boolean>
+      act(() => {
+        started = result.current.start({ continuous: true }, true)
+      })
+
+      if (cancel === 'unmount') unmount()
+      else act(() => result.current[cancel]())
+      await act(async () => grant({ granted: true } as Permission))
+
+      await expect(started).resolves.toBe(false)
+      expect(speech.start).not.toHaveBeenCalled()
+    },
+  )
 })
 
 describe('SpeakingHistoryScreen', () => {
