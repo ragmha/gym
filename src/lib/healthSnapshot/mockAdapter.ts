@@ -1,5 +1,6 @@
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
+  DailyFoodLog,
   DailyHealthSnapshot,
   DailyStepReading,
   DailyWaterReading,
@@ -121,9 +122,36 @@ export function createDeterministicMockSnapshot(
   }
 }
 
+// Name, hour, and share of the day's calories eaten once the meal is done.
+const MOCK_MEALS = [
+  ['Oatmeal', 8, 0.2],
+  ['Chicken salad', 13, 0.5],
+  ['Greek yogurt', 16, 0.6],
+  ['Salmon & rice', 19, 1],
+] as const
+
 export const deterministicMockAdapter: HealthSnapshotSource = {
   async getDailySnapshot(date: Date): Promise<DailyHealthSnapshot> {
     return createDeterministicMockSnapshot(date)
+  },
+
+  async getFoodLog(date: Date): Promise<DailyFoodLog> {
+    const total = createDeterministicMockSnapshot(date).dietaryCalories ?? 0
+    return {
+      proteinGrams: seededRand(seedForDate(date) + 17, 60, 160),
+      carbsGrams: Math.round((total * 0.45) / 4),
+      fatGrams: Math.round((total * 0.3) / 9),
+      meals: MOCK_MEALS.map(([name, hour, eatenBy], index) => {
+        const start = new Date(date)
+        start.setHours(hour, 0, 0, 0)
+        const before = index ? MOCK_MEALS[index - 1][2] : 0
+        return {
+          name,
+          kcal: Math.round(total * eatenBy) - Math.round(total * before),
+          startISO: start.toISOString(),
+        }
+      }),
+    }
   },
 
   async getStepHistory(

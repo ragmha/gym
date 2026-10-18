@@ -621,6 +621,104 @@ describe('HealthSnapshotSource adapters', () => {
     expect(history[2].liters).toBe(snapshot.waterLiters)
   })
 
+  it('reads one day of meals with their HealthKit names and macro totals', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date(2026, 1, 20, 22))
+    const day = {
+      startDate: new Date(2026, 1, 20),
+      endDate: new Date(2026, 1, 20, 22),
+    }
+    const grams: Record<string, number> = {
+      HKQuantityTypeIdentifierDietaryProtein: 41.6,
+      HKQuantityTypeIdentifierDietaryCarbohydrates: 120.4,
+      HKQuantityTypeIdentifierDietaryFatTotal: 35.2,
+    }
+    hk.queryStatisticsForQuantity.mockImplementation((identifier: string) =>
+      Promise.resolve({ sumQuantity: { quantity: grams[identifier] } }),
+    )
+    hk.queryQuantitySamples.mockResolvedValue([
+      {
+        quantity: 412.4,
+        startDate: new Date(2026, 1, 20, 8),
+        metadata: { HKFoodType: ' Oatmeal ' },
+      },
+      { quantity: 250, startDate: new Date(2026, 1, 20, 13), metadata: {} },
+      { quantity: Number.NaN, startDate: new Date(2026, 1, 20, 14) },
+      { quantity: -5, startDate: new Date(2026, 1, 20, 15) },
+    ])
+
+    const log = await iosHealthKitAdapter.getFoodLog(new Date(2026, 1, 20, 12))
+
+    for (const identifier of Object.keys(grams)) {
+      expect(hk.queryStatisticsForQuantity).toHaveBeenCalledWith(
+        identifier,
+        ['cumulativeSum'],
+        { unit: 'g', filter: { date: day } },
+      )
+    }
+    expect(hk.queryQuantitySamples).toHaveBeenCalledWith(
+      'HKQuantityTypeIdentifierDietaryEnergyConsumed',
+      { limit: 0, ascending: true, unit: 'kcal', filter: { date: day } },
+    )
+    expect(log).toEqual({
+      proteinGrams: 42,
+      carbsGrams: 120,
+      fatGrams: 35,
+      meals: [
+        {
+          name: 'Oatmeal',
+          kcal: 412,
+          startISO: new Date(2026, 1, 20, 8).toISOString(),
+        },
+        {
+          name: null,
+          kcal: 250,
+          startISO: new Date(2026, 1, 20, 13).toISOString(),
+        },
+      ],
+    })
+  })
+
+  it('keeps failed macro reads unavailable but rejects a failed meal read', async () => {
+    const date = new Date(2026, 1, 20, 12)
+    hk.queryStatisticsForQuantity.mockRejectedValue(new Error('macros denied'))
+    await expect(iosHealthKitAdapter.getFoodLog(date)).resolves.toEqual({
+      proteinGrams: null,
+      carbsGrams: null,
+      fatGrams: null,
+      meals: [],
+    })
+
+    hk.queryQuantitySamples.mockRejectedValue(new Error('energy denied'))
+    await expect(iosHealthKitAdapter.getFoodLog(date)).rejects.toThrow(
+      'energy denied',
+    )
+  })
+
+  it('returns an empty food log without querying when HealthKit is unavailable', async () => {
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' })
+
+    await expect(
+      iosHealthKitAdapter.getFoodLog(new Date(2026, 1, 20, 12)),
+    ).resolves.toEqual({
+      proteinGrams: null,
+      carbsGrams: null,
+      fatGrams: null,
+      meals: [],
+    })
+    expect(hk.queryQuantitySamples).not.toHaveBeenCalled()
+  })
+
+  it('keeps mock meals summing to the daily snapshot calories', async () => {
+    const date = new Date(2026, 1, 20, 12)
+    const log = await deterministicMockAdapter.getFoodLog(date)
+    const snapshot = await deterministicMockAdapter.getDailySnapshot(date)
+
+    expect(log.meals.reduce((sum, meal) => sum + meal.kcal, 0)).toBe(
+      snapshot.dietaryCalories,
+    )
+  })
+
   it('uses HealthKit cumulative totals instead of summing overlapping device samples', async () => {
     hk.queryStatisticsForQuantity.mockResolvedValue({
       sumQuantity: { quantity: 1200 },
@@ -802,6 +900,7 @@ describe('HealthSnapshotSource adapters', () => {
   ])('exposes only read operations in the %s source contract', (_, adapter) => {
     const readOnlyMethods: Record<keyof HealthSnapshotSource, true> = {
       getDailySnapshot: true,
+      getFoodLog: true,
       getStepHistory: true,
       getWaterHistory: true,
       getWorkoutHistory: true,
@@ -834,6 +933,9 @@ describe('HealthSnapshotSource adapters', () => {
         'HKQuantityTypeIdentifierFlightsClimbed',
         'HKQuantityTypeIdentifierBodyMass',
         'HKQuantityTypeIdentifierDietaryEnergyConsumed',
+        'HKQuantityTypeIdentifierDietaryProtein',
+        'HKQuantityTypeIdentifierDietaryCarbohydrates',
+        'HKQuantityTypeIdentifierDietaryFatTotal',
         'HKCategoryTypeIdentifierSleepAnalysis',
         'HKWorkoutTypeIdentifier',
         'HKCharacteristicTypeIdentifierDateOfBirth',

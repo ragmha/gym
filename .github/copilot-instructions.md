@@ -6,16 +6,18 @@ These instructions capture Expo team best practices from Expo docs, GitHub issue
 
 A daily health dashboard whose displayed readings come from Apple HealthKit.
 There is no backend or login. The user-approved manual-entry exceptions are
-body weight and water: a confirmed weight in kilograms and its actual
-measurement time, or a water amount explicitly confirmed for today, can be
-saved directly to Apple Health on compatible iOS builds.
+body weight, water, and meal photos: a confirmed weight in kilograms and its
+actual measurement time, a water amount explicitly confirmed for today, or a
+meal estimate explicitly confirmed for today can be saved directly to Apple
+Health on compatible iOS builds.
 
 This is the single most important constraint in the repo. The app previously
 carried a second, competing architecture — manual CRUD screens on a Supabase
 backend that duplicated data HealthKit already had — and that is what made it
-unmaintainable. Do not reintroduce it. Weight entry and the Water amount draft
-have ephemeral form state only: no local data store/cache, profile, or backend.
-Water writes add new samples only; never edit or delete existing Health samples.
+unmaintainable. Do not reintroduce it. Weight entry, the Water amount draft, and
+the Food meal estimate have ephemeral state only: no local data store/cache,
+profile, or backend. Water and food writes add new samples only; never edit or
+delete existing Health samples.
 The user also approved an on-device lifting log (`GymLogStore`, `/gym`): sets,
 reps, optional kilograms, and a workout rating for the bundled programme in
 `src/lib/gymProgramme/programme.json`, because HealthKit cannot store sets or
@@ -34,14 +36,28 @@ Before adding a feature, check whether the data already exists in HealthKit. If
 it does, read it. If it does not, adding a form, a store that persists user
 input, or a network backend is a scope decision that needs explicit sign-off —
 not an implementation detail to decide while coding.
-The body-mass form and Water page's ephemeral 250 mL +/- draft with explicit
-Apple Health save are approved. These approvals do not authorize other forms
-or persistence.
+The body-mass form, Water page's ephemeral 250 mL +/- draft, and Food page's
+photo estimate with explicit Apple Health save are approved. These approvals
+do not authorize other forms or persistence.
 
 The on-device AI coach (`src/lib/coach/`) inherits the same constraint. It reads
 the daily HealthKit snapshot and the recovery score, and nothing else. Do not
 give it persistence, a profile, or a server — its context is built solely by
 `buildDailyContext`, and prompts must stay within the on-device token budget.
+
+The Food tile (`/gym/food`) estimates a meal from a camera or library photo on
+the device. The local `FoodVision` module (`modules/food-vision`, iOS 18 Vision
+`ClassifyImageRequest`) labels the photo and deletes the cached file; Apple
+Intelligence (`generateValidatedJson`, Zod-validated) estimates the name, kcal,
+and protein, carbohydrate, and fat grams from those labels; EXIF capture time
+sets when it was eaten (pick time only when the photo has none), and photos from
+another day or with an invalid or future capture time are rejected because only
+today's meals can be logged. The
+photo never leaves the device, the estimate is not persisted or coach input,
+and only **Save to Apple Health** writes it. Never invent an estimate when
+Vision finds no `food`/`drink` label or Apple Intelligence is unavailable.
+The budget card reads the day's food log and workouts from Health; unknown
+values render `--`.
 
 The opt-in Phone rest prototype is a separate Screen Time report, not a new
 HealthKit sleep source. Its activity data and derived inactivity estimate stay
@@ -66,7 +82,8 @@ App Group, Health writes, or coach input. Keep distribution blocked while
 | Health Data      | @kingstinct/react-native-healthkit               | 13.x       |
 | Haptics          | expo-haptics (tile rearranging)                  | 55.x       |
 | On-device AI     | react-native-apple-llm (Apple Foundation Models) | 1.x        |
-| Validation       | Zod (coach output only)                          | 4.x        |
+| Meal photos      | expo-image-picker + Vision (local FoodVision)    | 55.x       |
+| Validation       | Zod (on-device AI output only)                   | 4.x        |
 | Testing          | Jest + jest-expo + @testing-library/react-native | —          |
 | Linting          | ESLint 9 (flat config) + Prettier                | —          |
 | Pre-commit       | Husky + lint-staged                              | —          |
@@ -81,7 +98,7 @@ src/
     settings.tsx        #   pushed from the dashboard header
     coach.tsx           #   streaming coach chat
     add-weight.tsx      #   explicit body-mass save to Apple Health
-    gym/                #   hub grid + stairmaster/cardio/lifting/weight screens
+    gym/                #   hub grid + stairmaster/cardio/lifting/weight/food screens
   components/
     dashboard/          #   dashboard sections + the ring builder
     charts/             #   heatmap and ring primitives
@@ -145,8 +162,9 @@ This project targets **iOS as the primary platform**.
 
 ## State Management
 
-- `ThemeStore` persists two user-approved UI preferences through AsyncStorage:
-  the theme and the Home and Gym tile order (tile labels or ids only).
+- `ThemeStore` persists user-approved preferences through AsyncStorage: the
+  theme, the Home and Gym tile order (tile labels or ids only), and the daily
+  food calorie goal (`foodGoalKcal`).
 - `GymLogStore` is the approved on-device lifting log: programme start date and
   per-day sets and rating. Do not add Health readings to it.
 - Health data is not state to be managed. It is read per-day through
@@ -168,7 +186,8 @@ This project targets **iOS as the primary platform**.
 - Dashboard reads and Settings **Connect / Review Health access** request read
   permissions only. Fetch readiness and authorization-request completion do not
   prove read permission; HealthKit keeps read grants private.
-- The separate `bodyMassWriter` port is the only write path. On explicit
+- The separate `bodyMassWriter`, `waterWriter`, and `foodWriter` ports are the
+  only write paths. For body mass, on explicit
   **Save to Apple Health**, request only `HKQuantityTypeIdentifierBodyMass`
   sharing access, validate positive finite kilograms and the confirmed,
   non-future measurement timestamp again at the boundary, and mark the sample
@@ -184,6 +203,12 @@ This project targets **iOS as the primary platform**.
   synchronously, block conflicting navigation while saving, preserve input on
   errors, and reread Health on returning. Do not fake read-back or move afternoon
   samples into the morning window; existing morning-history formulas are unchanged.
+- `foodWriter` saves one `HKCorrelationTypeIdentifierFood` per confirmed meal:
+  Dietary Energy, plus Dietary Protein, Carbohydrates, and Fat Total when above
+  0 and shared, with `HKFoodType` and user-entered metadata. Request only those
+  four share types, require Energy sharing, revalidate at the boundary
+  (including the same local day), and require the saved correlation to return
+  every sample. Food entry needs native 1.0.11 or later.
 - Recovery is unavailable without its required valid measurements. Display
   `--` and omit the assessment from coach context rather than substituting zeroes.
 - There are no environment variables. The app runs with no configuration.

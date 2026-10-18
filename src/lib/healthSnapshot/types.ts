@@ -72,9 +72,27 @@ export interface DailyWorkouts {
   workouts: HealthWorkout[]
 }
 
+export interface MealEntry {
+  /** HKFoodType metadata, when the app that saved the sample named it. */
+  name: string | null
+  kcal: number
+  startISO: string
+}
+
+export interface DailyFoodLog {
+  /** Dietary protein, carbohydrate and total fat consumed for the day in grams. */
+  proteinGrams: number | null
+  carbsGrams: number | null
+  fatGrams: number | null
+  /** Dietary energy samples for the day, oldest first. */
+  meals: MealEntry[]
+}
+
 export interface HealthSnapshotSource {
   /** Single entry point that fetches one day's metrics in parallel internally. */
   getDailySnapshot(date: Date): Promise<DailyHealthSnapshot>
+  /** One day's dietary energy samples and macro totals. */
+  getFoodLog(date: Date): Promise<DailyFoodLog>
   /** Daily step totals for `days` local days ending on `endDate`, oldest first, in one bulk query. */
   getStepHistory(endDate: Date, days: number): Promise<DailyStepReading[]>
   /** Daily water totals for `days` local days ending on `endDate`, oldest first, in one bulk query. */

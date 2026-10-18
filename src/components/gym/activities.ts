@@ -14,7 +14,12 @@ import type { GymDayLog } from '@/stores/GymLogStore'
 
 type DayWorkouts = Pick<DailyHealthSnapshot, 'date' | 'workouts'>
 
-export type GymActivity = 'stairmaster' | 'cardio' | 'lifting' | 'weight'
+export type GymActivity =
+  | 'stairmaster'
+  | 'cardio'
+  | 'lifting'
+  | 'weight'
+  | 'food'
 
 export interface ActivitySummary {
   /** null = nothing to measure, so the tile shows no progress. */
@@ -234,4 +239,125 @@ export function liftingSummary(
     caption: finished ? 'Done' : `${logged}/${target} sets`,
     headline: finished ? 'Today complete' : `${logged} of ${target} sets`,
   }
+}
+
+/** Calories burned in the day's workouts, added back to the food budget; null when unknown. */
+export function workoutKcal(snapshot: DayWorkouts | null): number | null {
+  const workouts = snapshot?.workouts
+  if (
+    !workouts ||
+    (workouts.length > 0 &&
+      workouts.every((workout) => workout.calories == null))
+  ) {
+    return null
+  }
+  return Math.round(
+    workouts.reduce((sum, workout) => sum + (workout.calories ?? 0), 0),
+  )
+}
+
+/** Budget = goal + workout calories, unknown while they are. Never "done": eating more is not a goal to complete. */
+export function foodSummary(
+  snapshot: DailyHealthSnapshot | null,
+  goalKcal: number,
+): ActivitySummary {
+  if (snapshot?.dietaryCalories == null) {
+    return {
+      progress: null,
+      done: false,
+      caption: '--',
+      headline: 'No meals logged',
+    }
+  }
+  const eaten = Math.round(snapshot.dietaryCalories)
+  const exercise = workoutKcal(snapshot)
+  if (exercise === null) {
+    return {
+      progress: null,
+      done: false,
+      caption: `${eaten} kcal`,
+      headline: 'Workout calories unavailable',
+    }
+  }
+  const budget = goalKcal + exercise
+  const left = budget - eaten
+  return {
+    progress: Math.min(eaten / budget, 1),
+    done: false,
+    caption: `${eaten}/${budget} kcal`,
+    headline: left >= 0 ? `${left} kcal left` : `${-left} kcal over`,
+  }
+}
+
+export type MealSlot = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snacks'
+
+// About 1.6 g/kg a day captures most of the strength gain from protein (Morton et al., 2018).
+const PROTEIN_G_PER_KG = 1.6
+// Mid-range of the 20-35% of energy that dietary guidelines advise from fat.
+const FAT_SHARE = 0.3
+
+/** Daily gram targets: protein for lifting, fat from the goal, and the rest, workout calories included, as carbs to refuel. */
+export function macroTargets(
+  goalKcal: number,
+  exerciseKcal: number | null,
+  bodyMassKg: number | null,
+): { protein: number | null; carbs: number | null; fat: number } {
+  const protein =
+    bodyMassKg === null ? null : Math.round(bodyMassKg * PROTEIN_G_PER_KG)
+  const fat = Math.round((goalKcal * FAT_SHARE) / 9)
+  const carbs =
+    protein === null || exerciseKcal === null
+      ? null
+      : Math.max(
+          0,
+          Math.round((goalKcal + exerciseKcal - protein * 4 - fat * 9) / 4),
+        )
+  return { protein, carbs, fat }
+}
+
+// First match wins, so dishes come before the ingredients they contain.
+const FOOD_EMOJI: [RegExp, string][] = [
+  [/\bsalad/, '🥗'],
+  [/\b(sandwich|wrap|sub)\b/, '🥪'],
+  [/burger/, '🍔'],
+  [/\bpizza/, '🍕'],
+  [/\b(soup|stew|chili|curry)/, '🍲'],
+  [/\b(pasta|spaghetti|noodle|ramen)/, '🍝'],
+  [/\b(sushi|poke)\b/, '🍣'],
+  [/\b(taco|burrito)/, '🌮'],
+  [/(smoothie|shake)/, '🥤'],
+  [/\b(coffee|latte|espresso|cappuccino)/, '☕'],
+  [/\btea\b/, '🍵'],
+  [/\bjuice/, '🧃'],
+  [/\b(salmon|fish|tuna|cod|shrimp|prawn)/, '🐟'],
+  [/\b(chicken|turkey)/, '🍗'],
+  [/\b(steak|beef|pork|lamb)/, '🥩'],
+  [/\b(eggs?|omelet\w*)\b/, '🍳'],
+  [/\b(oat|porridge|cereal|granola|yog)/, '🥣'],
+  [/\brice\b/, '🍚'],
+  [/\b(bread|toast|bagel)/, '🍞'],
+  [/\bmilk/, '🥛'],
+  [/\bbanana/, '🍌'],
+  [/\bapple/, '🍎'],
+  [/berr|fruit/, '🍓'],
+  [/\b(cookie|biscuit)/, '🍪'],
+  [/(pancake|waffle)/, '🥞'],
+  [/(cake|muffin|pastry|croissant|donut)/, '🍰'],
+  [/\b(chocolate|bars?\b)/, '🍫'],
+  [/\b(fries|chips)\b/, '🍟'],
+]
+
+/** A picture for a meal name; names come from the estimate or other apps' HKFoodType. */
+export function foodEmoji(name: string | null): string {
+  const lower = name?.toLowerCase() ?? ''
+  return FOOD_EMOJI.find(([pattern]) => pattern.test(lower))?.[1] ?? '🍽️'
+}
+
+/** Meal group from the local time the food was eaten. */
+export function mealSlot(eatenAt: Date): MealSlot {
+  const hour = eatenAt.getHours()
+  if (hour >= 4 && hour < 11) return 'Breakfast'
+  if (hour >= 11 && hour < 15) return 'Lunch'
+  if (hour >= 17 && hour < 22) return 'Dinner'
+  return 'Snacks'
 }

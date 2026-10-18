@@ -19,6 +19,7 @@ import { Platform } from 'react-native'
 
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
+  DailyFoodLog,
   DailyHealthSnapshot,
   DailyStepReading,
   DailyWaterReading,
@@ -26,6 +27,7 @@ import type {
   HealthBodyMassSample,
   HealthSnapshotSource,
   HealthWorkout,
+  MealEntry,
   StairSessionHeartRate,
 } from '@/lib/healthSnapshot/types'
 
@@ -39,6 +41,9 @@ const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierFlightsClimbed',
   'HKQuantityTypeIdentifierBodyMass',
   'HKQuantityTypeIdentifierDietaryEnergyConsumed',
+  'HKQuantityTypeIdentifierDietaryProtein',
+  'HKQuantityTypeIdentifierDietaryCarbohydrates',
+  'HKQuantityTypeIdentifierDietaryFatTotal',
   'HKCategoryTypeIdentifierSleepAnalysis',
   'HKWorkoutTypeIdentifier',
   'HKCharacteristicTypeIdentifierDateOfBirth',
@@ -586,6 +591,45 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       const date = localDateKey(day)
       return { date, workouts: byDay.get(date) ?? [] }
     })
+  },
+
+  async getFoodLog(date: Date): Promise<DailyFoodLog> {
+    if (!this.isAvailable()) {
+      return { proteinGrams: null, carbsGrams: null, fatGrams: null, meals: [] }
+    }
+    const grams = (
+      label: string,
+      identifier: Parameters<typeof readQuantitySum>[0],
+    ) =>
+      readMetric(label, () => readQuantitySum(identifier, date, roundInt, 'g'))
+    try {
+      const [proteinGrams, carbsGrams, fatGrams, samples] = await Promise.all([
+        grams('protein', 'HKQuantityTypeIdentifierDietaryProtein'),
+        grams('carbs', 'HKQuantityTypeIdentifierDietaryCarbohydrates'),
+        grams('fat', 'HKQuantityTypeIdentifierDietaryFatTotal'),
+        queryQuantitySamples('HKQuantityTypeIdentifierDietaryEnergyConsumed', {
+          limit: 0,
+          ascending: true,
+          unit: 'kcal',
+          filter: { date: dayWindow(date) },
+        }),
+      ])
+      const meals = samples.flatMap((sample): MealEntry[] => {
+        if (!Number.isFinite(sample.quantity) || sample.quantity < 0) return []
+        const name = sample.metadata?.HKFoodType
+        return [
+          {
+            name: typeof name === 'string' && name.trim() ? name.trim() : null,
+            kcal: roundInt(sample.quantity),
+            startISO: toDate(sample.startDate).toISOString(),
+          },
+        ]
+      })
+      return { proteinGrams, carbsGrams, fatGrams, meals }
+    } catch (err) {
+      warnHealthSnapshotFailure('food log read', err)
+      throw err
+    }
   },
 
   async getStairWorkouts(): Promise<HealthWorkout[]> {
