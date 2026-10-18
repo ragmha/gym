@@ -74,6 +74,7 @@ export function SpeakingSession({
   const [error, setError] = useState<string | null>(null)
   const startedRef = useRef<number | null>(null)
   const stopped = useRef(false)
+  const stoppedSeconds = useRef<number | null>(null)
   const mounted = useRef(true)
   const camera = useRef<CameraView>(null)
   const transcriptView = useRef<ScrollView>(null)
@@ -164,7 +165,11 @@ export function SpeakingSession({
         if (!mounted.current) {
           if (video) deleteVideo(video.uri)
         } else if (video?.uri) {
-          onFinish({ seconds: elapsed(), videoUri: video.uri })
+          // Saving the file takes time; Stop's moment is the real length.
+          onFinish({
+            seconds: stoppedSeconds.current ?? elapsed(),
+            videoUri: video.uri,
+          })
         } else {
           setError('The recording could not be saved. Go back and try again.')
         }
@@ -182,10 +187,20 @@ export function SpeakingSession({
       transcript.stop()
       onFinish({ seconds: elapsed() })
     } else {
+      stoppedSeconds.current = elapsed()
       // recordAsync resolves with the file and calls onFinish.
       camera.current?.stopRecording()
     }
   }
+
+  // A terminal recognition error ends a live session where speech stopped.
+  useEffect(() => {
+    if (capture !== 'live' || !startedAt || transcript.listening) return
+    if (stopped.current) return
+    stopped.current = true
+    onFinish({ seconds: elapsed() })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startedAt, transcript.listening])
 
   useEffect(() => {
     if (!startedAt) return

@@ -15,6 +15,7 @@ import { useTranscript } from '@/components/speaking/useTranscript'
 import { useSpeakingLogStore } from '@/stores/SpeakingLogStore'
 
 const mockHandlers: Record<string, (event?: unknown) => void> = {}
+const mockCamera = { recordAsync: jest.fn(), stopRecording: jest.fn() }
 
 jest.mock('expo-speech-recognition', () => ({
   ExpoSpeechRecognitionModule: {
@@ -29,11 +30,29 @@ jest.mock('expo-speech-recognition', () => ({
     mockHandlers[name] = handler
   },
 }))
-jest.mock('expo-camera', () => ({
-  CameraView: () => null,
-  useCameraPermissions: () => [null, jest.fn()],
-  useMicrophonePermissions: () => [null, jest.fn()],
-}))
+jest.mock('expo-camera', () => {
+  const { useEffect, useImperativeHandle } =
+    jest.requireActual<typeof import('react')>('react')
+  return {
+    CameraView: ({
+      ref,
+      onCameraReady,
+    }: {
+      ref: import('react').Ref<unknown>
+      onCameraReady: () => void
+    }) => {
+      useImperativeHandle(ref, () => mockCamera)
+      useEffect(() => {
+        onCameraReady()
+        // The real camera reports ready once.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
+      return null
+    },
+    useCameraPermissions: () => [{ granted: true }, jest.fn()],
+    useMicrophonePermissions: () => [{ granted: true }, jest.fn()],
+  }
+})
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }))
 jest.mock('expo-file-system', () => ({
   File: jest.fn(),
@@ -92,6 +111,10 @@ describe('SpeakingScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Stop' }))
     expect(ExpoSpeechRecognitionModule.stop).toHaveBeenCalled()
+    // Leaving before recognition settles would drop the session unsaved.
+    expect(
+      screen.getByRole('button', { name: 'Practice again' }),
+    ).toBeDisabled()
     act(() => mockHandlers.end())
 
     expect(screen.getByLabelText('Words: 6')).toBeOnTheScreen()
@@ -187,6 +210,62 @@ describe('SpeakingScreen', () => {
     expect(speech.start).toHaveBeenCalledTimes(1)
   })
 
+  it('ends a live session when recognition fails mid-talk', async () => {
+    jest.useFakeTimers()
+    render(<SpeakingScreen />)
+    fireEvent.press(screen.getByRole('button', { name: 'Start' }))
+    await waitFor(() => expect(speech.start).toHaveBeenCalled())
+    act(() => mockHandlers.start())
+    act(() => jest.advanceTimersByTime(20_000))
+
+    act(() =>
+      mockHandlers.result({
+        isFinal: true,
+        results: [{ transcript: 'Small PRs get real reviews.' }],
+      }),
+    )
+    act(() =>
+      mockHandlers.error({
+        error: 'audio-capture',
+        message: 'Audio input was lost.',
+      }),
+    )
+    act(() => mockHandlers.end())
+    act(() => jest.advanceTimersByTime(60_000))
+
+    expect(screen.getByLabelText('Time: 0:20')).toBeOnTheScreen()
+    expect(screen.getByText('Audio input was lost.')).toBeOnTheScreen()
+    expect(useSpeakingLogStore.getState().sessions).toEqual([
+      expect.objectContaining({ seconds: 20 }),
+    ])
+    expect(speech.start).toHaveBeenCalledTimes(1)
+  })
+
+  it('times a video to the Stop press, not the file save', async () => {
+    jest.useFakeTimers()
+    let save!: (video: { uri: string }) => void
+    mockCamera.recordAsync.mockReturnValueOnce(
+      new Promise((resolve) => {
+        save = resolve
+      }),
+    )
+    render(<SpeakingScreen />)
+    fireEvent.press(screen.getByRole('button', { name: 'Capture: Live' }))
+    fireEvent.press(screen.getByRole('button', { name: 'Start' }))
+    act(() => jest.advanceTimersByTime(600))
+    expect(mockCamera.recordAsync).toHaveBeenCalled()
+
+    act(() => jest.advanceTimersByTime(30_000))
+    fireEvent.press(screen.getByRole('button', { name: 'Stop' }))
+    expect(mockCamera.stopRecording).toHaveBeenCalled()
+    act(() => jest.advanceTimersByTime(4_000))
+    await act(async () => save({ uri: 'file:///talk.mov' }))
+    await waitFor(() => expect(speech.start).toHaveBeenCalled())
+    act(() => mockHandlers.end())
+
+    expect(screen.getByLabelText('Time: 0:30')).toBeOnTheScreen()
+  })
+
   it('does not show the foundation talk attribution', () => {
     render(<SpeakingScreen />)
 
@@ -220,6 +299,35 @@ describe('useTranscript', () => {
       expect(speech.start).not.toHaveBeenCalled()
     },
   )
+
+  it('starts after a reset session ends, without its late words', async () => {
+    const { result } = renderHook(() => useTranscript())
+    act(() => result.current.reset())
+    // iOS emits a stray 'end' for an idle abort.
+    expect(speech.abort).not.toHaveBeenCalled()
+
+    await act(() => result.current.start({ continuous: true }, true))
+    act(() => result.current.reset())
+    expect(speech.abort).toHaveBeenCalledTimes(1)
+    act(() =>
+      mockHandlers.result({
+        isFinal: false,
+        results: [{ transcript: 'old words' }],
+      }),
+    )
+    let started!: Promise<boolean>
+    act(() => {
+      started = result.current.start({ continuous: true }, true)
+    })
+    await act(async () => {})
+    expect(speech.start).toHaveBeenCalledTimes(1)
+
+    await act(async () => mockHandlers.end())
+    await expect(started).resolves.toBe(true)
+    expect(speech.start).toHaveBeenCalledTimes(2)
+    expect(result.current.finalText).toBe('')
+    expect(result.current.interim).toBe('')
+  })
 })
 
 describe('SpeakingHistoryScreen', () => {

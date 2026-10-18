@@ -210,6 +210,7 @@ export function SessionReview({
           icon="refresh"
           primary={!video}
           onPress={onAgain}
+          disabled={transcript.listening}
         />
       </View>
 

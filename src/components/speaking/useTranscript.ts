@@ -29,6 +29,9 @@ export function useTranscript() {
     options: ExpoSpeechRecognitionOptions
     keepAlive: boolean
   } | null>(null)
+  // Settles on the 'end' of the native session started last; null once idle.
+  const ended = useRef<Promise<void> | null>(null)
+  const settle = useRef(() => {})
 
   const commit = useCallback((text: string) => {
     const trimmed = text.trim()
@@ -38,6 +41,8 @@ export function useTranscript() {
   }, [])
 
   useSpeechRecognitionEvent('result', ({ isFinal, results }) => {
+    // Late results from a reset session.
+    if (!session.current) return
     const text = results[0]?.transcript ?? ''
     if (isFinal) commit(text)
     else {
@@ -47,8 +52,13 @@ export function useTranscript() {
   })
 
   useSpeechRecognitionEvent('end', () => {
+    settle.current()
+    ended.current = null
     commit(interimRef.current)
     if (session.current?.keepAlive) {
+      ended.current = new Promise((resolve) => {
+        settle.current = resolve
+      })
       ExpoSpeechRecognitionModule.start(session.current.options)
     } else {
       setListening(false)
@@ -58,7 +68,6 @@ export function useTranscript() {
   useSpeechRecognitionEvent('error', ({ error: code, message }) => {
     if (IGNORED_ERRORS.has(code)) return
     if (session.current) session.current.keepAlive = false
-    // 'end' is not guaranteed after a failed start.
     setListening(false)
     setError(
       // iOS fails closed with this code when en-US can't run on the device.
@@ -94,6 +103,10 @@ export function useTranscript() {
           return false
         }
       }
+      // A reset session's 'end' must land before this one starts, or it
+      // would restart or finish the new session.
+      await ended.current
+      if (gen !== generation.current) return false
       const full: ExpoSpeechRecognitionOptions = {
         lang: 'en-US',
         addsPunctuation: true,
@@ -103,6 +116,9 @@ export function useTranscript() {
       }
       session.current = { options: full, keepAlive }
       setListening(true)
+      ended.current = new Promise((resolve) => {
+        settle.current = resolve
+      })
       ExpoSpeechRecognitionModule.start(full)
       return true
     },
@@ -118,7 +134,8 @@ export function useTranscript() {
   const reset = useCallback(() => {
     generation.current++
     session.current = null
-    ExpoSpeechRecognitionModule.abort()
+    // iOS emits 'end' even for an idle abort; only abort a running session.
+    if (ended.current) ExpoSpeechRecognitionModule.abort()
     interimRef.current = ''
     setFinalText('')
     setInterim('')
