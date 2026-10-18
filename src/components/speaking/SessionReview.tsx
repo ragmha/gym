@@ -5,33 +5,47 @@ import { Alert, Share, StyleSheet, View } from 'react-native'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
-import { analyzeTranscript } from '@/lib/speaking/analyze'
+import { postMortem } from '@/lib/speaking/analyze'
+import {
+  type SpeakingLog,
+  useSpeakingLogStore,
+} from '@/stores/SpeakingLogStore'
 
+import { PostMortemCard } from './PostMortemCard'
 import { SpeakingButton } from './SpeakingButton'
 import { type SessionResult, deleteVideo } from './SpeakingSession'
 import type { Transcript } from './useTranscript'
 
-// Winston's heuristics, plus the two delivery goals for this practice.
+// Winston's heuristics the transcript can't measure; the post-mortem scores
+// the rest.
 const CHECKLIST = [
-  'Open with a promise: what they will know by the end.',
   'Cycle the core idea three times.',
   'Build a fence: say how your idea differs from similar ones.',
   'Verbal punctuation: mark where you are and what comes next.',
-  'Close on your contributions, not “Thank you”.',
   'Eyes on the lens, body still.',
-  'Pause instead of saying a filler.',
 ]
 
 export function SessionReview({
+  session,
   result,
   transcript,
   onAgain,
 }: {
+  session: Omit<SpeakingLog, 'seconds' | 'transcript'>
   result: SessionResult
   transcript: Transcript
   onAgain: () => void
 }) {
   const theme = useTheme()
+  const save = useSpeakingLogStore((state) => state.save)
+  const previousLog = useSpeakingLogStore((state) =>
+    state.sessions.find(
+      (s) =>
+        s.at !== session.at &&
+        s.topicId === session.topicId &&
+        s.style === session.style,
+    ),
+  )
   const [video, setVideo] = useState(result.videoUri)
   const [shared, setShared] = useState(false)
   const videoRef = useRef(video)
@@ -53,7 +67,17 @@ export function SessionReview({
   const text = [transcript.finalText, transcript.interim]
     .filter(Boolean)
     .join(' ')
-  const stats = analyzeTranscript(text, result.seconds)
+  const stats = postMortem(text, result.seconds, session.style)
+  const previous =
+    previousLog &&
+    postMortem(previousLog.transcript, previousLog.seconds, previousLog.style)
+  const done = !transcript.listening && Boolean(text)
+
+  useEffect(() => {
+    if (done) save({ ...session, seconds: result.seconds, transcript: text })
+    // Save once recognition settles; session and result are fixed per review.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done, text])
   const muted = { color: theme.subtitleText }
 
   const upload = async () => {
@@ -144,11 +168,12 @@ export function SessionReview({
           </Text>
         ) : null}
         <Text style={[Typography.bodySm, muted]}>
-          Aim for about 130–160 words a minute. Speech recognition often drops
-          “um” and “uh”, so {result.videoUri ? 'watch' : 'listen'} back for
-          those.
+          Speech recognition often drops “um” and “uh”, so{' '}
+          {result.videoUri ? 'watch' : 'listen'} back for those.
         </Text>
       </View>
+
+      {done ? <PostMortemCard report={stats} previous={previous} /> : null}
 
       {result.videoUri ? (
         <View style={styles.actions}>
@@ -193,7 +218,7 @@ export function SessionReview({
           accessibilityRole="header"
           style={[Typography.headingMd, { color: theme.text }]}
         >
-          Before the next rep
+          Watch back for
         </Text>
         {CHECKLIST.map((item) => (
           <View key={item} style={styles.row}>

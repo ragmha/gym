@@ -14,7 +14,7 @@ const IGNORED_ERRORS = new Set(['no-speech', 'aborted'])
 /**
  * Transcribes the microphone (`keepAlive` restarts recognition when the
  * platform ends it mid-talk) or a recorded file via `audioSource`. The text
- * lives in React state only and is never stored.
+ * lives in React state; SessionReview saves finished sessions on the device.
  */
 export function useTranscript() {
   const [finalText, setFinalText] = useState('')

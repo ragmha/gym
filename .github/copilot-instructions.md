@@ -32,10 +32,13 @@ target (`restSeconds` in `rest.ts`, 2:00 default) adjustable by ±15 s. It is
 never persisted, written to Health, or used as coach input.
 The user also approved `/speaking`, a practice tool based on Patrick Winston's
 "How to Speak". It offers shadow scripts or solo points, 5 or 15 minutes, and
-on-device speech recognition. The transcript exists only in React state. An
-optional front-camera video stays in the app cache until the user shares it
-through the share sheet (YouTube) or leaves. Nothing is persisted, written to
-Health, or given to the coach.
+on-device speech recognition. An optional front-camera video stays in the app
+cache until the user shares it through the share sheet (YouTube) or leaves.
+The user also approved `SpeakingLogStore`, an on-device post-mortem log: each
+finished session's topic, mode, length, and transcript, scored by the
+rule-based `postMortem` (fillers, pace, solo opening promise and close) and
+deletable from `/speaking-history`. Nothing is written to Health or given to
+the coach.
 No other manual-entry feature is approved.
 
 Before adding a feature, check whether the data already exists in HealthKit. If
@@ -82,7 +85,7 @@ App Group, Health writes, or coach input. Keep distribution blocked while
 | Language         | TypeScript (strict)                              | 5.9        |
 | Package Manager  | Bun                                              | 1.2        |
 | Backend / DB     | None — HealthKit is the only data source         | —          |
-| State Management | Zustand (theme, tile order, gym log)             | 5.x        |
+| State Management | Zustand (theme, tile order, gym/speaking logs)   | 5.x        |
 | Charts           | react-native-svg                                 | —          |
 | Animations       | React Native Reanimated                          | 4.x        |
 | Health Data      | @kingstinct/react-native-healthkit               | 13.x       |
@@ -105,6 +108,7 @@ src/
     coach.tsx           #   streaming coach chat
     add-weight.tsx      #   explicit body-mass save to Apple Health
     speaking.tsx        #   speaking practice: shadow/solo, live transcript, video
+    speaking-history.tsx #  saved speaking post-mortems
     gym/                #   hub grid + stairmaster/cardio/lifting/weight/food screens
   components/
     dashboard/          #   dashboard sections + the ring builder
@@ -119,7 +123,7 @@ src/
     fitnessMetrics/     #   snapshot -> presentable metric mapping
     coach/              #   on-device AI coach engines and prompts
     validators/         #   zod schemas for coach output
-  stores/               # ThemeStore, GymLogStore
+  stores/               # ThemeStore, GymLogStore, SpeakingLogStore
   utils/                # recovery scoring and pure helpers
   assets/               # fonts, images
 ```
@@ -173,7 +177,9 @@ This project targets **iOS as the primary platform**.
   theme, the Home and Gym tile order (tile labels or ids only), and the daily
   food calorie goal (`foodGoalKcal`).
 - `GymLogStore` is the approved on-device lifting log: programme start date and
-  per-day sets and rating. Do not add Health readings to it.
+  per-day sets, rating, and notes. Do not add Health readings to it.
+- `SpeakingLogStore` is the approved speaking post-mortem log: raw session
+  inputs only; scores are recomputed by `postMortem`.
 - Health data is not state to be managed. It is read per-day through
   `useHealthSnapshot(date)` and rendered. Do not cache it into a store.
 - If you find yourself adding a store, first check that you are not

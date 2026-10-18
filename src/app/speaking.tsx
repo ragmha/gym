@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
   Alert,
@@ -26,7 +27,9 @@ import {
 import { useTranscript } from '@/components/speaking/useTranscript'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
+import { postMortem } from '@/lib/speaking/analyze'
 import { TOPICS } from '@/lib/speaking/scripts'
+import { useSpeakingLogStore } from '@/stores/SpeakingLogStore'
 
 const WINSTON_URL = 'https://www.youtube.com/watch?v=Unzc731iCUY'
 
@@ -88,6 +91,9 @@ export default function SpeakingScreen() {
   const [capture, setCapture] = useState<Capture>('live')
   const [phase, setPhase] = useState<'setup' | 'session' | 'review'>('setup')
   const [result, setResult] = useState<SessionResult | null>(null)
+  const [startedAt, setStartedAt] = useState('')
+  const router = useRouter()
+  const last = useSpeakingLogStore((state) => state.sessions[0])
   const topic = TOPICS[index]
   const muted = { color: theme.subtitleText }
 
@@ -100,6 +106,7 @@ export default function SpeakingScreen() {
   const start = () => {
     transcript.reset()
     setResult(null)
+    setStartedAt(new Date().toISOString())
     setPhase('session')
   }
   const again = () => {
@@ -125,6 +132,20 @@ export default function SpeakingScreen() {
             ? undefined
             : `${style === 'shadow' ? 'Shadow' : 'Solo'} · ${minutes} min`
         }
+        action={
+          phase === 'setup' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Post-mortems"
+              accessibilityHint="Shows your past sessions and their feedback."
+              onPress={() => router.push('/speaking-history')}
+              hitSlop={8}
+              style={[styles.icon, { backgroundColor: theme.cardSurface }]}
+            >
+              <Ionicons name="time-outline" size={22} color={theme.text} />
+            </Pressable>
+          ) : undefined
+        }
       />
       {phase === 'session' ? (
         <View style={[styles.content, styles.fill]}>
@@ -143,6 +164,7 @@ export default function SpeakingScreen() {
       ) : phase === 'review' && result ? (
         <ScrollView contentContainerStyle={styles.content}>
           <SessionReview
+            session={{ at: startedAt, topicId: topic.id, style, capture }}
             result={result}
             transcript={transcript}
             onAgain={again}
@@ -168,12 +190,17 @@ export default function SpeakingScreen() {
                   if (next !== index && TOPICS[next]) setIndex(next)
                 }}
               >
-                {TOPICS.map((item) => (
+                {TOPICS.map((item, i) => (
                   <View
                     key={item.id}
                     style={[styles.page, { width: pageWidth }]}
                   >
-                    <Orb colors={item.colors} size={220} id={item.id} />
+                    {/* Only nearby pages draw their ~1,300 dots. */}
+                    {Math.abs(i - index) <= 1 ? (
+                      <Orb colors={item.colors} size={260} />
+                    ) : (
+                      <View style={styles.orb} />
+                    )}
                     <Text
                       accessibilityRole="header"
                       style={[
@@ -251,6 +278,17 @@ export default function SpeakingScreen() {
               : 'record, then choose to upload'}
           </Text>
 
+          {last ? (
+            <Text
+              testID="speaking-focus"
+              style={[Typography.bodySm, styles.center, { color: theme.text }]}
+            >
+              <Text style={[Typography.bodySm, { color: theme.accent }]}>
+                Focus:{' '}
+              </Text>
+              {postMortem(last.transcript, last.seconds, last.style).focus}
+            </Text>
+          ) : null}
           <SpeakingButton
             label="Start"
             icon={capture === 'video' ? 'videocam' : 'mic'}
@@ -294,6 +332,14 @@ const styles = StyleSheet.create({
   center: { textAlign: 'center' },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.sm },
   dot: { width: 8, height: 8, borderRadius: 4 },
+  orb: { width: 260, height: 260 },
+  icon: {
+    width: Layout.controlSize,
+    height: Layout.controlSize,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   toggles: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.sm },
   toggle: {
     flexDirection: 'row',

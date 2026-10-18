@@ -9,6 +9,8 @@ import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition'
 import { Alert, Linking } from 'react-native'
 
 import SpeakingScreen from '@/app/speaking'
+import SpeakingHistoryScreen from '@/app/speaking-history'
+import { useSpeakingLogStore } from '@/stores/SpeakingLogStore'
 
 const mockHandlers: Record<string, (event?: unknown) => void> = {}
 
@@ -42,6 +44,8 @@ jest.mock('@/hooks/useThemeColor', () => ({
       '@/constants/Colors',
     ).Colors.dark,
 }))
+
+beforeEach(() => useSpeakingLogStore.setState({ sessions: [] }))
 
 describe('SpeakingScreen', () => {
   it('runs a live session from setup through the transcript review', async () => {
@@ -78,8 +82,17 @@ describe('SpeakingScreen', () => {
 
     expect(screen.getByLabelText('Words: 6')).toBeOnTheScreen()
     expect(screen.getByLabelText('Fillers: 1')).toBeOnTheScreen()
+    expect(screen.getByTestId('post-mortem')).toBeOnTheScreen()
+    expect(useSpeakingLogStore.getState().sessions).toEqual([
+      expect.objectContaining({
+        topicId: 'small-prs',
+        style: 'solo',
+        transcript: 'Um, small PRs get real reviews.',
+      }),
+    ])
     fireEvent.press(screen.getByRole('button', { name: 'Practice again' }))
     expect(screen.getByText('Choose a topic')).toBeOnTheScreen()
+    expect(screen.getByTestId('speaking-focus')).toBeOnTheScreen()
   })
 
   it('highlights the script words already read while shadowing', async () => {
@@ -121,5 +134,37 @@ describe('SpeakingScreen', () => {
     )
     alert.mockRestore()
     openURL.mockRestore()
+  })
+})
+
+describe('SpeakingHistoryScreen', () => {
+  it('opens a past post-mortem with its trend and deletes it', () => {
+    const base = {
+      topicId: 'small-prs',
+      style: 'shadow' as const,
+      capture: 'live' as const,
+      seconds: 60,
+    }
+    const words = (n: number) => Array(n).fill('point').join(' ')
+    useSpeakingLogStore.setState({
+      sessions: [
+        { ...base, at: '2026-10-18T10:00:00Z', transcript: words(150) },
+        { ...base, at: '2026-10-17T10:00:00Z', transcript: words(190) },
+      ],
+    })
+    const alert = jest
+      .spyOn(Alert, 'alert')
+      .mockImplementation((_t, _m, buttons) => buttons?.[1]?.onPress?.())
+    render(<SpeakingHistoryScreen />)
+
+    expect(screen.getByText('2 sessions')).toBeOnTheScreen()
+    fireEvent.press(screen.getAllByRole('button', { expanded: false })[0])
+    expect(screen.getByTestId('post-mortem-trend')).toHaveTextContent(
+      'Since last time: fillers 0 → 0 a minute, pace 190 → 150 words a minute.',
+    )
+
+    fireEvent.press(screen.getByRole('button', { name: 'Delete' }))
+    expect(useSpeakingLogStore.getState().sessions).toHaveLength(1)
+    alert.mockRestore()
   })
 })

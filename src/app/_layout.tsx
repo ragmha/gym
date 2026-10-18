@@ -98,6 +98,10 @@ export default function RootLayout() {
             <Stack.Screen name="gym" options={{ headerShown: false }} />
             <Stack.Screen name="speaking" options={{ headerShown: false }} />
             <Stack.Screen
+              name="speaking-history"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="steps"
               options={{
                 headerShown: false,
