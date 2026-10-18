@@ -307,6 +307,7 @@ and visible selected states; do not introduce a tab bar.
 ### Signature components
 
 - **Goal tile:** SVG outline, upward progress fill, solid red completion, and a short completion bounce.
+- **Tile badge:** Outline play or stop glyph in a goal tile's top-right corner when a tap starts or stops a timer.
 - **Gym tile:** Reuses the goal-tile treatment with restrained uppercase SpaceMono captions.
 - **Calendar day:** 44px circular target with accessible date and activity labels.
 - **Coach bubble:** Pill-shaped blue user message; keep assistant content on the quiet surface.

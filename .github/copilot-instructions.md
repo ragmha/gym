@@ -39,6 +39,16 @@ finished session's topic, mode, length, and transcript, scored by the
 rule-based `postMortem` (fillers, pace, solo opening promise and close) and
 deletable from `/speaking-history`. Nothing is written to Health or given to
 the coach.
+The Reading timer is ephemeral too. Apple Books and HealthKit expose no reading
+time, so on native 1.0.12+ iOS builds tapping the Reading tile starts a
+`ReadingActivity` Live Activity (`expo-widgets` + `@expo/ui`,
+`src/lib/readingActivity.tsx`) that counts up in the Dynamic Island, then opens
+Apple Books. Tapping the tile again, or the island's Stop while the app is in
+memory, ends it. Only the last session's whole minutes stay in memory for that
+day's tile caption. The `group.io.raghib.gym` App Group holds only the compiled
+layout for the widget extension; minutes are never persisted, written to
+Health, or used as coach input. Older builds, web, and Android keep the plain
+Apple Books link.
 No other manual-entry feature is approved.
 
 Before adding a feature, check whether the data already exists in HealthKit. If
@@ -92,6 +102,7 @@ App Group, Health writes, or coach input. Keep distribution blocked while
 | Haptics          | expo-haptics (tile rearranging)                  | 55.x       |
 | On-device AI     | react-native-apple-llm (Apple Foundation Models) | 1.x        |
 | Meal photos      | expo-image-picker + Vision (local FoodVision)    | 55.x       |
+| Live Activity    | expo-widgets + @expo/ui (Reading timer, alpha)   | 55.x       |
 | Validation       | Zod (on-device AI output only)                   | 4.x        |
 | Testing          | Jest + jest-expo + @testing-library/react-native | —          |
 | Linting          | ESLint 9 (flat config) + Prettier                | —          |
