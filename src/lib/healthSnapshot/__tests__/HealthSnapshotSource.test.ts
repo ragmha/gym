@@ -192,6 +192,46 @@ describe('HealthSnapshotSource adapters', () => {
     expect(hk.queryStatisticsCollectionForQuantity).toHaveBeenCalledTimes(4)
   })
 
+  it('rejects getActivityHistory when every activity query fails', async () => {
+    jest.spyOn(console, 'warn').mockImplementation()
+    hk.queryStatisticsCollectionForQuantity.mockRejectedValue(
+      new Error('activity denied'),
+    )
+
+    await expect(
+      iosHealthKitAdapter.getActivityHistory(new Date(2026, 1, 15, 12), 7),
+    ).rejects.toThrow('Activity history unavailable')
+    expect(hk.queryStatisticsCollectionForQuantity).toHaveBeenCalledTimes(4)
+  })
+
+  it('keeps partial getActivityHistory results when only some queries fail', async () => {
+    jest.spyOn(console, 'warn').mockImplementation()
+    hk.queryStatisticsCollectionForQuantity.mockImplementation(
+      (identifier: string) =>
+        identifier === 'HKQuantityTypeIdentifierStepCount'
+          ? Promise.resolve([
+              {
+                startDate: new Date(2026, 1, 15, 12),
+                sumQuantity: { quantity: 0 },
+              },
+            ])
+          : Promise.reject(new Error('activity denied')),
+    )
+
+    const history = await iosHealthKitAdapter.getActivityHistory(
+      new Date(2026, 1, 15, 12),
+      7,
+    )
+
+    expect(history[6]).toEqual({
+      date: '2026-02-15',
+      steps: 0,
+      calories: null,
+      walkingDistanceKm: null,
+      activeMinutes: null,
+    })
+  })
+
   it('keeps mock weekly activity deterministic and aligned with the daily snapshot', async () => {
     const date = new Date(2026, 1, 15, 12)
     const history = await deterministicMockAdapter.getActivityHistory(date, 7)

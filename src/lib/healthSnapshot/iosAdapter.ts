@@ -550,7 +550,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
     endDate: Date,
     days: number,
   ): Promise<DailyActivityReading[]> {
-    const [steps, calories, distance, activeMinutes] = this.isAvailable()
+    const results = this.isAvailable()
       ? await Promise.all([
           readMetric('step history', () =>
             dailyTotals(
@@ -585,7 +585,16 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
             ),
           ),
         ])
-      : [null, null, null, null]
+      : null
+    if (results?.every((totals) => totals === null)) {
+      throw new Error('Activity history unavailable')
+    }
+    const [steps, calories, distance, activeMinutes] = results ?? [
+      null,
+      null,
+      null,
+      null,
+    ]
     const total = (
       totals: Map<string, number> | null,
       date: string,
