@@ -41,7 +41,7 @@ export interface HealthHeartRateSample {
 }
 
 export interface StairSessionHeartRate {
-  /** The day's longest stair session the samples belong to. */
+  /** The stair session the samples belong to. */
   workout: HealthWorkout
   /** Heart-rate samples recorded during the session, oldest first. */
   samples: HealthHeartRateSample[]
@@ -74,8 +74,10 @@ export interface HealthSnapshotSource {
   getWaterHistory(endDate: Date, days: number): Promise<DailyWaterReading[]>
   /** Workouts for `days` local days ending on `endDate`, oldest first, in one bulk query. */
   getWorkoutHistory(endDate: Date, days: number): Promise<DailyWorkouts[]>
-  /** Heart rate during `date`'s longest stair session; null when there is none. */
-  getStairHeartRate(date: Date): Promise<StairSessionHeartRate | null>
+  /** Every stair session in Health, oldest first. */
+  getStairWorkouts(): Promise<HealthWorkout[]>
+  /** Every stair session starting on `date` with its heart rate, oldest first. */
+  getStairSessions(date: Date): Promise<StairSessionHeartRate[]>
   /** Observe saved workout changes. Null means observation is unavailable. */
   subscribeToWorkoutChanges(onChange: () => void): (() => void) | null
   /** True means the request completed, not that read access was granted; HealthKit hides read-grant state. Mock returns true. */

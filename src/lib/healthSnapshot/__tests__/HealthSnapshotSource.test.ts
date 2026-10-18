@@ -874,7 +874,8 @@ describe('HealthSnapshotSource adapters', () => {
       getRangeIntensity: true,
       getWaterHistory: true,
       getWorkoutHistory: true,
-      getStairHeartRate: true,
+      getStairWorkouts: true,
+      getStairSessions: true,
       subscribeToWorkoutChanges: true,
       requestAuthorization: true,
       isAvailable: true,
@@ -1115,17 +1116,20 @@ describe('HealthSnapshotSource adapters', () => {
     ])
   })
 
-  it('reads heart-rate samples within the longest stair session and an age-predicted max', async () => {
+  it('reads every stair session of the day with its heart rate and an age-predicted max', async () => {
+    const stair = (hour: number, bpm: number) => ({
+      workoutActivityType: 44,
+      duration: { quantity: 1800, unit: 's' },
+      startDate: new Date(2026, 1, 15, hour),
+      endDate: new Date(2026, 1, 15, hour, 30),
+      getStatistic: jest.fn(async () => ({
+        averageQuantity: { quantity: bpm },
+      })),
+    })
     hk.queryWorkoutSamples.mockResolvedValue([
-      {
-        workoutActivityType: 44,
-        duration: { quantity: 1800, unit: 's' },
-        startDate: new Date(2026, 1, 15, 8),
-        endDate: new Date(2026, 1, 15, 8, 30),
-        getStatistic: jest.fn(async () => ({
-          averageQuantity: { quantity: 140 },
-        })),
-      },
+      stair(8, 140),
+      { ...stair(9, 0), workoutActivityType: 37 },
+      stair(18, 130),
     ])
     hk.queryQuantitySamples.mockResolvedValue([
       { quantity: 120.4, startDate: new Date(2026, 1, 15, 8, 1) },
@@ -1133,7 +1137,7 @@ describe('HealthSnapshotSource adapters', () => {
     ])
     hk.getDateOfBirthAsync.mockResolvedValue(new Date(1990, 5, 1))
 
-    const session = await iosHealthKitAdapter.getStairHeartRate(
+    const sessions = await iosHealthKitAdapter.getStairSessions(
       new Date(2026, 1, 15, 12),
     )
 
@@ -1145,13 +1149,14 @@ describe('HealthSnapshotSource adapters', () => {
         unit: 'count/min',
         filter: {
           date: {
-            startDate: new Date(2026, 1, 15, 8),
-            endDate: new Date(2026, 1, 15, 8, 30),
+            startDate: new Date(2026, 1, 15, 18),
+            endDate: new Date(2026, 1, 15, 18, 30),
           },
         },
       },
     )
-    expect(session).toMatchObject({
+    expect(sessions).toHaveLength(2)
+    expect(sessions[0]).toMatchObject({
       workout: { averageHeartRate: 140, durationMinutes: 30 },
       samples: [
         { bpm: 120, startISO: new Date(2026, 1, 15, 8, 1).toISOString() },
@@ -1159,12 +1164,16 @@ describe('HealthSnapshotSource adapters', () => {
       // Born June 1990, so still 35 in February 2026.
       maxHeartRate: 185,
     })
+    expect(sessions[1].workout).toMatchObject({
+      averageHeartRate: 130,
+      startISO: new Date(2026, 1, 15, 18).toISOString(),
+    })
   })
 
-  it('returns no stair heart rate without a stair session, and no zones without a birth date', async () => {
+  it('returns no stair sessions without one, and no zones without a birth date', async () => {
     await expect(
-      iosHealthKitAdapter.getStairHeartRate(new Date(2026, 1, 15, 12)),
-    ).resolves.toBeNull()
+      iosHealthKitAdapter.getStairSessions(new Date(2026, 1, 15, 12)),
+    ).resolves.toEqual([])
     expect(hk.queryQuantitySamples).not.toHaveBeenCalledWith(
       'HKQuantityTypeIdentifierHeartRate',
       expect.anything(),
@@ -1180,8 +1189,27 @@ describe('HealthSnapshotSource adapters', () => {
       },
     ])
     await expect(
-      iosHealthKitAdapter.getStairHeartRate(new Date(2026, 1, 15, 12)),
-    ).resolves.toMatchObject({ samples: [], maxHeartRate: null })
+      iosHealthKitAdapter.getStairSessions(new Date(2026, 1, 15, 12)),
+    ).resolves.toMatchObject([{ samples: [], maxHeartRate: null }])
+  })
+
+  it('reads all stair history in one query, oldest first', async () => {
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 44,
+        duration: { quantity: 1200, unit: 's' },
+        startDate: new Date(2023, 0, 2, 8),
+        endDate: new Date(2023, 0, 2, 8, 20),
+      },
+    ])
+    await expect(iosHealthKitAdapter.getStairWorkouts()).resolves.toMatchObject(
+      [{ kind: 'stairClimber', durationMinutes: 20 }],
+    )
+    expect(hk.queryWorkoutSamples).toHaveBeenCalledWith({
+      limit: 0,
+      ascending: true,
+      filter: { workoutActivityType: 44 },
+    })
   })
 
   it('observes saved workouts and removes the native subscription', () => {

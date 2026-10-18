@@ -12,17 +12,20 @@ import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
-import type { StairSessionHeartRate } from '@/lib/healthSnapshot/types'
+import type {
+  HealthWorkout,
+  StairSessionHeartRate,
+} from '@/lib/healthSnapshot/types'
 
 import {
   HEART_RATE_ZONE_BOUNDS,
   heartRateZone,
+  stairmasterHighlights,
   zoneMinutes,
   type ActivitySummary,
 } from './activities'
 
 const ZONE_COLORS = ['#5AB0F5', '#3CC48A', '#F2C230', '#F5893A', '#EE4D5F']
-const MONTHS = 12
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 function clock(minutes: number): string {
@@ -37,13 +40,233 @@ function time(iso: string): string {
   })
 }
 
-/** Month grid pages for the last 12 months, swiped horizontally. */
+export function StairHighlights({
+  workouts,
+  demo,
+}: {
+  workouts: HealthWorkout[] | 'error' | undefined
+  demo: boolean
+}) {
+  const theme = useTheme()
+  const highlights = useMemo(
+    () => (Array.isArray(workouts) ? stairmasterHighlights(workouts) : null),
+    [workouts],
+  )
+  const detailStyle = [Typography.bodySm, { color: theme.subtitleText }]
+  const titleStyle = [Typography.headingSm, { color: theme.text }]
+  const dateLabel = (key: string) =>
+    new Date(`${key}T12:00:00`).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  const { bestStreak, bestMonth, usualStart } = highlights ?? {}
+  const startTime = (minute: number) => {
+    const date = new Date(2000, 0, 1, 0, minute)
+    return time(date.toISOString())
+  }
+  const monthLabel = (month: string) =>
+    new Date(`${month}-01T12:00:00`).toLocaleDateString(undefined, {
+      month: 'short',
+      year: 'numeric',
+    })
+  const hours = Math.floor((highlights?.totalMinutes ?? 0) / 60)
+  const minutes = Math.floor((highlights?.totalMinutes ?? 0) % 60)
+  const peakStarts = Math.max(1, ...(highlights?.startCounts ?? []))
+  const streakPeriod = bestStreak
+    ? `${dateLabel(bestStreak.start)} – ${dateLabel(bestStreak.end)}`
+    : 'No 30-minute session recorded yet.'
+  const usualDetail = usualStart
+    ? `${usualStart.sessions} of ${highlights?.sessions} starts · ${startTime(usualStart.minute)}–${startTime(usualStart.minute + 29)}${usualStart.tied ? ' (tied)' : ''}`
+    : 'Not enough repeat starts yet.'
+
+  return (
+    <View testID="stair-highlights" style={styles.highlights}>
+      <Text
+        accessibilityRole="header"
+        style={[Typography.headingMd, { color: theme.text }]}
+      >
+        Your highlights
+      </Text>
+      <Text style={detailStyle}>
+        {demo ? 'Demo data' : 'Apple Health'} · All-time through today
+      </Text>
+      {!highlights?.sessions ? (
+        <Text style={detailStyle} accessibilityLiveRegion="polite">
+          {workouts === 'error'
+            ? 'Could not load your history. Reopen this screen to retry.'
+            : workouts === undefined
+              ? 'Loading your history…'
+              : 'No Stairmaster history available. Recorded sessions will build your highlights here.'}
+        </Text>
+      ) : (
+        <>
+          <View
+            style={[
+              styles.streakRecord,
+              { backgroundColor: theme.cardSurface },
+            ]}
+            accessible
+            accessibilityLabel={`Longest streak: ${bestStreak ? `${bestStreak.days} days` : '--'}. ${streakPeriod}`}
+          >
+            <View style={styles.recordNumber}>
+              <Text style={[styles.recordValue, { color: theme.text }]}>
+                {bestStreak?.days ?? '--'}
+              </Text>
+              <Text style={detailStyle}>
+                {bestStreak?.days === 1 ? 'day' : 'days'} in a row
+              </Text>
+            </View>
+            <View style={styles.recordDetail}>
+              <Text style={titleStyle}>Longest streak</Text>
+              <Text style={detailStyle}>{streakPeriod}</Text>
+              <Text style={detailStyle}>30+ min each day</Text>
+            </View>
+          </View>
+          <View style={[styles.totalRow, { borderColor: theme.goalTrack }]}>
+            <View
+              style={styles.total}
+              accessible
+              accessibilityLabel={`Total sessions: ${highlights.sessions}. ${hours}h ${minutes}m on the stairs.`}
+            >
+              <Text style={[styles.statValue, { color: theme.text }]}>
+                {highlights.sessions}
+              </Text>
+              <Text style={detailStyle}>Total sessions</Text>
+            </View>
+            <View
+              style={styles.total}
+              accessible
+              accessibilityLabel={`Total time: ${hours} hours, ${minutes} minutes`}
+            >
+              <Text style={[styles.statValue, { color: theme.text }]}>
+                {hours}h {minutes}m
+              </Text>
+              <Text style={detailStyle}>Time on the stairs</Text>
+            </View>
+          </View>
+          <View style={styles.highlightGrid}>
+            <View style={styles.chartPanel}>
+              <View
+                accessible
+                accessibilityLabel={`Best month: ${bestMonth ? monthLabel(bestMonth.month) : '--'}. ${bestMonth ? `${bestMonth.days} goal days` : 'No 30-minute session recorded yet.'}`}
+              >
+                <Text style={titleStyle}>Best month</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>
+                  {bestMonth ? monthLabel(bestMonth.month) : '--'}
+                </Text>
+                <Text style={detailStyle}>
+                  {bestMonth
+                    ? `${bestMonth.days} goal days · Personal best`
+                    : 'No 30-minute session recorded yet.'}
+                </Text>
+              </View>
+              <View
+                testID="stair-monthly-chart"
+                style={styles.monthBars}
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel={`Goal days per month, last 12 months, scale 0 to 31 days: ${highlights.monthlyGoalDays.map((m) => `${monthLabel(m.month)}: ${m.days}`).join(', ')}`}
+              >
+                {highlights.monthlyGoalDays.map((month) => (
+                  <View key={month.month} style={styles.barColumn}>
+                    <View
+                      style={[
+                        styles.monthBar,
+                        {
+                          height: (month.days / 31) * 88,
+                          backgroundColor:
+                            month.month === bestMonth?.month
+                              ? theme.accent
+                              : theme.subtitleText,
+                        },
+                      ]}
+                    />
+                  </View>
+                ))}
+              </View>
+              <View style={styles.axis}>
+                <Text style={detailStyle}>
+                  {monthLabel(highlights.monthlyGoalDays[0].month)}
+                </Text>
+                <Text style={detailStyle}>
+                  {monthLabel(highlights.monthlyGoalDays[11].month)}
+                </Text>
+              </View>
+              <Text style={detailStyle}>Last 12 months · Goal days · 0–31</Text>
+            </View>
+            <View style={styles.chartPanel}>
+              <View
+                accessible
+                accessibilityLabel={`Usual start: ${usualStart ? startTime(usualStart.minute) : '--'}. ${usualDetail}`}
+              >
+                <Text style={titleStyle}>Usual start</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>
+                  {usualStart ? startTime(usualStart.minute) : '--'}
+                </Text>
+                <Text style={detailStyle}>{usualDetail}</Text>
+              </View>
+              <View
+                testID="stair-start-chart"
+                style={styles.startBars}
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel={`All-time session starts in local half-hour windows: ${highlights.startCounts
+                  .map((count, i) =>
+                    count ? `${startTime(i * 30)}: ${count}` : '',
+                  )
+                  .filter(Boolean)
+                  .join(', ')}`}
+              >
+                {highlights.startCounts.map((count, i) => (
+                  <View key={i} style={styles.barColumn}>
+                    <View
+                      style={[
+                        styles.startBar,
+                        {
+                          height: (count / peakStarts) * 88,
+                          backgroundColor:
+                            i * 30 === usualStart?.minute
+                              ? theme.accent
+                              : theme.subtitleText,
+                        },
+                      ]}
+                    />
+                  </View>
+                ))}
+              </View>
+              <View style={styles.axis}>
+                {[0, 6, 12, 18, 24].map((hour) => (
+                  <Text key={hour} style={detailStyle}>
+                    {hour}h
+                  </Text>
+                ))}
+              </View>
+              <Text style={detailStyle}>
+                Session starts · Scale 0–{peakStarts}
+              </Text>
+            </View>
+          </View>
+          <Text style={detailStyle}>
+            Streaks and best month count days with at least one 30-minute
+            session. Rest days still matter.
+          </Text>
+        </>
+      )}
+    </View>
+  )
+}
+
+/** Month grid pages from the first stair session (or `selected`) to this month, swiped horizontally. */
 export function StairCalendar({
   selected,
+  first,
   days,
   onSelect,
 }: {
   selected: Date
+  /** Earliest stair session in Health; null when there is none yet. */
+  first: Date | null
   /** Stair summary per local date key; missing days have no session. */
   days: Map<string, ActivitySummary>
   onSelect: (key: string) => void
@@ -56,20 +279,22 @@ export function StairCalendar({
   const today = new Date()
   const todayKey = localDateKey(today)
   const selectedKey = localDateKey(selected)
+  const start = first && first < selected ? first : selected
+  const startKey = `${start.getFullYear()}-${start.getMonth()}`
   const months = useMemo(
     () =>
       Array.from(
-        { length: MONTHS },
-        (_, i) =>
-          new Date(
-            today.getFullYear(),
-            today.getMonth() - (MONTHS - 1 - i),
+        {
+          length:
+            (today.getFullYear() - start.getFullYear()) * 12 +
+            today.getMonth() -
+            start.getMonth() +
             1,
-            12,
-          ),
+        },
+        (_, i) => new Date(start.getFullYear(), start.getMonth() + i, 1, 12),
       ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- months move only when today does
-    [todayKey],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- months move only when their ends do
+    [startKey, todayKey],
   )
   const initial = months.findIndex(
     (m) =>
@@ -80,13 +305,15 @@ export function StairCalendar({
 
   return (
     <FlatList
+      // Remount when history extends backwards so the initial page stays on `selected`.
+      key={startKey}
       testID="stair-calendar"
       style={{ width, flexGrow: 0 }}
       data={months}
       horizontal
       pagingEnabled
       showsHorizontalScrollIndicator={false}
-      initialScrollIndex={initial === -1 ? MONTHS - 1 : initial}
+      initialScrollIndex={initial === -1 ? months.length - 1 : initial}
       getItemLayout={(_, index) => ({
         length: width,
         offset: width * index,
@@ -201,16 +428,18 @@ export function StairCalendar({
 /** In-depth view of one day's stair session: totals, heart-rate trace and time in zones. */
 export function StairSession({
   data,
+  label,
 }: {
-  /** undefined while loading; 'error' when Health could not be read. */
-  data: StairSessionHeartRate | null | 'error' | undefined
+  /** null when the day has no session; 'error' when Health could not be read. */
+  data: StairSessionHeartRate | null | 'error'
+  /** Heading when the day has several sessions. */
+  label?: string
 }) {
   const theme = useTheme()
   const { width: window } = useWindowDimensions()
   const width = window - Layout.gutter * 2
   const mono = [styles.mono, { color: theme.subtitleText }]
 
-  if (data === undefined) return null
   if (data === null || data === 'error') {
     return (
       <Text testID="stair-session-empty" style={mono}>
@@ -244,6 +473,14 @@ export function StairSession({
 
   return (
     <View testID="stair-session" style={[styles.session, { width }]}>
+      {label && (
+        <Text
+          accessibilityRole="header"
+          style={[Typography.headingSm, { color: theme.text }]}
+        >
+          {label}
+        </Text>
+      )}
       <Text style={mono}>
         {time(workout.startISO)} – {time(workout.endISO)} ·{' '}
         {workout.activityName}
@@ -418,6 +655,50 @@ const HeartRateChart = memo(function HeartRateChart({
 })
 
 const styles = StyleSheet.create({
+  highlights: {
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
+    gap: Spacing.sm,
+  },
+  streakRecord: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
+  },
+  recordNumber: { gap: Spacing.xxs },
+  recordValue: {
+    fontFamily: 'SpaceMono',
+    fontSize: 56,
+    lineHeight: 68,
+    fontVariant: ['tabular-nums'],
+  },
+  recordDetail: { flexBasis: 140, flexGrow: 1, gap: Spacing.xxs },
+  totalRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  total: { flexGrow: 1, flexBasis: 120, gap: Spacing.xxs },
+  highlightGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.lg },
+  chartPanel: {
+    flexBasis: 280,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: '100%',
+    gap: Spacing.xs,
+  },
+  monthBars: { height: 88, flexDirection: 'row', gap: Spacing.xs },
+  startBars: { height: 88, flexDirection: 'row', gap: 2 },
+  barColumn: { flex: 1, justifyContent: 'flex-end' },
+  monthBar: { borderTopLeftRadius: 3, borderTopRightRadius: 3 },
+  startBar: { borderTopLeftRadius: 2, borderTopRightRadius: 2 },
   row: { flexDirection: 'row' },
   grid: { flexWrap: 'wrap', alignContent: 'flex-start' },
   centerText: { textAlign: 'center' },
