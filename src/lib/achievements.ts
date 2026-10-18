@@ -36,10 +36,13 @@ export interface BadgeSection {
 }
 
 export interface AchievementInput {
-  /** Oldest first, one entry per local day. */
-  steps: DailyStepReading[]
-  water: DailyWaterReading[]
-  workouts: DailyWorkouts[]
+  /**
+   * Oldest first, one entry per local day. Null means that Health source
+   * could not be read, so its badges are left out rather than shown locked.
+   */
+  steps: DailyStepReading[] | null
+  water: DailyWaterReading[] | null
+  workouts: DailyWorkouts[] | null
   gymLogs: Record<string, GymDayLog>
 }
 
@@ -102,10 +105,11 @@ export function buildAchievements({
   workouts,
   gymLogs,
 }: AchievementInput): BadgeSection[] {
-  const stepEntries = steps.flatMap(({ date, steps: value }) =>
+  const when = (source: unknown[] | null, list: Badge[]) => (source ? list : [])
+  const stepEntries = (steps ?? []).flatMap(({ date, steps: value }) =>
     value === null ? [] : [{ date, value }],
   )
-  const allWorkouts = workouts.flatMap(({ date, workouts: list }) =>
+  const allWorkouts = (workouts ?? []).flatMap(({ date, workouts: list }) =>
     list.map((workout) => ({ date, workout })),
   )
   const workoutEntries = (
@@ -134,41 +138,45 @@ export function buildAchievements({
   const bestSteps = Math.max(0, ...stepEntries.map((entry) => entry.value))
   const workoutDays = new Set(allWorkouts.map(({ date }) => date))
 
-  return [
+  const sections: BadgeSection[] = [
     {
       title: 'Personal records',
       badges: [
-        record('most-steps', 'Most steps', 'steps', stepEntries, (v) =>
-          v.toLocaleString(),
-        ),
-        record(
-          'longest-run',
-          'Longest run',
-          'running',
-          workoutEntries((w) => w.durationMinutes, 'running'),
-          minutes,
-        ),
-        record(
-          'longest-stairs',
-          'Longest stair climb',
-          'stairs',
-          workoutEntries((w) => w.durationMinutes, 'stairClimber'),
-          minutes,
-        ),
-        record(
-          'longest-workout',
-          'Longest workout',
-          'workout',
-          workoutEntries((w) => w.durationMinutes),
-          minutes,
-        ),
-        record(
-          'biggest-burn',
-          'Biggest burn',
-          'energy',
-          workoutEntries((w) => w.calories),
-          (v) => `${v.toLocaleString()} kcal`,
-        ),
+        ...when(steps, [
+          record('most-steps', 'Most steps', 'steps', stepEntries, (v) =>
+            v.toLocaleString(),
+          ),
+        ]),
+        ...when(workouts, [
+          record(
+            'longest-run',
+            'Longest run',
+            'running',
+            workoutEntries((w) => w.durationMinutes, 'running'),
+            minutes,
+          ),
+          record(
+            'longest-stairs',
+            'Longest stair climb',
+            'stairs',
+            workoutEntries((w) => w.durationMinutes, 'stairClimber'),
+            minutes,
+          ),
+          record(
+            'longest-workout',
+            'Longest workout',
+            'workout',
+            workoutEntries((w) => w.durationMinutes),
+            minutes,
+          ),
+          record(
+            'biggest-burn',
+            'Biggest burn',
+            'energy',
+            workoutEntries((w) => w.calories),
+            (v) => `${v.toLocaleString()} kcal`,
+          ),
+        ]),
         record(
           'heaviest-set',
           'Heaviest set',
@@ -176,21 +184,24 @@ export function buildAchievements({
           sets,
           (v) => `${v} kg`,
         ),
-        record(
-          'most-water',
-          'Most water',
-          'water',
-          water.flatMap(({ date, liters }) =>
-            liters === null ? [] : [{ date, value: liters }],
+        ...when(water, [
+          record(
+            'most-water',
+            'Most water',
+            'water',
+            (water ?? []).flatMap(({ date, liters }) =>
+              liters === null ? [] : [{ date, value: liters }],
+            ),
+            (v) => `${v.toFixed(1)} L`,
           ),
-          (v) => `${v.toFixed(1)} L`,
-        ),
+        ]),
       ],
     },
     {
       title: 'Steps',
-      badges: [10_000, 15_000, DAILY_STEP_GOAL, 25_000, 30_000].map(
-        (target) => ({
+      badges: when(
+        steps,
+        [10_000, 15_000, DAILY_STEP_GOAL, 25_000, 30_000].map((target) => ({
           id: `steps-${target}`,
           title: `${target.toLocaleString()} steps`,
           art: 'steps',
@@ -198,45 +209,57 @@ export function buildAchievements({
           date:
             stepEntries.find((entry) => entry.value >= target)?.date ?? null,
           progress: { current: Math.min(bestSteps, target), target },
-        }),
+        })),
       ),
     },
     {
       title: 'Streaks',
       badges: [
-        ...milestones(
-          'goal-streak',
-          'streak',
-          streakDates(
-            steps.map(({ date, steps: value }) => ({
-              date,
-              hit: value !== null && value >= DAILY_STEP_GOAL,
-            })),
+        ...when(
+          steps,
+          milestones(
+            'goal-streak',
+            'streak',
+            streakDates(
+              (steps ?? []).map(({ date, steps: value }) => ({
+                date,
+                hit: value !== null && value >= DAILY_STEP_GOAL,
+              })),
+            ),
+            [3, 7, 14, 30],
+            (n) => `${n}-day step goal`,
+            (n) => `${n}d`,
           ),
-          [3, 7, 14, 30],
-          (n) => `${n}-day step goal`,
-          (n) => `${n}d`,
         ),
-        ...milestones(
-          'workout-streak',
-          'workout',
-          streakDates(
-            workouts.map(({ date }) => ({ date, hit: workoutDays.has(date) })),
+        ...when(
+          workouts,
+          milestones(
+            'workout-streak',
+            'workout',
+            streakDates(
+              (workouts ?? []).map(({ date }) => ({
+                date,
+                hit: workoutDays.has(date),
+              })),
+            ),
+            [3, 7, 14],
+            (n) => `${n} workout days in a row`,
+            (n) => `${n}d`,
           ),
-          [3, 7, 14],
-          (n) => `${n} workout days in a row`,
-          (n) => `${n}d`,
         ),
       ],
     },
     {
       title: 'Workouts',
-      badges: milestones(
-        'workouts',
-        'trophy',
-        allWorkouts.map(({ date }) => date),
-        [1, 10, 25, 50, 100, 250],
-        (n) => (n === 1 ? 'First workout' : plural(n, 'workout')),
+      badges: when(
+        workouts,
+        milestones(
+          'workouts',
+          'trophy',
+          allWorkouts.map(({ date }) => date),
+          [1, 10, 25, 50, 100, 250],
+          (n) => (n === 1 ? 'First workout' : plural(n, 'workout')),
+        ),
       ),
     },
     {
@@ -257,15 +280,19 @@ export function buildAchievements({
     },
     {
       title: 'Hydration',
-      badges: milestones(
-        'water',
-        'water',
-        water.flatMap(({ date, liters }) =>
-          liters !== null && liters > 0 ? [date] : [],
+      badges: when(
+        water,
+        milestones(
+          'water',
+          'water',
+          (water ?? []).flatMap(({ date, liters }) =>
+            liters !== null && liters > 0 ? [date] : [],
+          ),
+          [1, 7, 30, 100],
+          (n) => (n === 1 ? 'First water log' : `${n} days logged`),
         ),
-        [1, 7, 30, 100],
-        (n) => (n === 1 ? 'First water log' : `${n} days logged`),
       ),
     },
   ]
+  return sections.filter((section) => section.badges.length > 0)
 }

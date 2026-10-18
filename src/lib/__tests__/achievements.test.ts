@@ -43,6 +43,20 @@ describe('buildAchievements', () => {
     expect(sections.flatMap((s) => s.badges).every((b) => !b.date)).toBe(true)
   })
 
+  it('leaves out badges from Health sources that could not be read', () => {
+    const sections = buildAchievements({
+      steps: null,
+      water: null,
+      workouts: null,
+      gymLogs: {},
+    })
+    expect(sections.map((s) => s.title)).toEqual([
+      'Personal records',
+      'Lifting',
+    ])
+    expect(sections[0].badges.map((b) => b.id)).toEqual(['heaviest-set'])
+  })
+
   it('dates records, thresholds and streaks by the first day they happened', () => {
     const get = badges({
       steps: [

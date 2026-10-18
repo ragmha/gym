@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -20,6 +20,7 @@ import { useGymLogStore } from '@/stores/GymLogStore'
 
 // ponytail: one year of Health history; widen if older records matter.
 const DAYS = 365
+const SOURCES = ['steps', 'water', 'workouts'] as const
 
 type History = Omit<AchievementInput, 'gymLogs'>
 
@@ -78,27 +79,31 @@ export default function AchievementsScreen() {
   const theme = useTheme()
   const colorScheme = useColorScheme()
   const gymLogs = useGymLogStore((state) => state.logs)
+  const requestRef = useRef(0)
   const [history, setHistory] = useState<History | null>(null)
-  const [failed, setFailed] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
   const load = useCallback(async () => {
+    const request = ++requestRef.current
     const today = new Date()
-    try {
-      const [steps, water, workouts] = await Promise.all([
-        healthSnapshot.getStepHistory(today, DAYS),
-        healthSnapshot.getWaterHistory(today, DAYS),
-        healthSnapshot.getWorkoutHistory(today, DAYS),
-      ])
-      setHistory({ steps, water, workouts })
-      setFailed(false)
-    } catch {
-      setFailed(true)
-    }
+    const [steps, water, workouts] = await Promise.allSettled([
+      healthSnapshot.getStepHistory(today, DAYS),
+      healthSnapshot.getWaterHistory(today, DAYS),
+      healthSnapshot.getWorkoutHistory(today, DAYS),
+    ])
+    if (requestRef.current !== request) return
+    setHistory({
+      steps: steps.status === 'fulfilled' ? steps.value : null,
+      water: water.status === 'fulfilled' ? water.value : null,
+      workouts: workouts.status === 'fulfilled' ? workouts.value : null,
+    })
   }, [])
 
   useEffect(() => {
     void load()
+    return () => {
+      requestRef.current += 1
+    }
   }, [load])
 
   const onRefresh = useCallback(async () => {
@@ -108,6 +113,9 @@ export default function AchievementsScreen() {
   }, [load])
 
   const sections = history ? buildAchievements({ ...history, gymLogs }) : []
+  const failed = history
+    ? SOURCES.filter((source) => history[source] === null)
+    : []
   const earned = sections
     .flatMap((section) => section.badges)
     .filter((badge) => badge.date !== null).length
@@ -135,12 +143,16 @@ export default function AchievementsScreen() {
           />
         }
       >
-        {failed && !history ? (
-          <HealthReadState onRetry={onRefresh} />
-        ) : !history ? (
+        {!history ? (
           <HealthReadState loading />
         ) : (
           <>
+            {failed.length > 0 && (
+              <HealthReadState
+                error={`Couldn't read ${failed.join(', ')} history, so those awards are hidden.`}
+                onRetry={onRefresh}
+              />
+            )}
             {sections.map((section) => (
               <View key={section.title} style={styles.section}>
                 <Text
