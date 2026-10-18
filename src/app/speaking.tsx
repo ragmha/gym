@@ -93,6 +93,7 @@ export default function SpeakingScreen() {
   const again = () => {
     transcript.reset()
     setResult(null)
+    setIndex(0)
     setPhase('setup')
   }
   const select = (next: number) => {

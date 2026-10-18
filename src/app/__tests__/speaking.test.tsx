@@ -93,6 +93,9 @@ describe('SpeakingScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Practice again' }))
     expect(screen.getByText('Choose a topic')).toBeOnTheScreen()
     expect(screen.getByTestId('speaking-focus')).toBeOnTheScreen()
+    expect(
+      screen.getByRole('radio', { name: 'What an AI agent actually is' }),
+    ).toHaveProp('accessibilityState', { checked: true })
   })
 
   it('highlights the script words already read while shadowing', async () => {
