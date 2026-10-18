@@ -27,6 +27,13 @@ try {
       `action=${decision.action}\nruntime-version=${decision.runtimeVersion}\n`,
     )
   }
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const path = decision.action === 'update' ? 'OTA update' : 'native build'
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      `### Release path: ${path}\n\n${decision.message}\n`,
+    )
+  }
   console.log(decision.message)
 } catch (error) {
   console.error(

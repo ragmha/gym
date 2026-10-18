@@ -33,7 +33,7 @@ const requiredSkills: RequiredSkill[] = [
   },
   {
     name: 'eas-release',
-    requiredTerms: ['eas update --auto', 'build.yml', 'runtimeVersion'],
+    requiredTerms: ['Release path', 'build.yml', 'runtimeVersion'],
   },
   {
     name: 'new-screen-route',

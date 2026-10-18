@@ -463,6 +463,7 @@ it('the real selection and decision CLIs bind evidence to the anchor, not a reje
     CURRENT_COMMIT: current,
     RELEASE_EVENT: 'push',
     BASE_COMMIT: accepted,
+    GITHUB_STEP_SUMMARY: '',
     FINGERPRINT_BASE_COMMIT: candidate.detector.previousCommit,
     FINGERPRINT_CURRENT_COMMIT: candidate.detector.currentCommit,
     PREVIOUS_FINGERPRINT: candidate.detector.previousFingerprint,
