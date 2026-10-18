@@ -210,16 +210,19 @@ export default function SpeakingScreen() {
                 accessibilityLabel={item.title}
                 accessibilityState={{ checked: i === index }}
                 onPress={() => select(i)}
-                hitSlop={8}
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      i === index ? theme.text : theme.subtitleText,
-                    opacity: i === index ? 1 : 0.4,
-                  },
-                ]}
-              />
+                style={styles.dotTarget}
+              >
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor:
+                        i === index ? theme.text : theme.subtitleText,
+                      opacity: i === index ? 1 : 0.4,
+                    },
+                  ]}
+                />
+              </Pressable>
             ))}
           </View>
 
@@ -302,7 +305,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   center: { textAlign: 'center' },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.sm },
+  dots: { flexDirection: 'row', justifyContent: 'center' },
+  dotTarget: {
+    width: Layout.controlSize,
+    height: Layout.controlSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dot: { width: 8, height: 8, borderRadius: 4 },
   orb: { width: 260, height: 260 },
   icon: {
@@ -317,7 +326,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
-    minHeight: 40,
+    minHeight: Layout.controlSize,
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.md,
   },
