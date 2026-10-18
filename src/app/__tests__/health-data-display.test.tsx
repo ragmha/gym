@@ -1,11 +1,9 @@
-import { fireEvent, render } from '@testing-library/react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { render } from '@testing-library/react-native'
+import { useLocalSearchParams } from 'expo-router'
 
-import { useDailyCoachInsight } from '@/hooks/useDailyCoachInsight'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
 
-import FitnessMetricsScreen from '../fitness-metrics'
 import HomeScreen from '../index'
 import StepsScreen from '../steps'
 
@@ -58,14 +56,6 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }))
 
-jest.mock('@/hooks/useDailyCoachInsight', () => ({
-  useDailyCoachInsight: jest.fn(() => ({ insight: null, status: 'idle' })),
-}))
-
-jest.mock('@/components/charts/ActivityHeatmap', () => ({
-  ActivityHeatmap: () => null,
-}))
-
 jest.mock('@/components/dashboard/CalendarStrip', () => ({
   CalendarStrip: () => null,
 }))
@@ -101,10 +91,6 @@ jest.mock('@/hooks/useThemeColor', () => {
 beforeEach(() => {
   mockSnapshot = null
   jest.clearAllMocks()
-  jest.mocked(useDailyCoachInsight).mockReturnValue({
-    insight: null,
-    status: 'idle',
-  })
   jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-12' })
 })
 
@@ -168,10 +154,7 @@ describe('HomeScreen health data', () => {
   })
 
   describe('Selected-day health routes', () => {
-    it.each([
-      { name: 'steps', Screen: StepsScreen },
-      { name: 'all metrics', Screen: FitnessMetricsScreen },
-    ])(
+    it.each([{ name: 'steps', Screen: StepsScreen }])(
       'reads $name for the requested local date instead of today',
       ({ Screen }) => {
         jest
@@ -194,53 +177,6 @@ describe('HomeScreen health data', () => {
       },
     )
 
-    it('passes the same date from all metrics to step details', () => {
-      const push = jest.fn()
-      jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
-      jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-11' })
-      const { getByText } = render(<FitnessMetricsScreen />)
-
-      fireEvent.press(getByText('Steps'))
-
-      expect(push).toHaveBeenCalledWith({
-        pathname: '/steps',
-        params: { date: '2026-09-11' },
-      })
-    })
-
-    it('passes the same date from all metrics to water history', () => {
-      const push = jest.fn()
-      jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
-      jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-11' })
-      mockSnapshot = completeSnapshot
-      const { getByRole } = render(<FitnessMetricsScreen />)
-
-      const row = getByRole('button', { name: /^Hydration / })
-      expect(row.props.accessibilityHint).toMatch(
-        /Opens water history for the selected day$/,
-      )
-      fireEvent.press(row)
-
-      expect(push).toHaveBeenCalledWith({
-        pathname: '/water',
-        params: { date: '2026-09-11' },
-      })
-    })
-
-    it('keeps Add weight reachable on the same day through Gym fitness details', () => {
-      const push = jest.fn()
-      jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
-      jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-11' })
-      const { getByRole } = render(<FitnessMetricsScreen />)
-
-      fireEvent.press(getByRole('button', { name: 'Add weight' }))
-
-      expect(push).toHaveBeenCalledWith({
-        pathname: '/add-weight',
-        params: { date: '2026-09-11' },
-      })
-    })
-
     it.each([
       { date: 'invalid' },
       { date: '2026-02-31' },
@@ -250,179 +186,13 @@ describe('HomeScreen health data', () => {
       'rejects an invalid or ambiguous date without silently showing today: $date',
       ({ date }) => {
         jest.mocked(useLocalSearchParams).mockReturnValue({ date })
-        const { getByRole, getByText } = render(<FitnessMetricsScreen />)
+        const { getByRole, getByText } = render(<StepsScreen />)
 
         expect(getByRole('alert')).toBeTruthy()
         expect(getByText('Open Insights')).toBeTruthy()
         expect(useHealthSnapshot).not.toHaveBeenCalled()
       },
     )
-  })
-})
-
-describe('FitnessMetricsScreen health data', () => {
-  it('leads with all measurements instead of repeated explanations', () => {
-    mockSnapshot = completeSnapshot
-    const { getByText, getByRole, getByLabelText, queryByText } = render(
-      <FitnessMetricsScreen />,
-    )
-
-    for (const label of [
-      'Steps',
-      'Calories',
-      'Flights Climbed',
-      'Recovery estimate',
-      'Sleep',
-      'Heart Rate',
-      'HRV',
-      'Resting HR',
-      'Latest weight',
-      'Hydration',
-      'Calories Eaten',
-    ]) {
-      expect(getByText(label)).toBeTruthy()
-    }
-    expect(queryByText('Recorded in Apple Health')).toBeNull()
-    expect(queryByText('No reading available')).toBeNull()
-    expect(queryByText('Goal: 20,000')).toBeNull()
-    expect(queryByText('Latest weigh-in')).toBeNull()
-    expect(getByLabelText('Morning weight 78.4 kilograms')).toBeTruthy()
-    expect(getByText('7-day average: 78.4 kg')).toBeTruthy()
-    expect(getByRole('button', { name: 'Add weight' })).toBeTruthy()
-    expect(
-      getByRole('button', { name: 'About these readings' }).props
-        .accessibilityState,
-    ).toEqual({ expanded: false })
-  })
-
-  it('keeps data caveats available behind a single expandable explanation', () => {
-    mockSnapshot = completeSnapshot
-    const { getAllByText, getByText, getByRole, queryByText } = render(
-      <FitnessMetricsScreen />,
-    )
-    const about = getByRole('button', { name: 'About these readings' })
-
-    expect(queryByText(/means unavailable, not zero/)).toBeNull()
-    fireEvent.press(about)
-    expect(about.props.accessibilityState).toEqual({ expanded: true })
-    expect(getByText(/means unavailable, not zero/)).toBeTruthy()
-    expect(getByText(/Weight is the latest weigh-in/)).toBeTruthy()
-    expect(getByText(/Recovery is estimated/)).toBeTruthy()
-    expect(getByText(/not measured step counts/)).toBeTruthy()
-
-    fireEvent.press(about)
-    expect(queryByText(/means unavailable, not zero/)).toBeNull()
-    expect(about.props.accessibilityState).toEqual({ expanded: false })
-    // Latest-weight row plus the morning weight panel.
-    expect(getAllByText('78.4 kg')).toHaveLength(2)
-  })
-
-  it('keeps coach prose collapsed without removing access to the full insight', () => {
-    mockSnapshot = completeSnapshot
-    jest.mocked(useDailyCoachInsight).mockReturnValue({
-      insight: {
-        headline: 'Your daily insight',
-        body: 'Insight body for this day.',
-        suggestion: 'A suggestion for this day.',
-        tone: 'steady',
-      },
-      status: 'ready',
-    })
-    const { getByText, getByRole, queryByText } = render(
-      <FitnessMetricsScreen />,
-    )
-    const coach = getByRole('button', { name: 'Coach insight' })
-
-    expect(queryByText('Your daily insight')).toBeNull()
-    expect(queryByText('Insight body for this day.')).toBeNull()
-    expect(coach.props.accessibilityState).toEqual({ expanded: false })
-
-    fireEvent.press(coach)
-    expect(getByText('Your daily insight')).toBeTruthy()
-    expect(getByText('Insight body for this day.')).toBeTruthy()
-    expect(getByText('A suggestion for this day.')).toBeTruthy()
-    fireEvent.press(coach)
-    expect(queryByText('Insight body for this day.')).toBeNull()
-  })
-
-  it('collapses explanations when the selected date changes', () => {
-    const { getByRole, queryByText, rerender } = render(
-      <FitnessMetricsScreen />,
-    )
-    fireEvent.press(getByRole('button', { name: 'About these readings' }))
-    expect(queryByText(/means unavailable, not zero/)).toBeTruthy()
-
-    jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-11' })
-    rerender(<FitnessMetricsScreen />)
-    expect(queryByText(/means unavailable, not zero/)).toBeNull()
-    expect(
-      getByRole('button', { name: 'About these readings' }).props
-        .accessibilityState,
-    ).toEqual({ expanded: false })
-  })
-
-  it.each([null, missingSnapshot])(
-    'does not send a fabricated recovery assessment to the coach: %j',
-    (snapshot) => {
-      mockSnapshot = snapshot
-      const { getByText, getByRole, getByLabelText, queryByText } = render(
-        <FitnessMetricsScreen />,
-      )
-
-      expect(queryByText('Not enough recovery data')).toBeNull()
-      expect(getByLabelText('Recovery estimate unavailable')).toBeTruthy()
-      expect(getByText('-- %')).toBeTruthy()
-      expect(queryByText('Under-recovered')).toBeNull()
-      fireEvent.press(getByRole('button', { name: 'About these readings' }))
-      expect(getByText('Not enough recovery data')).toBeTruthy()
-      expect(useDailyCoachInsight).toHaveBeenLastCalledWith({
-        snapshot,
-        recovery: null,
-      })
-    },
-  )
-
-  it.each(['hrv', 'restingHeartRate', 'sleepHours'] as const)(
-    'keeps recovery unavailable when %s is missing',
-    (missingMetric) => {
-      mockSnapshot = { ...completeSnapshot, [missingMetric]: null }
-      const { getByText } = render(<FitnessMetricsScreen />)
-
-      expect(getByText('-- %')).toBeTruthy()
-      expect(getByText('8,000')).toBeTruthy()
-      expect(useDailyCoachInsight).toHaveBeenLastCalledWith({
-        snapshot: mockSnapshot,
-        recovery: null,
-      })
-    },
-  )
-
-  it('shows real zeros while keeping unavailable recovery neutral', () => {
-    mockSnapshot = {
-      ...missingSnapshot,
-      steps: 0,
-      calories: 0,
-      sleepHours: 0,
-      waterLiters: 0,
-    }
-    const { getByText } = render(<FitnessMetricsScreen />)
-
-    expect(getByText('0')).toBeTruthy()
-    expect(getByText('0 kcal')).toBeTruthy()
-    expect(getByText('0.0 hrs')).toBeTruthy()
-    expect(getByText('0.0 L')).toBeTruthy()
-    expect(getByText('-- %')).toBeTruthy()
-  })
-
-  it('forwards the unchanged complete-input recovery score', () => {
-    mockSnapshot = completeSnapshot
-    const { getByText } = render(<FitnessMetricsScreen />)
-
-    expect(getByText('85 %')).toBeTruthy()
-    expect(useDailyCoachInsight).toHaveBeenLastCalledWith({
-      snapshot: completeSnapshot,
-      recovery: expect.objectContaining({ score: 85, tone: 'primed' }),
-    })
   })
 })
 

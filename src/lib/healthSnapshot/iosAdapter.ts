@@ -20,12 +20,12 @@ import { Platform } from 'react-native'
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
+  DailyStepReading,
   DailyWaterReading,
   DailyWorkouts,
   HealthBodyMassSample,
   HealthSnapshotSource,
   HealthWorkout,
-  IntensityMap,
   StairSessionHeartRate,
 } from '@/lib/healthSnapshot/types'
 
@@ -79,12 +79,40 @@ function sleepWindow(date: Date): { startDate: Date; endDate: Date } {
   return { startDate, endDate }
 }
 
-function rangeWindow(daysBack: number): { startDate: Date; endDate: Date } {
-  const endDate = new Date()
-  const startDate = new Date(endDate)
-  startDate.setDate(startDate.getDate() - (daysBack - 1))
-  startDate.setHours(0, 0, 0, 0)
-  return { startDate, endDate }
+/** One bulk daily-sum query; days with no valid reading are absent, observed zeroes kept. */
+async function dailyTotals(
+  identifier:
+    | 'HKQuantityTypeIdentifierStepCount'
+    | 'HKQuantityTypeIdentifierDietaryWater',
+  unit: 'count' | 'l',
+  endDate: Date,
+  days: number,
+): Promise<Map<string, number>> {
+  const totals = new Map<string, number>()
+  const startDate = dayWindow(localDaysEnding(endDate, days)[0]).startDate
+  const end = dayWindow(endDate).endDate
+  if (startDate >= end) return totals
+
+  const daily = await queryStatisticsCollectionForQuantity(
+    identifier,
+    ['cumulativeSum'],
+    startDate,
+    { day: 1 },
+    { unit, filter: { date: { startDate, endDate: end } } },
+  )
+  for (const statistics of daily) {
+    const quantity = statistics.sumQuantity?.quantity
+    if (
+      !statistics.startDate ||
+      quantity == null ||
+      !Number.isFinite(quantity) ||
+      quantity < 0
+    ) {
+      continue
+    }
+    totals.set(localDateKey(toDate(statistics.startDate)), quantity)
+  }
+  return totals
 }
 
 function roundInt(value: number): number {
@@ -488,86 +516,41 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
     }
   },
 
-  async getRangeIntensity(daysBack: number): Promise<IntensityMap> {
-    if (!this.isAvailable()) return new Map()
-
-    const intensity = new Map<string, number>()
-    const filter = { date: rangeWindow(daysBack) }
-
-    try {
-      const dailySteps = await queryStatisticsCollectionForQuantity(
-        'HKQuantityTypeIdentifierStepCount',
-        ['cumulativeSum'],
-        filter.date.startDate,
-        { day: 1 },
-        {
-          unit: 'count',
-          filter,
-        },
-      )
-      for (const statistics of dailySteps) {
-        const quantity = statistics.sumQuantity?.quantity
-        if (!statistics.startDate || quantity == null) continue
-        const day = localDateKey(toDate(statistics.startDate))
-        intensity.set(day, roundInt(quantity))
-      }
-    } catch (err) {
-      warnHealthSnapshotFailure('intensity steps read', err)
-    }
-
-    try {
-      const workoutSamples = await queryWorkoutSamples({
-        limit: 0,
-        filter,
-      })
-      for (const workout of workoutSamples) {
-        const day = localDateKey(toDate(workout.startDate))
-        intensity.set(day, (intensity.get(day) ?? 0) + 5_000)
-      }
-    } catch (err) {
-      warnHealthSnapshotFailure('intensity workouts read', err)
-    }
-
-    return intensity
+  async getStepHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyStepReading[]> {
+    const totals = this.isAvailable()
+      ? await dailyTotals(
+          'HKQuantityTypeIdentifierStepCount',
+          'count',
+          endDate,
+          days,
+        )
+      : new Map<string, number>()
+    return localDaysEnding(endDate, days).map((day) => {
+      const date = localDateKey(day)
+      const steps = totals.get(date)
+      return { date, steps: steps === undefined ? null : roundInt(steps) }
+    })
   },
 
   async getWaterHistory(
     endDate: Date,
     days: number,
   ): Promise<DailyWaterReading[]> {
-    const range = localDaysEnding(endDate, days)
-    const totals = new Map<string, number>()
-    const startDate = dayWindow(range[0]).startDate
-    const end = dayWindow(endDate).endDate
-
-    if (this.isAvailable() && startDate < end) {
-      const daily = await queryStatisticsCollectionForQuantity(
-        'HKQuantityTypeIdentifierDietaryWater',
-        ['cumulativeSum'],
-        startDate,
-        { day: 1 },
-        { unit: 'l', filter: { date: { startDate, endDate: end } } },
-      )
-      for (const statistics of daily) {
-        const liters = statistics.sumQuantity?.quantity
-        if (
-          !statistics.startDate ||
-          liters == null ||
-          !Number.isFinite(liters) ||
-          liters < 0
-        ) {
-          continue
-        }
-        totals.set(
-          localDateKey(toDate(statistics.startDate)),
-          roundTenths(liters),
+    const totals = this.isAvailable()
+      ? await dailyTotals(
+          'HKQuantityTypeIdentifierDietaryWater',
+          'l',
+          endDate,
+          days,
         )
-      }
-    }
-
-    return range.map((day) => {
+      : new Map<string, number>()
+    return localDaysEnding(endDate, days).map((day) => {
       const date = localDateKey(day)
-      return { date, liters: totals.get(date) ?? null }
+      const liters = totals.get(date)
+      return { date, liters: liters === undefined ? null : roundTenths(liters) }
     })
   },
 

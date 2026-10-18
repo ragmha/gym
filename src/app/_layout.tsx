@@ -89,7 +89,7 @@ export default function RootLayout() {
               options={{ title: 'Phone rest', headerShown: true }}
             />
             <Stack.Screen
-              name="fitness-metrics"
+              name="achievements"
               options={{ headerShown: false }}
             />
             <Stack.Screen name="gym" options={{ headerShown: false }} />

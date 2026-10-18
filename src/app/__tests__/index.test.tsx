@@ -9,7 +9,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { AppState, Platform, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap'
 import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot'
 import { Colors, type ThemeName } from '@/constants/Colors'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
@@ -53,10 +52,6 @@ jest.mock('@/hooks/useColorScheme', () => ({
 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: jest.fn(() => ({ top: 0, bottom: 0, left: 0, right: 0 })),
-}))
-
-jest.mock('@/components/charts/ActivityHeatmap', () => ({
-  ActivityHeatmap: jest.fn(() => null),
 }))
 
 describe('HomeScreen', () => {
@@ -125,13 +120,14 @@ describe('HomeScreen', () => {
     }
     expect(screen.queryByText('Morning weight')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Previous week' })).toBeNull()
-    expect(ActivityHeatmap).not.toHaveBeenCalled()
     expect(screen.queryByText('More health data')).toBeNull()
     fireEvent.press(
       screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
     )
     expect(screen.getByText('Speaking')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'See all metrics' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'See achievements' }),
+    ).toBeTruthy()
   })
 
   it('keeps a steps-only day useful without empty metric cards', () => {
@@ -179,7 +175,6 @@ describe('HomeScreen', () => {
       screen.getByLabelText(/^Gym,.*Weight, 78\.4 kg weigh-in/),
     ).toBeTruthy()
     expect(screen.queryByText('7-day average: 78.4 kg')).toBeNull()
-    expect(ActivityHeatmap).not.toHaveBeenCalled()
   })
 
   it('keeps Settings in the header and icon-only navigation with page dots in the footer', () => {
@@ -385,12 +380,12 @@ describe('HomeScreen', () => {
     fireEvent.press(
       screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
     )
-    fireEvent.press(screen.getByRole('button', { name: 'See all metrics' }))
+    fireEvent.press(screen.getByRole('button', { name: 'See achievements' }))
 
     expect(mockPush.mock.calls).toEqual([
       ['/settings'],
       [{ pathname: '/coach', params: { date: '2026-09-12' } }],
-      [{ pathname: '/fitness-metrics', params: { date: '2026-09-12' } }],
+      [{ pathname: '/achievements', params: { date: '2026-09-12' } }],
     ])
   })
 
@@ -426,12 +421,12 @@ describe('HomeScreen', () => {
     fireEvent.press(
       screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
     )
-    fireEvent.press(screen.getByRole('button', { name: 'See all metrics' }))
+    fireEvent.press(screen.getByRole('button', { name: 'See achievements' }))
 
     expect(mockPush.mock.calls).toEqual([
       [{ pathname: '/steps', params: { date: '2026-09-11' } }],
       [{ pathname: '/coach', params: { date: '2026-09-11' } }],
-      [{ pathname: '/fitness-metrics', params: { date: '2026-09-11' } }],
+      [{ pathname: '/achievements', params: { date: '2026-09-11' } }],
     ])
   })
 

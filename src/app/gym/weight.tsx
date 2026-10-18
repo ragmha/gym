@@ -74,15 +74,6 @@ function WeightForDate({ date }: { date: Date }) {
           Add weight
         </Text>
       </Pressable>
-      <Pressable
-        accessibilityRole="link"
-        onPress={() => router.push({ pathname: '/fitness-metrics', params })}
-        hitSlop={8}
-      >
-        <Text style={[styles.label, { color: theme.subtitleText }]}>
-          All weigh-ins
-        </Text>
-      </Pressable>
     </ActivityDetail>
   )
 }

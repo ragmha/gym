@@ -91,7 +91,7 @@ describe('SettingsScreen Health access', () => {
     jest.mocked(useFocusEffect).mockImplementation(useTestFocusEffect)
     mockSource = {
       getDailySnapshot: jest.fn(async (_date: Date) => emptySnapshot),
-      getRangeIntensity: jest.fn(async (_daysBack: number) => new Map()),
+      getStepHistory: jest.fn(async (_endDate: Date, _days: number) => []),
       getWaterHistory: jest.fn(async (_endDate: Date, _days: number) => []),
       getWorkoutHistory: jest.fn(async (_endDate: Date, _days: number) => []),
       getStairWorkouts: jest.fn(async () => []),
