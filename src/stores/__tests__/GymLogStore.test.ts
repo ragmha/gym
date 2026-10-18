@@ -12,7 +12,6 @@ describe('GymLogStore', () => {
     state().removeLastSet(key, 'exercise-1')
     state().finishWorkout(key, {
       rating: 8,
-      notes: '  strong  ',
       finishedAt: new Date('2026-10-17T13:00:00Z'),
     })
 
@@ -21,7 +20,6 @@ describe('GymLogStore', () => {
       sets: { 'exercise-1': [{ reps: 15, kilograms: 40 }] },
       finishedAt: '2026-10-17T13:00:00.000Z',
       rating: 8,
-      notes: 'strong',
     })
   })
 
@@ -40,7 +38,6 @@ describe('GymLogStore', () => {
     const finish = () =>
       state().finishWorkout(key, {
         rating: 7,
-        notes: '',
         finishedAt: new Date(),
       })
     finish()

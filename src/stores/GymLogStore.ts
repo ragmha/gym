@@ -17,7 +17,6 @@ export interface GymDayLog {
   sets: Record<string, LoggedSet[]>
   finishedAt: string | null
   rating: number | null
-  notes: string
 }
 
 interface GymLogState {
@@ -34,7 +33,7 @@ interface GymLogState {
   removeLastSet: (dateKey: string, exerciseId: string) => void
   finishWorkout: (
     dateKey: string,
-    summary: { rating: number; notes: string; finishedAt: Date },
+    summary: { rating: number; finishedAt: Date },
   ) => void
 }
 
@@ -66,7 +65,6 @@ export const useGymLogStore = create<GymLogState>()(
             sets: {},
             finishedAt: null,
             rating: null,
-            notes: '',
           }
           return {
             logs: {
@@ -96,7 +94,7 @@ export const useGymLogStore = create<GymLogState>()(
           }
           return { logs }
         }),
-      finishWorkout: (dateKey, { rating, notes, finishedAt }) =>
+      finishWorkout: (dateKey, { rating, finishedAt }) =>
         set((state) => {
           const log = state.logs[dateKey]
           const hasSets = Object.values(log?.sets ?? {}).some((s) => s.length)
@@ -115,7 +113,6 @@ export const useGymLogStore = create<GymLogState>()(
               [dateKey]: {
                 ...log,
                 rating,
-                notes: notes.trim(),
                 finishedAt: finishedAt.toISOString(),
               },
             },

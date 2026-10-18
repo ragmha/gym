@@ -426,7 +426,6 @@ describe('GoalGrid', () => {
           sets: { 'exercise-1': [{ reps: 15, kilograms: 40 }] },
           finishedAt: '2026-09-12T16:06:00.000Z',
           rating: 7,
-          notes: '',
         },
       },
     })
