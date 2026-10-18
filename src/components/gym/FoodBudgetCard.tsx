@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useReducedMotion } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
@@ -20,13 +22,30 @@ type Macros = {
   fat: number | null
 }
 
-const MACROS = [
+export const MACROS = [
   { key: 'protein', label: 'Protein', color: 'accent' },
   { key: 'carbs', label: 'Carbs', color: 'metricCalories' },
   { key: 'fat', label: 'Fat', color: 'metricSleep' },
 ] as const
 
 const show = (value: number | null) => (value === null ? '--' : `${value}`)
+
+/** Eases 0 to 1 once on mount so the gauge sweeps and the number counts up. */
+export function useEntrance(durationMs = 900) {
+  const reducedMotion = useReducedMotion()
+  const [t, setT] = useState(0)
+  useEffect(() => {
+    if (reducedMotion) return
+    const start = performance.now()
+    let frame = requestAnimationFrame(function step(now) {
+      const x = Math.min((now - start) / durationMs, 1)
+      setT(1 - (1 - x) ** 3)
+      if (x < 1) frame = requestAnimationFrame(step)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [reducedMotion, durationMs])
+  return reducedMotion ? 1 : t
+}
 
 /** The day's budget: goal plus workouts against food eaten, then macro grams against targets. */
 export function FoodBudgetCard({
@@ -48,11 +67,18 @@ export function FoodBudgetCard({
   const progress =
     eatenKcal === null || budget === null ? 0 : Math.min(eatenKcal / budget, 1)
   const mono = [styles.mono, { color: theme.subtitleText }]
+  const t = useEntrance()
 
   return (
     <View
       testID="food-budget"
-      style={[styles.card, { backgroundColor: theme.homeSurface }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.homeBackground,
+          borderColor: theme.goalTrack,
+        },
+      ]}
     >
       <Text
         accessibilityRole="header"
@@ -88,13 +114,13 @@ export function FoodBudgetCard({
                 }
                 strokeWidth={STROKE}
                 strokeLinecap="round"
-                strokeDasharray={[ARC_LENGTH * progress, ARC_LENGTH]}
+                strokeDasharray={[ARC_LENGTH * progress * t, ARC_LENGTH]}
               />
             )}
           </Svg>
           <View style={styles.gaugeCenter}>
             <Text style={[styles.left, { color: theme.text }]}>
-              {left === null ? '--' : Math.abs(left)}
+              {left === null ? '--' : Math.round(Math.abs(left) * t)}
             </Text>
             <Text style={mono}>
               {left === null ? 'Left' : left >= 0 ? 'Under' : 'Over'}
@@ -123,7 +149,10 @@ export function FoodBudgetCard({
                 <View
                   style={[
                     styles.track,
-                    { width: `${fill * 100}%`, backgroundColor: theme[color] },
+                    {
+                      width: `${fill * t * 100}%`,
+                      backgroundColor: theme[color],
+                    },
                   ]}
                 />
               </View>
@@ -159,6 +188,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderCurve: 'continuous',
+    borderWidth: 2,
   },
   gaugeRow: { flexDirection: 'row', alignItems: 'center' },
   gauge: { width: SIZE, height: SIZE },

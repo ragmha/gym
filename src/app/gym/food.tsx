@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { ActivityScreen } from '@/components/gym/ActivityDetail'
 import { FoodBudgetCard } from '@/components/gym/FoodBudgetCard'
+import { ChipTabs, FoodWeekCard } from '@/components/gym/FoodWeekCard'
 import {
   foodEmoji,
   macroTargets,
@@ -31,6 +32,7 @@ const GOAL_STEP_KCAL = 50
 const GOAL_MIN_KCAL = 1200
 const GOAL_MAX_KCAL = 4000
 const SLOTS: MealSlot[] = ['Breakfast', 'Lunch', 'Dinner', 'Snacks']
+const VIEWS = ['Today', 'Week'] as const
 
 export default function FoodScreen() {
   return (
@@ -147,6 +149,7 @@ function FoodForDate({ date }: { date: Date }) {
     [load, refresh],
   )
   const entry = useMealPhoto(date, reload)
+  const [view, setView] = useState<(typeof VIEWS)[number]>('Today')
 
   const exercise = workoutKcal(snapshot)
   const eaten = snapshot?.dietaryCalories
@@ -156,199 +159,221 @@ function FoodForDate({ date }: { date: Date }) {
 
   return (
     <ActivityScreen testID="gym-food-screen" title="Food" date={date}>
-      <FoodBudgetCard
-        goalKcal={goal}
-        eatenKcal={eaten == null ? null : Math.round(eaten)}
-        exerciseKcal={exercise}
-        grams={{
-          protein: log?.proteinGrams ?? null,
-          carbs: log?.carbsGrams ?? null,
-          fat: log?.fatGrams ?? null,
+      <Stack.Screen
+        options={{
+          gestureEnabled: entry.busy !== 'saving',
+          headerBackButtonMenuEnabled: entry.busy !== 'saving',
         }}
-        targets={targets}
       />
-
-      <View style={styles.section}>
-        <Text style={[Typography.headingSm, { color: theme.text }]}>
-          Workout support
-        </Text>
-        <Text style={muted}>
-          {exercise
-            ? `Workouts add ${exercise} kcal to your budget, as extra carbs to refuel.`
-            : 'Workout calories from Apple Health are added to your budget as carbs.'}
-        </Text>
-        <Text style={muted}>
-          {targets.protein === null
-            ? 'Log a weigh-in to get a protein target for lifting.'
-            : 'Protein target: 1.6 g per kg of body weight for lifting.'}
-        </Text>
-      </View>
-
-      {entry.blocked ? (
-        <Text style={[styles.section, muted]}>{entry.blocked}</Text>
+      <ChipTabs options={VIEWS} selected={view} onSelect={setView} />
+      {view === 'Week' ? (
+        <FoodWeekCard date={date} />
       ) : (
-        <View style={styles.section}>
-          {entry.busy === 'reading' ? (
-            <View style={styles.reading} accessibilityLiveRegion="polite">
-              <ActivityIndicator color={theme.accent} />
-              <Text style={muted}>Estimating calories on this iPhone...</Text>
-            </View>
-          ) : entry.draft ? (
-            <View
-              testID="food-estimate"
-              style={[styles.card, { backgroundColor: theme.homeSurface }]}
-            >
-              <View style={styles.row}>
-                <FoodEmoji name={entry.draft.name} size={32} />
-                <Text
-                  style={[
-                    Typography.headingMd,
-                    styles.name,
-                    { color: theme.text },
-                  ]}
-                >
-                  {entry.draft.name}
-                </Text>
-              </View>
-              <Text style={body}>{entry.draft.kcal} kcal</Text>
-              <Text style={muted}>
-                Protein {entry.draft.proteinGrams} g · Carbs{' '}
-                {entry.draft.carbsGrams} g · Fat {entry.draft.fatGrams} g
-              </Text>
-              <Text style={muted}>
-                {mealSlot(entry.draft.eatenAt)} ·{' '}
-                {entry.draft.eatenAt.toLocaleTimeString(undefined, {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })}
-              </Text>
-              <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
-                Estimated on this iPhone from the photo.
-              </Text>
-              <ActionButton
-                label="Save to Apple Health"
-                busy={entry.busy === 'saving'}
-                disabled={entry.busy !== null}
-                onPress={() => void entry.save()}
-              />
-              <ActionButton
-                label="Discard"
-                secondary
-                disabled={entry.busy !== null}
-                onPress={entry.discard}
-              />
-            </View>
-          ) : (
-            <>
-              <ActionButton
-                testID="food-snap"
-                label="Snap meal"
-                disabled={entry.busy !== null}
-                onPress={() => void entry.read('camera')}
-              />
-              <ActionButton
-                label="Choose photo"
-                secondary
-                disabled={entry.busy !== null}
-                onPress={() => void entry.read('library')}
-              />
-            </>
-          )}
-          {entry.message && (
-            <Text
-              accessibilityRole={entry.message.error ? 'alert' : 'text'}
-              style={[
-                Typography.bodySm,
-                {
-                  color: entry.message.error
-                    ? theme.danger
-                    : theme.subtitleText,
-                },
-              ]}
-            >
-              {entry.message.text}
-            </Text>
-          )}
-          <Stack.Screen
-            options={{
-              gestureEnabled: entry.busy !== 'saving',
-              headerBackButtonMenuEnabled: entry.busy !== 'saving',
+        <>
+          <FoodBudgetCard
+            goalKcal={goal}
+            eatenKcal={eaten == null ? null : Math.round(eaten)}
+            exerciseKcal={exercise}
+            grams={{
+              protein: log?.proteinGrams ?? null,
+              carbs: log?.carbsGrams ?? null,
+              fat: log?.fatGrams ?? null,
             }}
+            targets={targets}
           />
-        </View>
-      )}
 
-      <View style={styles.section}>
-        {failed ? (
-          <HealthReadState
-            error="Unable to load meals"
-            onRetry={() => void load()}
-          />
-        ) : log === null ? (
-          <HealthReadState loading />
-        ) : log.meals.length === 0 ? (
-          <Text style={muted}>No meals in Apple Health for this day.</Text>
-        ) : (
-          SLOTS.map((slot) => {
-            const meals = log.meals.filter(
-              (meal) => mealSlot(new Date(meal.startISO)) === slot,
-            )
-            if (meals.length === 0) return null
-            return (
-              <View
-                key={slot}
-                testID={`food-slot-${slot}`}
-                style={styles.group}
-              >
-                <View style={styles.row}>
-                  <Text style={[Typography.headingSm, { color: theme.text }]}>
-                    {slot}
-                  </Text>
+          <View style={styles.section}>
+            <Text style={[Typography.headingSm, { color: theme.text }]}>
+              Workout support
+            </Text>
+            <Text style={muted}>
+              {exercise
+                ? `Workouts add ${exercise} kcal to your budget, as extra carbs to refuel.`
+                : 'Workout calories from Apple Health are added to your budget as carbs.'}
+            </Text>
+            <Text style={muted}>
+              {targets.protein === null
+                ? 'Log a weigh-in to get a protein target for lifting.'
+                : 'Protein target: 1.6 g per kg of body weight for lifting.'}
+            </Text>
+          </View>
+
+          {entry.blocked ? (
+            <Text style={[styles.section, muted]}>{entry.blocked}</Text>
+          ) : (
+            <View style={styles.section}>
+              {entry.busy === 'reading' ? (
+                <View style={styles.reading} accessibilityLiveRegion="polite">
+                  <ActivityIndicator color={theme.accent} />
                   <Text style={muted}>
-                    {meals.reduce((sum, meal) => sum + meal.kcal, 0)} kcal
+                    Estimating calories on this iPhone...
                   </Text>
                 </View>
-                {meals.map((meal, index) => (
-                  <View key={`${meal.startISO}-${index}`} style={styles.row}>
-                    <FoodEmoji name={meal.name} size={24} />
-                    <Text style={[body, styles.name]} numberOfLines={1}>
-                      {meal.name ?? 'Food'}
+              ) : entry.draft ? (
+                <View
+                  testID="food-estimate"
+                  style={[
+                    styles.card,
+                    {
+                      backgroundColor: theme.homeBackground,
+                      borderColor: theme.goalTrack,
+                    },
+                  ]}
+                >
+                  <View style={styles.row}>
+                    <FoodEmoji name={entry.draft.name} size={32} />
+                    <Text
+                      style={[
+                        Typography.headingMd,
+                        styles.name,
+                        { color: theme.text },
+                      ]}
+                    >
+                      {entry.draft.name}
                     </Text>
-                    <Text style={muted}>{meal.kcal}</Text>
                   </View>
-                ))}
-              </View>
-            )
-          })
-        )}
-      </View>
+                  <Text style={body}>{entry.draft.kcal} kcal</Text>
+                  <Text style={muted}>
+                    Protein {entry.draft.proteinGrams} g · Carbs{' '}
+                    {entry.draft.carbsGrams} g · Fat {entry.draft.fatGrams} g
+                  </Text>
+                  <Text style={muted}>
+                    {mealSlot(entry.draft.eatenAt)} ·{' '}
+                    {entry.draft.eatenAt.toLocaleTimeString(undefined, {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                  <Text
+                    style={[Typography.bodySm, { color: theme.subtitleText }]}
+                  >
+                    Estimated on this iPhone from the photo.
+                  </Text>
+                  <ActionButton
+                    label="Save to Apple Health"
+                    busy={entry.busy === 'saving'}
+                    disabled={entry.busy !== null}
+                    onPress={() => void entry.save()}
+                  />
+                  <ActionButton
+                    label="Discard"
+                    secondary
+                    disabled={entry.busy !== null}
+                    onPress={entry.discard}
+                  />
+                </View>
+              ) : (
+                <>
+                  <ActionButton
+                    testID="food-snap"
+                    label="Snap meal"
+                    disabled={entry.busy !== null}
+                    onPress={() => void entry.read('camera')}
+                  />
+                  <ActionButton
+                    label="Choose photo"
+                    secondary
+                    disabled={entry.busy !== null}
+                    onPress={() => void entry.read('library')}
+                  />
+                </>
+              )}
+              {entry.message && (
+                <Text
+                  accessibilityRole={entry.message.error ? 'alert' : 'text'}
+                  style={[
+                    Typography.bodySm,
+                    {
+                      color: entry.message.error
+                        ? theme.danger
+                        : theme.subtitleText,
+                    },
+                  ]}
+                >
+                  {entry.message.text}
+                </Text>
+              )}
+            </View>
+          )}
 
-      <View style={[styles.row, styles.section]}>
-        <View>
-          <Text style={[Typography.headingSm, { color: theme.text }]}>
-            Daily goal
-          </Text>
-          <Text style={muted}>{goal} kcal before workouts</Text>
-        </View>
-        <View style={styles.stepper}>
-          <StepButton
-            icon="remove"
-            label="Lower daily goal by 50 kcal"
-            disabled={goal <= GOAL_MIN_KCAL}
-            onPress={() =>
-              setGoal(Math.max(GOAL_MIN_KCAL, goal - GOAL_STEP_KCAL))
-            }
-          />
-          <StepButton
-            icon="add"
-            label="Raise daily goal by 50 kcal"
-            disabled={goal >= GOAL_MAX_KCAL}
-            onPress={() =>
-              setGoal(Math.min(GOAL_MAX_KCAL, goal + GOAL_STEP_KCAL))
-            }
-          />
-        </View>
-      </View>
+          <View style={styles.section}>
+            {failed ? (
+              <HealthReadState
+                error="Unable to load meals"
+                onRetry={() => void load()}
+              />
+            ) : log === null ? (
+              <HealthReadState loading />
+            ) : log.meals.length === 0 ? (
+              <Text style={muted}>No meals in Apple Health for this day.</Text>
+            ) : (
+              SLOTS.map((slot) => {
+                const meals = log.meals.filter(
+                  (meal) => mealSlot(new Date(meal.startISO)) === slot,
+                )
+                if (meals.length === 0) return null
+                return (
+                  <View
+                    key={slot}
+                    testID={`food-slot-${slot}`}
+                    style={styles.group}
+                  >
+                    <View style={styles.row}>
+                      <Text
+                        style={[Typography.headingSm, { color: theme.text }]}
+                      >
+                        {slot}
+                      </Text>
+                      <Text style={muted}>
+                        {meals.reduce((sum, meal) => sum + meal.kcal, 0)} kcal
+                      </Text>
+                    </View>
+                    {meals.map((meal, index) => (
+                      <View
+                        key={`${meal.startISO}-${index}`}
+                        style={styles.row}
+                      >
+                        <FoodEmoji name={meal.name} size={24} />
+                        <Text style={[body, styles.name]} numberOfLines={1}>
+                          {meal.name ?? 'Food'}
+                        </Text>
+                        <Text style={muted}>{meal.kcal}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )
+              })
+            )}
+          </View>
+
+          <View style={[styles.row, styles.section]}>
+            <View>
+              <Text style={[Typography.headingSm, { color: theme.text }]}>
+                Daily goal
+              </Text>
+              <Text style={muted}>{goal} kcal before workouts</Text>
+            </View>
+            <View style={styles.stepper}>
+              <StepButton
+                icon="remove"
+                label="Lower daily goal by 50 kcal"
+                disabled={goal <= GOAL_MIN_KCAL}
+                onPress={() =>
+                  setGoal(Math.max(GOAL_MIN_KCAL, goal - GOAL_STEP_KCAL))
+                }
+              />
+              <StepButton
+                icon="add"
+                label="Raise daily goal by 50 kcal"
+                disabled={goal >= GOAL_MAX_KCAL}
+                onPress={() =>
+                  setGoal(Math.min(GOAL_MAX_KCAL, goal + GOAL_STEP_KCAL))
+                }
+              />
+            </View>
+          </View>
+        </>
+      )}
     </ActivityScreen>
   )
 }
@@ -449,6 +474,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderCurve: 'continuous',
+    borderWidth: 2,
   },
   group: { gap: Spacing.xxs, paddingVertical: Spacing.xs },
   row: {

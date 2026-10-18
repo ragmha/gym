@@ -6,6 +6,7 @@ import {
   within,
 } from '@testing-library/react-native'
 import { useLocalSearchParams } from 'expo-router'
+import { useReducedMotion } from 'react-native-reanimated'
 
 import FoodScreen from '@/app/gym/food'
 import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot'
@@ -100,9 +101,54 @@ beforeEach(() => {
   jest.mocked(foodWriter.save).mockReset()
   jest.mocked(foodWriter.getAvailability).mockReturnValue({ available: true })
   useThemeStore.setState({ foodGoalKcal: 2200 })
+  jest.mocked(useReducedMotion).mockReturnValue(true)
 })
 
 describe('Food screen', () => {
+  it('charts a week of macros and switches between the last four weeks', async () => {
+    mockDay('2026-01-15')
+    render(<FoodScreen />)
+    await screen.findByTestId('food-slot-Breakfast')
+
+    fireEvent.press(screen.getByRole('tab', { name: 'Week' }))
+    const week = await screen.findByLabelText('Total kcal: 5800')
+    expect(week).toBeTruthy()
+    expect(screen.getByLabelText('Daily avg: 1450')).toBeTruthy()
+    expect(
+      screen.getByLabelText(
+        'Thursday: 1450 kcal, Protein 96 g, Carbs 180 g, Fat 50 g',
+      ),
+    ).toBeTruthy()
+    expect(screen.getAllByLabelText(/: no meals$/)).toHaveLength(3)
+    expect(mockGetFoodLog.mock.calls.map(([day]) => localDateKey(day))).toEqual(
+      expect.arrayContaining([
+        '2026-01-12',
+        '2026-01-13',
+        '2026-01-14',
+        '2026-01-15',
+      ]),
+    )
+    expect(screen.queryByTestId('food-snap')).toBeNull()
+
+    fireEvent.press(screen.getByRole('tab', { name: 'Last week' }))
+    expect(await screen.findByLabelText('Total kcal: 10150')).toBeTruthy()
+    expect(mockGetFoodLog).toHaveBeenCalledWith(new Date(2026, 0, 5, 12))
+  })
+  it('counts the budget up from 0 unless Reduce Motion is on', async () => {
+    jest.useFakeTimers()
+    jest.mocked(useReducedMotion).mockReturnValue(false)
+    mockDay('2026-01-15')
+    render(<FoodScreen />)
+
+    const budget = screen.getByTestId('food-budget')
+    expect(within(budget).getByText('0')).toBeTruthy()
+    await act(async () => {
+      jest.advanceTimersByTime(1000)
+    })
+    expect(within(budget).getByText('1062')).toBeTruthy()
+    jest.useRealTimers()
+  })
+
   it('budgets food against the goal plus workouts, sets macro targets and groups meals', async () => {
     mockDay('2026-01-15')
     render(<FoodScreen />)
