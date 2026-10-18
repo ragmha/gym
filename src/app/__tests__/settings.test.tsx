@@ -94,6 +94,8 @@ describe('SettingsScreen Health access', () => {
       getStepHistory: jest.fn(async (_endDate: Date, _days: number) => []),
       getWaterHistory: jest.fn(async (_endDate: Date, _days: number) => []),
       getWorkoutHistory: jest.fn(async (_endDate: Date, _days: number) => []),
+      getStairWorkouts: jest.fn(async () => []),
+      getStairSessions: jest.fn(async (_date: Date) => []),
       subscribeToWorkoutChanges: jest.fn((_onChange: () => void) => null),
       requestAuthorization: jest.fn(async () => true),
       isAvailable: jest.fn(() => true),

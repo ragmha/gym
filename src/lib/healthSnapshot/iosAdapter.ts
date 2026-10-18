@@ -1,4 +1,5 @@
 import {
+  getDateOfBirthAsync,
   getMostRecentQuantitySample,
   isHealthDataAvailable,
   queryCategorySamples,
@@ -9,7 +10,11 @@ import {
   requestAuthorization,
   subscribeToChanges,
 } from '@kingstinct/react-native-healthkit'
-import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
+import {
+  WorkoutActivityType,
+  WorkoutEventType,
+  type WorkoutEvent,
+} from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
 
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
@@ -21,6 +26,7 @@ import type {
   HealthBodyMassSample,
   HealthSnapshotSource,
   HealthWorkout,
+  StairSessionHeartRate,
 } from '@/lib/healthSnapshot/types'
 
 const READ_PERMISSIONS = [
@@ -35,6 +41,7 @@ const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierDietaryEnergyConsumed',
   'HKCategoryTypeIdentifierSleepAnalysis',
   'HKWorkoutTypeIdentifier',
+  'HKCharacteristicTypeIdentifierDateOfBirth',
 ] as const
 
 const ASLEEP_SLEEP_VALUES = new Set([1, 3, 4, 5])
@@ -118,6 +125,32 @@ function roundTenths(value: number): number {
 
 function toDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value)
+}
+
+/** Spans when the workout was paused by hand or by motion; an open pause runs to the end. */
+function workoutPauses(
+  events: readonly WorkoutEvent[] | undefined,
+  endISO: string,
+): { startISO: string; endISO: string }[] {
+  const pauses: { startISO: string; endISO: string }[] = []
+  let manual = false
+  let motion = false
+  let from: string | null = null
+  for (const event of events ?? []) {
+    if (event.type === WorkoutEventType.pause) manual = true
+    else if (event.type === WorkoutEventType.resume) manual = false
+    else if (event.type === WorkoutEventType.motionPaused) motion = true
+    else if (event.type === WorkoutEventType.motionResumed) motion = false
+    else continue
+    const at = toDate(event.startDate).toISOString()
+    if ((manual || motion) && from === null) from = at
+    else if (!manual && !motion && from !== null) {
+      pauses.push({ startISO: from, endISO: at })
+      from = null
+    }
+  }
+  if (from !== null) pauses.push({ startISO: from, endISO })
+  return pauses
 }
 
 function workoutActivityName(activityType: unknown): string {
@@ -326,23 +359,39 @@ async function readWorkouts(date: Date): Promise<HealthWorkout[]> {
   )
   // Only the displayed stair session needs an extra statistics query.
   if (stairIndex !== -1) {
-    mapped[stairIndex].averageHeartRate = await readMetric(
-      'stair workout heart rate',
-      async () => {
-        const statistics = await workouts[stairIndex].getStatistic(
-          'HKQuantityTypeIdentifierHeartRate',
-          'count/min',
-        )
-        const bpm = statistics?.averageQuantity?.quantity
-        if (bpm == null) return null
-        if (!Number.isFinite(bpm) || bpm < 0) {
-          throw new TypeError('Invalid workout heart rate')
-        }
-        return roundInt(bpm)
-      },
+    mapped[stairIndex].averageHeartRate = await readAverageHeartRate(
+      workouts[stairIndex],
     )
   }
   return mapped
+}
+
+function readAverageHeartRate(workout: NativeWorkout): Promise<number | null> {
+  return readMetric('stair workout heart rate', async () => {
+    const statistics = await workout.getStatistic(
+      'HKQuantityTypeIdentifierHeartRate',
+      'count/min',
+    )
+    const bpm = statistics?.averageQuantity?.quantity
+    if (bpm == null) return null
+    if (!Number.isFinite(bpm) || bpm < 0) {
+      throw new TypeError('Invalid workout heart rate')
+    }
+    return roundInt(bpm)
+  })
+}
+
+/** Age-predicted max heart rate (220 − age) on `on`, or null without a plausible birth date. */
+function maxHeartRateOn(birth: Date | null, on: Date): number | null {
+  if (!birth) return null
+  let age = on.getFullYear() - birth.getFullYear()
+  if (
+    on.getMonth() < birth.getMonth() ||
+    (on.getMonth() === birth.getMonth() && on.getDate() < birth.getDate())
+  ) {
+    age--
+  }
+  return age > 0 && age < 120 ? 220 - age : null
 }
 
 export const iosHealthKitAdapter: HealthSnapshotSource = {
@@ -537,6 +586,69 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       const date = localDateKey(day)
       return { date, workouts: byDay.get(date) ?? [] }
     })
+  },
+
+  async getStairWorkouts(): Promise<HealthWorkout[]> {
+    if (!this.isAvailable()) return []
+    const workouts = await queryWorkoutSamples({
+      limit: 0,
+      ascending: true,
+      filter: { workoutActivityType: WorkoutActivityType.stairClimbing },
+    })
+    return workouts.map(mapWorkout)
+  },
+
+  async getStairSessions(date: Date): Promise<StairSessionHeartRate[]> {
+    if (!this.isAvailable()) return []
+    const key = localDateKey(date)
+    const stairs = (
+      await queryWorkoutSamples({
+        limit: 0,
+        ascending: true,
+        filter: { date: dayWindow(date) },
+      })
+    ).filter(
+      (w) =>
+        w.workoutActivityType === WorkoutActivityType.stairClimbing &&
+        localDateKey(toDate(w.startDate)) === key,
+    )
+    if (!stairs.length) return []
+    const birth = await readMetric('date of birth', () => getDateOfBirthAsync())
+    return Promise.all(
+      stairs.map(async (native) => {
+        const workout = mapWorkout(native)
+        const [samples, averageHeartRate] = await Promise.all([
+          readMetric('stair heart rate', () =>
+            queryQuantitySamples('HKQuantityTypeIdentifierHeartRate', {
+              limit: 0,
+              ascending: true,
+              unit: 'count/min',
+              filter: {
+                date: {
+                  startDate: new Date(workout.startISO),
+                  endDate: new Date(workout.endISO),
+                },
+              },
+            }),
+          ),
+          readAverageHeartRate(native),
+        ])
+        return {
+          workout: { ...workout, averageHeartRate },
+          samples: (samples ?? [])
+            .filter((s) => Number.isFinite(s.quantity) && s.quantity > 0)
+            .map((s) => ({
+              bpm: roundInt(s.quantity),
+              startISO: toDate(s.startDate).toISOString(),
+            })),
+          maxHeartRate: maxHeartRateOn(
+            birth ?? null,
+            new Date(workout.startISO),
+          ),
+          pauses: workoutPauses(native.events, workout.endISO),
+        }
+      }),
+    )
   },
 
   subscribeToWorkoutChanges(onChange) {

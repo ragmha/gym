@@ -7,24 +7,17 @@ description: 'Guides safe Expo EAS releases for this app, choosing OTA updates v
 
 ## Quick start
 
-For JavaScript, UI, or asset-only changes, keep `app.json` on `runtimeVersion` policy `appVersion`, validate locally, then publish through `.github/workflows/update.yml` or run:
+Don't classify changes by hand. Open a PR to `main`. The `preview` workflow's **PR Quality Gates** job fingerprints the native layer with `@expo/fingerprint`. Its run summary shows **Release path: OTA update** or **Release path: native build**.
 
-```bash
-eas update --auto
-```
-
-For native changes, skip OTA and trigger the production build workflow:
-
-```bash
-gh workflow run build.yml --ref main -f platform=ios -f profile=production
-```
+- **OTA update:** the PR gets an iOS preview update on branch `pr-<number>`. When merged, `update.yml` publishes to the `production` channel.
+- **Native build:** bump `version` in both `app.json` and `package.json` (the job fails without it). When merged, `update.yml` calls `build.yml` and auto-submits to TestFlight.
 
 ## Workflow
 
-1. Classify the change: JS/assets can use EAS Update; native dependencies, config plugins, `app.json` native fields, or generated native projects require EAS Build.
-2. Confirm `runtimeVersion` still prevents incompatible OTA updates; this repo uses the `appVersion` policy.
-3. For OTA, merge through PR to `main` and let `update.yml` publish after the native fingerprint check, or run `eas update --auto` only with a valid `EXPO_TOKEN`.
-4. For native releases, use `build.yml` with `profile=production`; prioritize iOS, keep web unaffected, and treat Android as best-effort.
+1. Expect a native build for native dependencies, config plugins, or native `app.json` fields. JS, UI, and assets ship as OTA. The fingerprint job is the authority, not this list.
+2. Keep `runtimeVersion` on the `appVersion` policy so OTA updates never reach incompatible binaries.
+3. Publish only through the fingerprint-gated workflows. Do not run `eas update` by hand; it bypasses the guard.
+4. Batch native changes to keep most merges on the fast OTA path. Prioritize iOS, keep web unaffected, and treat Android as best-effort.
 5. Monitor EAS build/update output and roll back or republish if production health regresses.
 
 ## Validation

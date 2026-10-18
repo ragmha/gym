@@ -92,7 +92,6 @@ describe('buildAchievements', () => {
           },
           finishedAt: '2026-02-02T08:00:00.000Z',
           rating: 4,
-          notes: '',
         },
       },
     })

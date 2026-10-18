@@ -179,4 +179,11 @@ Native dependency added (e.g. `expo-camera`, `expo-image-picker`)? **Re-run a de
 - **Bug** → file an issue with reproduction steps, `bunx expo-env-info`, and `bunx expo-doctor` output.
 - **Idea or feature request** → discuss in chat first; large changes need an ADR before implementation.
 
+## 10. Licensing of contributions
+
+This project is licensed under [PolyForm Noncommercial 1.0.0](LICENSE.md). By
+submitting a pull request, you agree that your contribution is licensed under
+the same terms and that the copyright holder may also license it to others
+under separate commercial terms.
+
 Welcome aboard.

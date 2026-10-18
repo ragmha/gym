@@ -38,6 +38,7 @@ const mock = {
       },
     ]),
   ),
+  getDateOfBirthAsync: jest.fn(() => Promise.resolve(undefined)),
   saveWorkoutSample: jest.fn(() => Promise.resolve({})),
 }
 

@@ -805,6 +805,8 @@ describe('HealthSnapshotSource adapters', () => {
       getStepHistory: true,
       getWaterHistory: true,
       getWorkoutHistory: true,
+      getStairWorkouts: true,
+      getStairSessions: true,
       subscribeToWorkoutChanges: true,
       requestAuthorization: true,
       isAvailable: true,
@@ -834,6 +836,7 @@ describe('HealthSnapshotSource adapters', () => {
         'HKQuantityTypeIdentifierDietaryEnergyConsumed',
         'HKCategoryTypeIdentifierSleepAnalysis',
         'HKWorkoutTypeIdentifier',
+        'HKCharacteristicTypeIdentifierDateOfBirth',
       ],
       toShare: [],
     })
@@ -1042,6 +1045,152 @@ describe('HealthSnapshotSource adapters', () => {
     expect(warn.mock.calls).toEqual([
       ['[HealthSnapshotSource] stair workout heart rate read failed (Error)'],
     ])
+  })
+
+  it('reads every stair session of the day with its heart rate and an age-predicted max', async () => {
+    const stair = (hour: number, bpm: number) => ({
+      workoutActivityType: 44,
+      duration: { quantity: 1800, unit: 's' },
+      startDate: new Date(2026, 1, 15, hour),
+      endDate: new Date(2026, 1, 15, hour, 30),
+      getStatistic: jest.fn(async () => ({
+        averageQuantity: { quantity: bpm },
+      })),
+    })
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        ...stair(8, 140),
+        // Manual pause overlapping a motion pause, then an open pause at the end.
+        events: [
+          { type: 1, startDate: new Date(2026, 1, 15, 8, 5) },
+          { type: 5, startDate: new Date(2026, 1, 15, 8, 6) },
+          { type: 2, startDate: new Date(2026, 1, 15, 8, 7) },
+          { type: 3, startDate: new Date(2026, 1, 15, 8, 8) },
+          { type: 6, startDate: new Date(2026, 1, 15, 8, 9) },
+          { type: 1, startDate: new Date(2026, 1, 15, 8, 25) },
+        ],
+      },
+      { ...stair(9, 0), workoutActivityType: 37 },
+      stair(18, 130),
+    ])
+    hk.queryQuantitySamples.mockResolvedValue([
+      { quantity: 120.4, startDate: new Date(2026, 1, 15, 8, 1) },
+      { quantity: Number.NaN, startDate: new Date(2026, 1, 15, 8, 2) },
+    ])
+    hk.getDateOfBirthAsync.mockResolvedValue(new Date(1990, 5, 1))
+
+    const sessions = await iosHealthKitAdapter.getStairSessions(
+      new Date(2026, 1, 15, 12),
+    )
+
+    expect(hk.queryQuantitySamples).toHaveBeenCalledWith(
+      'HKQuantityTypeIdentifierHeartRate',
+      {
+        limit: 0,
+        ascending: true,
+        unit: 'count/min',
+        filter: {
+          date: {
+            startDate: new Date(2026, 1, 15, 18),
+            endDate: new Date(2026, 1, 15, 18, 30),
+          },
+        },
+      },
+    )
+    expect(sessions).toHaveLength(2)
+    expect(sessions[0]).toMatchObject({
+      workout: { averageHeartRate: 140, durationMinutes: 30 },
+      samples: [
+        { bpm: 120, startISO: new Date(2026, 1, 15, 8, 1).toISOString() },
+      ],
+      // Born June 1990, so still 35 in February 2026.
+      maxHeartRate: 185,
+      pauses: [
+        {
+          startISO: new Date(2026, 1, 15, 8, 5).toISOString(),
+          endISO: new Date(2026, 1, 15, 8, 9).toISOString(),
+        },
+        {
+          startISO: new Date(2026, 1, 15, 8, 25).toISOString(),
+          endISO: new Date(2026, 1, 15, 8, 30).toISOString(),
+        },
+      ],
+    })
+    expect(sessions[1].pauses).toEqual([])
+    expect(sessions[1].workout).toMatchObject({
+      averageHeartRate: 130,
+      startISO: new Date(2026, 1, 15, 18).toISOString(),
+    })
+  })
+
+  it('returns no stair sessions without one, and no zones without a birth date', async () => {
+    await expect(
+      iosHealthKitAdapter.getStairSessions(new Date(2026, 1, 15, 12)),
+    ).resolves.toEqual([])
+    expect(hk.queryQuantitySamples).not.toHaveBeenCalledWith(
+      'HKQuantityTypeIdentifierHeartRate',
+      expect.anything(),
+    )
+
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 44,
+        duration: { quantity: 600, unit: 's' },
+        startDate: new Date(2026, 1, 15, 8),
+        endDate: new Date(2026, 1, 15, 8, 10),
+        getStatistic: jest.fn(async () => undefined),
+      },
+    ])
+    await expect(
+      iosHealthKitAdapter.getStairSessions(new Date(2026, 1, 15, 12)),
+    ).resolves.toMatchObject([{ samples: [], maxHeartRate: null }])
+  })
+
+  it('keeps a stair session when its heart-rate samples fail to load', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation()
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 44,
+        duration: { quantity: 1800, unit: 's' },
+        startDate: new Date(2026, 1, 15, 8),
+        endDate: new Date(2026, 1, 15, 8, 30),
+        getStatistic: jest.fn(async () => ({
+          averageQuantity: { quantity: 141 },
+        })),
+      },
+    ])
+    hk.queryQuantitySamples.mockRejectedValue(new Error('private samples'))
+
+    await expect(
+      iosHealthKitAdapter.getStairSessions(new Date(2026, 1, 15, 12)),
+    ).resolves.toMatchObject([
+      {
+        workout: { durationMinutes: 30, averageHeartRate: 141 },
+        samples: [],
+      },
+    ])
+    expect(warn).toHaveBeenCalledWith(
+      '[HealthSnapshotSource] stair heart rate read failed (Error)',
+    )
+  })
+
+  it('reads all stair history in one query, oldest first', async () => {
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 44,
+        duration: { quantity: 1200, unit: 's' },
+        startDate: new Date(2023, 0, 2, 8),
+        endDate: new Date(2023, 0, 2, 8, 20),
+      },
+    ])
+    await expect(iosHealthKitAdapter.getStairWorkouts()).resolves.toMatchObject(
+      [{ kind: 'stairClimber', durationMinutes: 20 }],
+    )
+    expect(hk.queryWorkoutSamples).toHaveBeenCalledWith({
+      limit: 0,
+      ascending: true,
+      filter: { workoutActivityType: 44 },
+    })
   })
 
   it('observes saved workouts and removes the native subscription', () => {

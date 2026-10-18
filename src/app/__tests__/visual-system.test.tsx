@@ -137,6 +137,20 @@ describe.each(['light', 'dark'] as const)('Whole-app %s appearance', (mode) => {
   )
 })
 
+it('goes to the dashboard when there is no screen to go back to', () => {
+  const replace = jest.fn()
+  jest.mocked(useRouter).mockReturnValue({
+    ...useRouter(),
+    back: mockBack,
+    replace,
+    canGoBack: () => false,
+  })
+  render(<StepsScreen />)
+  fireEvent.press(screen.getByRole('button', { name: /^(Go back|Back)$/ }))
+  expect(replace).toHaveBeenCalledWith('/')
+  expect(mockBack).not.toHaveBeenCalled()
+})
+
 describe('Restyled detail states', () => {
   it.each([{ name: 'steps', Screen: StepsScreen }])(
     'does not show missing measurements during loading in $name and retains error retry',
