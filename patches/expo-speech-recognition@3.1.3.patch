@@ -1,0 +1,119 @@
+diff --git a/ios/ExpoSpeechRecognizer.swift b/ios/ExpoSpeechRecognizer.swift
+index c474f805a250ace52347118ff7f94d24d46af91c..ab42cbb7b13774749902a3d732af063cbf466939 100644
+--- a/ios/ExpoSpeechRecognizer.swift
++++ b/ios/ExpoSpeechRecognizer.swift
+@@ -219,6 +219,13 @@ actor ExpoSpeechRecognizer: ObservableObject {
+       return
+     }
+ 
++    // Fail closed: never let a required on-device session fall back to the server.
++    if options.requiresOnDeviceRecognition && !recognizer.supportsOnDeviceRecognition {
++      errorHandler(RecognizerError.recognizerIsUnavailable)
++      reset(andEmitEnd: true)
++      return
++    }
++
+     do {
+       let request = Self.prepareRequest(
+         options: options,
+@@ -229,7 +236,11 @@ actor ExpoSpeechRecognizer: ObservableObject {
+ 
+       // Check if options.audioSource is set, if it is, then it is sourced from a file
+       if let audioSource = options.audioSource?.uri {
+-        try prepareFileRecognition(request: request, url: URL(string: audioSource)!)
++        try prepareFileRecognition(
++          request: request,
++          url: URL(string: audioSource)!,
++          errorHandler: errorHandler
++        )
+       } else {
+         try prepareMicrophoneRecognition(request: request, options: options)
+       }
+@@ -285,7 +296,11 @@ actor ExpoSpeechRecognizer: ObservableObject {
+     )
+   }
+ 
+-  private func prepareFileRecognition(request: SFSpeechRecognitionRequest, url: URL) throws {
++  private func prepareFileRecognition(
++    request: SFSpeechRecognitionRequest,
++    url: URL,
++    errorHandler: @escaping (Error) -> Void
++  ) throws {
+     self.audioEngine = nil
+ 
+     guard let request = self.request as? SFSpeechAudioBufferRecognitionRequest else {
+@@ -305,7 +320,13 @@ actor ExpoSpeechRecognizer: ObservableObject {
+ 
+     Task.detached(priority: .userInitiated) {
+       do {
+-        let file = try AVAudioFile(forReading: url)
++        // iOS AVAudioFile cannot open QuickTime movies (camera .mov), so decode their audio track on-device.
++        guard let file = try? AVAudioFile(forReading: url) else {
++          try await Self.appendMovieAudio(from: url, to: request, chunkDelayNs: chunkDelayNs)
++          print("[expo-speech-recognition]: Audio streaming ended")
++          request.endAudio()
++          return
++        }
+         let bufferCapacity: AVAudioFrameCount = 4096
+         let inputBuffer = AVAudioPCMBuffer(
+           pcmFormat: file.processingFormat, frameCapacity: bufferCapacity
+@@ -326,11 +347,59 @@ actor ExpoSpeechRecognizer: ObservableObject {
+         // await self.playBack(playbackBuffers: playbackBuffers)
+       } catch {
+         print("[expo-speech-recognition]: Error feeding audio file: \(error)")
++        errorHandler(error)
+         request.endAudio()
+       }
+     }
+   }
+ 
++  /// Streams a movie's first audio track as PCM, pausing once per 4096 frames like the AVAudioFile path.
++  private static func appendMovieAudio(
++    from url: URL,
++    to request: SFSpeechAudioBufferRecognitionRequest,
++    chunkDelayNs: UInt64
++  ) async throws {
++    let asset = AVURLAsset(url: url)
++    guard let track = try await asset.loadTracks(withMediaType: .audio).first else {
++      throw RecognizerError.invalidAudioSource
++    }
++    let reader = try AVAssetReader(asset: asset)
++    let output = AVAssetReaderTrackOutput(
++      track: track,
++      outputSettings: [
++        AVFormatIDKey: kAudioFormatLinearPCM,
++        AVLinearPCMBitDepthKey: 32,
++        AVLinearPCMIsFloatKey: true,
++        AVLinearPCMIsNonInterleaved: true,
++        AVLinearPCMIsBigEndianKey: false,
++      ]
++    )
++    reader.add(output)
++    guard reader.startReading() else {
++      throw reader.error ?? RecognizerError.invalidAudioSource
++    }
++
++    var framesSinceDelay: AVAudioFrameCount = 0
++    while let sampleBuffer = output.copyNextSampleBuffer() {
++      let frames = AVAudioFrameCount(sampleBuffer.numSamples)
++      guard frames > 0, let description = sampleBuffer.formatDescription,
++        let buffer = AVAudioPCMBuffer(
++          pcmFormat: AVAudioFormat(cmAudioFormatDescription: description), frameCapacity: frames)
++      else { continue }
++      buffer.frameLength = frames
++      try sampleBuffer.copyPCMData(fromRange: 0..<Int(frames), into: buffer.mutableAudioBufferList)
++      request.append(buffer)
++      framesSinceDelay += frames
++      if framesSinceDelay >= 4096 {
++        framesSinceDelay = 0
++        try await Task.sleep(nanoseconds: chunkDelayNs)
++      }
++    }
++    if reader.status == .failed {
++      throw reader.error ?? RecognizerError.invalidAudioSource
++    }
++  }
++
+   private func prepareMicrophoneRecognition(
+     request: SFSpeechRecognitionRequest,
+     options: SpeechRecognitionOptions

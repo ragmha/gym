@@ -652,20 +652,20 @@ describe('GoalGrid', () => {
     openURL.mockRestore()
   })
 
-  it('shows Speaking as a disabled placeholder until it is built', () => {
-    const openURL = jest.spyOn(Linking, 'openURL')
+  it('opens the Speaking drill without tracking it as a goal', () => {
     const push = jest.fn()
     jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
     render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
 
     swipeToPage(1)
-    const tile = screen.getByRole('button', { name: 'Speaking, coming soon' })
-    expect(tile).toBeDisabled()
+    const tile = screen.getByRole('button', { name: 'Speaking practice' })
+    expect(tile.props.accessibilityValue.text).toBe('Not tracked')
     fireEvent.press(tile)
 
-    expect(openURL).not.toHaveBeenCalled()
-    expect(push).not.toHaveBeenCalled()
-    openURL.mockRestore()
+    expect(push).toHaveBeenCalledWith({
+      pathname: '/speaking',
+      params: { date: '2026-09-12' },
+    })
   })
 
   it('reorders tiles by long-press drag or accessibility action and saves the order', async () => {

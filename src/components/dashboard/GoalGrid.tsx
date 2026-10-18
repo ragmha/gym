@@ -52,7 +52,7 @@ import { useThemeStore } from '@/stores/ThemeStore'
 const EDGE_FLIP = 32
 const FLIP_COOLDOWN_MS = 800
 
-type Route = '/steps' | '/water' | '/gym' | '/achievements'
+type Route = '/steps' | '/water' | '/gym' | '/achievements' | '/speaking'
 
 interface Tile {
   label: string
@@ -230,12 +230,13 @@ function buildTiles(
     {
       label: 'Speaking',
       icon: 'speaking',
-      caption: 'Not set up',
-      accessibilityLabel: 'Speaking, coming soon',
-      hint: 'Speaking tracking is not built yet.',
+      caption: 'Practice',
+      accessibilityLabel: 'Speaking practice',
+      hint: 'Opens speaking practice. Reps are not tracked as a goal.',
       done: null,
       progress: null,
-      status: 'Coming soon',
+      status: 'Not tracked',
+      route: '/speaking',
     },
     {
       label: 'Achievements',
