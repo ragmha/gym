@@ -1,15 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import {
-  Alert,
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native'
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ScreenHeader } from '@/components/common/ScreenHeader'
@@ -31,19 +23,8 @@ import { postMortem } from '@/lib/speaking/analyze'
 import { TOPICS } from '@/lib/speaking/scripts'
 import { useSpeakingLogStore } from '@/stores/SpeakingLogStore'
 
-const WINSTON_URL = 'https://www.youtube.com/watch?v=Unzc731iCUY'
-
 // Recording needs the iOS camera; transcribing a file is not available on web.
 const VIDEO_AVAILABLE = Platform.OS === 'ios'
-
-function openWinston() {
-  Linking.openURL(WINSTON_URL).catch(() => {
-    Alert.alert(
-      "Couldn't open YouTube",
-      'Check that the app is installed or the link is available, then try again.',
-    )
-  })
-}
 
 function Toggle({
   label,
@@ -295,16 +276,6 @@ export default function SpeakingScreen() {
             primary
             onPress={start}
           />
-          <Pressable
-            accessibilityRole="link"
-            accessibilityHint="Opens Patrick Winston's MIT lecture on YouTube."
-            onPress={openWinston}
-            hitSlop={8}
-          >
-            <Text style={[Typography.bodySm, styles.center, muted]}>
-              Built on Patrick Winston’s How to Speak
-            </Text>
-          </Pressable>
         </View>
       )}
     </SafeAreaView>

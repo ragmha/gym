@@ -6,7 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react-native'
 import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition'
-import { Alert, Linking } from 'react-native'
+import { Alert } from 'react-native'
 
 import SpeakingScreen from '@/app/speaking'
 import SpeakingHistoryScreen from '@/app/speaking-history'
@@ -114,26 +114,12 @@ describe('SpeakingScreen', () => {
     )
   })
 
-  it('opens the foundation talk and explains a failed launch', async () => {
-    const openURL = jest
-      .spyOn(Linking, 'openURL')
-      .mockRejectedValue(new Error('app missing'))
-    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {})
+  it('does not show the foundation talk attribution', () => {
     render(<SpeakingScreen />)
 
-    fireEvent.press(screen.getByRole('link'))
-
-    expect(openURL).toHaveBeenCalledWith(
-      'https://www.youtube.com/watch?v=Unzc731iCUY',
-    )
-    await waitFor(() =>
-      expect(alert).toHaveBeenCalledWith(
-        "Couldn't open YouTube",
-        'Check that the app is installed or the link is available, then try again.',
-      ),
-    )
-    alert.mockRestore()
-    openURL.mockRestore()
+    expect(
+      screen.queryByText('Built on Patrick Winston’s How to Speak'),
+    ).not.toBeOnTheScreen()
   })
 })
 

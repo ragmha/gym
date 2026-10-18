@@ -19,7 +19,7 @@ export const TOPICS: SpeakingTopic[] = [
     id: 'agents',
     title: 'What an AI agent actually is',
     tagline: 'A model in a loop, with tools',
-    colors: ['#5B5CFF', '#E0457B', '#FF8A1F'],
+    colors: ['#5B5CFF', '#E0457B', '#FF3B30'],
     points: [
       'An agent is a model in a loop, with tools, working toward a goal.',
       'The model proposes, the program disposes.',
