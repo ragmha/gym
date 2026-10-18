@@ -5,6 +5,7 @@ import {
 } from 'expo-camera'
 import { Directory, File, Paths } from 'expo-file-system'
 import { useKeepAwake } from 'expo-keep-awake'
+import { useSpeechRecognitionEvent } from 'expo-speech-recognition'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
@@ -117,18 +118,19 @@ export function SpeakingSession({
       ? Math.min(total, Math.round((Date.now() - startedRef.current) / 1000))
       : 0
 
+  // Time only real listening: the native start event never fires for the
+  // permission prompt or a failed (e.g. on-device unavailable) start.
+  useSpeechRecognitionEvent('start', () => {
+    if (capture === 'live' && !startedRef.current && !stopped.current) begin()
+  })
+
   useEffect(() => {
     mounted.current = true
     if (capture === 'live') {
-      // Time only real listening, not the permission prompt or a failure.
-      transcript
-        .start(
-          { interimResults: true, continuous: true, iosTaskHint: 'dictation' },
-          true,
-        )
-        .then((started) => {
-          if (started && mounted.current && !stopped.current) begin()
-        })
+      transcript.start(
+        { interimResults: true, continuous: true, iosTaskHint: 'dictation' },
+        true,
+      )
     }
     return () => {
       mounted.current = false

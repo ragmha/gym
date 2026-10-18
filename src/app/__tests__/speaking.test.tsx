@@ -79,6 +79,7 @@ describe('SpeakingScreen', () => {
         }),
       ),
     )
+    act(() => mockHandlers.start())
     act(() =>
       mockHandlers.result({
         isFinal: true,
@@ -159,6 +160,31 @@ describe('SpeakingScreen', () => {
     expect(screen.getByLabelText('5:00 left')).toBeOnTheScreen()
     expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled()
     expect(speech.start).not.toHaveBeenCalled()
+  })
+
+  it('keeps the timer stopped when iOS refuses on-device recognition', async () => {
+    jest.useFakeTimers()
+    render(<SpeakingScreen />)
+    fireEvent.press(screen.getByRole('button', { name: 'Start' }))
+    await waitFor(() => expect(speech.start).toHaveBeenCalled())
+
+    act(() =>
+      mockHandlers.error({
+        error: 'service-not-allowed',
+        message: 'Recognizer is unavailable',
+      }),
+    )
+    act(() => mockHandlers.end())
+    act(() => jest.advanceTimersByTime(3000))
+
+    expect(
+      screen.getByText(
+        "On-device speech recognition isn't available on this device, so no transcript is made.",
+      ),
+    ).toBeOnTheScreen()
+    expect(screen.getByLabelText('5:00 left')).toBeOnTheScreen()
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeDisabled()
+    expect(speech.start).toHaveBeenCalledTimes(1)
   })
 
   it('does not show the foundation talk attribution', () => {

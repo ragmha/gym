@@ -8,6 +8,8 @@ import { Platform } from 'react-native'
 
 const PERMISSION_COPY =
   'Microphone and speech recognition access are off. Turn them on in Settings to see your transcript.'
+const ON_DEVICE_COPY =
+  "On-device speech recognition isn't available on this device, so no transcript is made."
 
 const IGNORED_ERRORS = new Set(['no-speech', 'aborted'])
 
@@ -58,7 +60,12 @@ export function useTranscript() {
     if (session.current) session.current.keepAlive = false
     // 'end' is not guaranteed after a failed start.
     setListening(false)
-    setError(message || 'Speech recognition stopped unexpectedly.')
+    setError(
+      // iOS fails closed with this code when en-US can't run on the device.
+      code === 'service-not-allowed' && Platform.OS !== 'web'
+        ? ON_DEVICE_COPY
+        : message || 'Speech recognition stopped unexpectedly.',
+    )
   })
 
   const start = useCallback(
@@ -75,9 +82,7 @@ export function useTranscript() {
       const native = Platform.OS !== 'web'
       if (native) {
         if (!ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) {
-          setError(
-            "On-device speech recognition isn't available on this device, so no transcript is made.",
-          )
+          setError(ON_DEVICE_COPY)
           return false
         }
         const { granted } =
