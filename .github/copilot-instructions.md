@@ -30,6 +30,12 @@ it is the app's only in-app data fetch, and media must not be bundled.
 The Lifting rest timer between sets is ephemeral screen state: a rule-based
 target (`restSeconds` in `rest.ts`, 2:00 default) adjustable by ±15 s. It is
 never persisted, written to Health, or used as coach input.
+The Apple Watch app (`modules/gym-watch/`) is a remote for that lifting log
+only: it shows today's programme day and sends set and undo taps to the iPhone
+over WatchConnectivity, where `src/lib/watch` validates them into
+`GymLogStore`. The watch keeps only the last state the iPhone sent, writes
+nothing to Health, and is not coach input. Logging needs the iPhone reachable;
+there is no offline queue.
 The user also approved `/speaking`, a practice tool based on Patrick Winston's
 "How to Speak". It offers shadow scripts or solo points, 5 or 15 minutes, and
 on-device speech recognition. An optional front-camera video stays in the app
@@ -105,7 +111,8 @@ App Group, Health writes, or coach input. Keep distribution blocked while
 | On-device AI     | react-native-apple-llm (Apple Foundation Models) | 1.x        |
 | Meal photos      | expo-image-picker + Vision (local FoodVision)    | 55.x       |
 | Live Activity    | expo-widgets + @expo/ui (Reading timer, alpha)   | 55.x       |
-| Validation       | Zod (on-device AI output only)                   | 4.x        |
+| Validation       | Zod (on-device AI output, programme, watch taps) | 4.x        |
+| Watch app        | SwiftUI + WatchConnectivity (apple-targets)      | watchOS 11 |
 | Testing          | Jest + jest-expo + @testing-library/react-native | —          |
 | Linting          | ESLint 9 (flat config) + Prettier                | —          |
 | Pre-commit       | Husky + lint-staged                              | —          |
@@ -136,9 +143,12 @@ src/
     fitnessMetrics/     #   snapshot -> presentable metric mapping
     coach/              #   on-device AI coach engines and prompts
     validators/         #   zod schemas for coach output
+    watch/              #   Apple Watch state + tap validation
   stores/               # ThemeStore, GymLogStore, SpeakingLogStore
   utils/                # recovery scoring and pure helpers
   assets/               # fonts, images
+modules/
+  gym-watch/            # iPhone WatchConnectivity module; watch/ is the SwiftUI app
 ```
 
 ### Import alias

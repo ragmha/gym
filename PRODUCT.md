@@ -51,6 +51,9 @@ and its actual measurement date/time directly to Apple Health.
   Reading starts a Dynamic Island timer and opens Apple Books; tapping it again
   (or the island's Stop) ends it. The tile shows that day's last session in
   whole minutes until the app closes. Minutes are never saved or sent to Health.
+- **Apple Watch** shows today's lifting day and logs or undoes sets in the
+  iPhone's on-device lifting log. It needs the iPhone reachable and saves
+  nothing on the watch or to Health.
 - Theme selection, accessible controls, and light and dark appearances remain
   supported. The experimental Phone rest report retains its privacy and
   distribution restrictions.

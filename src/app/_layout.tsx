@@ -15,6 +15,7 @@ import 'react-native-reanimated'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
+import { useWatchSync } from '@/hooks/useWatchSync'
 
 // Show JS errors as alerts in Release mode (no red screen)
 if (!__DEV__) {
@@ -35,6 +36,8 @@ export const unstable_settings = { anchor: 'index' }
 
 export default function RootLayout() {
   const colorScheme = useColorScheme()
+  // Root level so sets tapped on the watch apply even on a background launch.
+  useWatchSync()
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
