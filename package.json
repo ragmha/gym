@@ -74,6 +74,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.26.9",
+    "@e2e-dev/mobile": "0.12.3",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.20.0",
     "@expo/fingerprint": "0.16.8",
@@ -81,6 +82,7 @@
     "@types/jest": "^29.5.14",
     "@types/react": "~19.2.10",
     "@types/react-test-renderer": "^18.3.1",
+    "e2e": "0.21.2",
     "eslint": "9.20.1",
     "eslint-config-expo": "~55.0.1",
     "eslint-config-prettier": "^9.1.0",
