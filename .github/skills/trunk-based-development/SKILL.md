@@ -1,4 +1,3 @@
-```skill
 ---
 name: trunk-based-development
 description: 'Trunk-based development workflow with git worktree, conventional commits, and branch naming conventions. Use when starting a new task, creating branches, committing, or opening PRs.'
@@ -113,4 +112,3 @@ When Copilot (or any automated agent) is asked to make changes:
 5. Make the changes.
 6. Stage, review, and commit using the `conventional-commit` skill.
 7. Push and open a PR. Never commit or push directly to `main`.
-```

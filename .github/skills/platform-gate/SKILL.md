@@ -14,14 +14,14 @@ const enabled = Platform.OS === 'ios'
 const padding = Platform.select({ ios: 20, web: 16, default: 14 })
 ```
 
-Use existing mock adapters where possible; for new domains, add a deterministic `generateMockData` helper and test it.
+Use the existing `HealthSnapshotSource` platform selection and deterministic mock adapter. The snapshot generator is `createDeterministicMockSnapshot`.
 
 ## Workflow
 
 1. Identify the platform dependency: HealthKit and native modules are iOS-first; web must not crash; Android is best-effort.
 2. Use `Platform.select` for style, spacing, and config values instead of scattered branching.
 3. Use `Platform.OS === 'ios'` before requesting native permissions, rendering HealthKit-only UI, or calling iOS-only adapters.
-4. Provide a deterministic fallback adapter or `generateMockData` path for web, tests, and unsupported devices.
+4. Keep fallback readings in `deterministicMockAdapter`; use `createDeterministicMockSnapshot` for deterministic snapshot fixtures.
 5. For large differences, split files with `.ios.tsx`, `.web.tsx`, or `.native.tsx` rather than growing conditional components.
 
 ## Validation
@@ -41,4 +41,5 @@ For UI changes, smoke-test iOS and web. Add tests that assert unsupported platfo
 - Never import or execute unsupported native APIs on web without a safe module boundary.
 - Do not show HealthKit setup controls unless the iOS adapter is available.
 - Keep mock data deterministic; avoid `Math.random()` for fallback snapshots.
+- Do not add a second health-data source; platform selection belongs in `HealthSnapshotSource`.
 - Prefer iOS and web correctness over Android parity, but avoid knowingly breaking Android.
