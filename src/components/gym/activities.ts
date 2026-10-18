@@ -138,21 +138,33 @@ export function heartRateZone(bpm: number, maxHeartRate: number): number {
   )
 }
 
-/** Minutes spent in each of the five zones; a sample lasts until the next one or the session end. */
+/** Minutes spent in each of the five zones; a sample lasts until the next one or the session end, minus paused time. */
 export function zoneMinutes(
   samples: HealthHeartRateSample[],
   endISO: string,
   maxHeartRate: number,
+  pauses: { startISO: string; endISO: string }[] = [],
 ): number[] {
   const minutes = [0, 0, 0, 0, 0]
   samples.forEach((sample, i) => {
-    const next = Date.parse(samples[i + 1]?.startISO ?? endISO)
+    const from = Date.parse(sample.startISO)
     // ponytail: a sensor gap counts as at most 60 s so a dropout can't inflate one zone
-    const seconds = Math.min(
-      Math.max((next - Date.parse(sample.startISO)) / 1000, 0),
-      60,
+    const to = Math.min(
+      Date.parse(samples[i + 1]?.startISO ?? endISO),
+      from + 60_000,
     )
-    minutes[heartRateZone(sample.bpm, maxHeartRate) - 1] += seconds / 60
+    const paused = pauses.reduce(
+      (sum, p) =>
+        sum +
+        Math.max(
+          Math.min(to, Date.parse(p.endISO)) -
+            Math.max(from, Date.parse(p.startISO)),
+          0,
+        ),
+      0,
+    )
+    minutes[heartRateZone(sample.bpm, maxHeartRate) - 1] +=
+      Math.max(to - from - paused, 0) / 60_000
   })
   return minutes
 }

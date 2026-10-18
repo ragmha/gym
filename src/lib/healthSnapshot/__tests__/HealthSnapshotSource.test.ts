@@ -1127,7 +1127,18 @@ describe('HealthSnapshotSource adapters', () => {
       })),
     })
     hk.queryWorkoutSamples.mockResolvedValue([
-      stair(8, 140),
+      {
+        ...stair(8, 140),
+        // Manual pause overlapping a motion pause, then an open pause at the end.
+        events: [
+          { type: 1, startDate: new Date(2026, 1, 15, 8, 5) },
+          { type: 5, startDate: new Date(2026, 1, 15, 8, 6) },
+          { type: 2, startDate: new Date(2026, 1, 15, 8, 7) },
+          { type: 3, startDate: new Date(2026, 1, 15, 8, 8) },
+          { type: 6, startDate: new Date(2026, 1, 15, 8, 9) },
+          { type: 1, startDate: new Date(2026, 1, 15, 8, 25) },
+        ],
+      },
       { ...stair(9, 0), workoutActivityType: 37 },
       stair(18, 130),
     ])
@@ -1163,7 +1174,18 @@ describe('HealthSnapshotSource adapters', () => {
       ],
       // Born June 1990, so still 35 in February 2026.
       maxHeartRate: 185,
+      pauses: [
+        {
+          startISO: new Date(2026, 1, 15, 8, 5).toISOString(),
+          endISO: new Date(2026, 1, 15, 8, 9).toISOString(),
+        },
+        {
+          startISO: new Date(2026, 1, 15, 8, 25).toISOString(),
+          endISO: new Date(2026, 1, 15, 8, 30).toISOString(),
+        },
+      ],
     })
+    expect(sessions[1].pauses).toEqual([])
     expect(sessions[1].workout).toMatchObject({
       averageHeartRate: 130,
       startISO: new Date(2026, 1, 15, 18).toISOString(),

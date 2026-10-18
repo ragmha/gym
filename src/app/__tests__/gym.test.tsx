@@ -236,7 +236,9 @@ describe('Gym detail screens', () => {
     expect(screen.getByLabelText('Max BPM: 170')).toBeTruthy()
     expect(screen.getByLabelText('Max BPM: 130')).toBeTruthy()
     expect(screen.getByLabelText('Main zone: Z5')).toBeTruthy()
-    expect(screen.getAllByLabelText('Zone 2: 0:30')).toHaveLength(2)
+    expect(screen.getAllByLabelText('Zone 2, 108–125 BPM: 0:30')).toHaveLength(
+      2,
+    )
     expect(screen.getAllByTestId('stair-hr-chart')).toHaveLength(2)
 
     jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2024-03-02' })
@@ -315,8 +317,30 @@ describe('Gym detail screens', () => {
     expect(screen.getByText('132–150')).toBeTruthy()
     expect(screen.getByText('170+')).toBeTruthy()
     // 150 BPM counts in Z3 and 169 BPM in Z4, matching the labels.
-    expect(screen.getByLabelText('Zone 3: 1:00')).toBeTruthy()
-    expect(screen.getByLabelText('Zone 4: 1:00')).toBeTruthy()
+    expect(screen.getByLabelText('Zone 3, 132–150 BPM: 1:00')).toBeTruthy()
+    expect(screen.getByLabelText('Zone 4, 151–169 BPM: 1:00')).toBeTruthy()
+  })
+
+  it('shows no main zone when no zone time accrues, for each same-start session', async () => {
+    const error = jest.spyOn(console, 'error')
+    jest.spyOn(healthSnapshot, 'getStairWorkouts').mockResolvedValue([])
+    jest.mocked(useRouter).mockReturnValue({ setParams: jest.fn() } as never)
+    const workout = stairs('2026-10-17', 30)
+    const session = {
+      workout,
+      samples: [{ bpm: 150, startISO: workout.endISO }],
+      maxHeartRate: 180,
+    }
+    jest
+      .spyOn(healthSnapshot, 'getStairSessions')
+      .mockResolvedValue([session, session])
+    render(<StairmasterScreen />)
+    expect(await screen.findAllByTestId('stair-session')).toHaveLength(2)
+    expect(screen.getAllByLabelText('Main zone: --')).toHaveLength(2)
+    expect(
+      error.mock.calls.some((args) => String(args[0]).includes('same key')),
+    ).toBe(false)
+    error.mockRestore()
   })
 
   it('shows -- instead of zero zones when a session has no heart-rate samples', async () => {
@@ -504,5 +528,22 @@ describe('heart-rate zones', () => {
         180,
       ),
     ).toEqual([0.5, 0, 1, 0, 0.5])
+  })
+
+  it('leaves paused time out of the zones', () => {
+    expect(
+      zoneMinutes(
+        [
+          { bpm: 100, startISO: '2026-10-17T06:00:00' },
+          { bpm: 170, startISO: '2026-10-17T06:01:00' },
+        ],
+        '2026-10-17T06:02:00',
+        180,
+        [
+          { startISO: '2026-10-17T06:00:45', endISO: '2026-10-17T06:01:15' },
+          { startISO: '2026-10-17T06:01:30', endISO: '2026-10-17T06:05:00' },
+        ],
+      ),
+    ).toEqual([0.75, 0, 0, 0, 0.25])
   })
 })

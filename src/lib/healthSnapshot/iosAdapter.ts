@@ -10,7 +10,11 @@ import {
   requestAuthorization,
   subscribeToChanges,
 } from '@kingstinct/react-native-healthkit'
-import { WorkoutActivityType } from '@kingstinct/react-native-healthkit/types'
+import {
+  WorkoutActivityType,
+  WorkoutEventType,
+  type WorkoutEvent,
+} from '@kingstinct/react-native-healthkit/types'
 import { Platform } from 'react-native'
 
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
@@ -93,6 +97,32 @@ function roundTenths(value: number): number {
 
 function toDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value)
+}
+
+/** Spans when the workout was paused by hand or by motion; an open pause runs to the end. */
+function workoutPauses(
+  events: readonly WorkoutEvent[] | undefined,
+  endISO: string,
+): { startISO: string; endISO: string }[] {
+  const pauses: { startISO: string; endISO: string }[] = []
+  let manual = false
+  let motion = false
+  let from: string | null = null
+  for (const event of events ?? []) {
+    if (event.type === WorkoutEventType.pause) manual = true
+    else if (event.type === WorkoutEventType.resume) manual = false
+    else if (event.type === WorkoutEventType.motionPaused) motion = true
+    else if (event.type === WorkoutEventType.motionResumed) motion = false
+    else continue
+    const at = toDate(event.startDate).toISOString()
+    if ((manual || motion) && from === null) from = at
+    else if (!manual && !motion && from !== null) {
+      pauses.push({ startISO: from, endISO: at })
+      from = null
+    }
+  }
+  if (from !== null) pauses.push({ startISO: from, endISO })
+  return pauses
 }
 
 function workoutActivityName(activityType: unknown): string {
@@ -632,6 +662,7 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
             birth ?? null,
             new Date(workout.startISO),
           ),
+          pauses: workoutPauses(native.events, workout.endISO),
         }
       }),
     )

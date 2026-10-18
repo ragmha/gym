@@ -47,6 +47,8 @@ export interface StairSessionHeartRate {
   samples: HealthHeartRateSample[]
   /** Age-predicted max (220 − age) from the Health date of birth; null without one. */
   maxHeartRate: number | null
+  /** Paused spans of the session, excluded from time in zones. */
+  pauses?: { startISO: string; endISO: string }[]
 }
 
 export type IntensityMap = Map<string, number>

@@ -10,6 +10,7 @@ import Svg, { Line, Polyline, Rect } from 'react-native-svg'
 
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
+import { useColorScheme } from '@/hooks/useColorScheme'
 import { useTheme } from '@/hooks/useThemeColor'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type {
@@ -26,6 +27,14 @@ import {
 } from './activities'
 
 const ZONE_COLORS = ['#5AB0F5', '#3CC48A', '#F2C230', '#F5893A', '#EE4D5F']
+// Darker traces keep at least 3:1 contrast over the light theme's tinted zone bands.
+const ZONE_STROKES_LIGHT = [
+  '#2F7BBF',
+  '#1F8A5C',
+  '#8C6D0A',
+  '#B85A16',
+  '#C8303F',
+]
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 function clock(minutes: number): string {
@@ -436,6 +445,7 @@ export function StairSession({
   label?: string
 }) {
   const theme = useTheme()
+  const scheme = useColorScheme()
   const { width: window } = useWindowDimensions()
   const width = window - Layout.gutter * 2
   const mono = [styles.mono, { color: theme.subtitleText }]
@@ -456,9 +466,11 @@ export function StairSession({
   const min = bpms.length ? Math.min(...bpms) : null
   const zones =
     maxHeartRate && bpms.length
-      ? zoneMinutes(samples, workout.endISO, maxHeartRate)
+      ? zoneMinutes(samples, workout.endISO, maxHeartRate, data.pauses)
       : null
-  const mainZone = zones ? zones.indexOf(Math.max(...zones)) + 1 : null
+  const mainZone = zones?.some((m) => m > 0)
+    ? zones.indexOf(Math.max(...zones)) + 1
+    : null
   const stats = [
     { label: 'Duration', value: clock(workout.durationMinutes) },
     { label: 'Active kcal', value: workout.calories ?? '--' },
@@ -509,6 +521,7 @@ export function StairSession({
           max={max}
           track={theme.goalTrack}
           line={theme.subtitleText}
+          strokes={scheme === 'dark' ? ZONE_COLORS : ZONE_STROKES_LIGHT}
         />
       )}
       {min !== null && (
@@ -540,21 +553,21 @@ export function StairSession({
             z === 4
               ? null
               : Math.ceil(HEART_RATE_ZONE_BOUNDS[z] * maxHeartRate) - 1
+          const range =
+            low === null
+              ? `<${high! + 1}`
+              : high === null
+                ? `${low}+`
+                : `${low}–${high}`
           return (
             <View
               key={z}
               style={styles.zoneRow}
               accessible
-              accessibilityLabel={`Zone ${z + 1}: ${clock(zones[z])}`}
+              accessibilityLabel={`Zone ${z + 1}, ${range} BPM: ${clock(zones[z])}`}
             >
               <Text style={[mono, styles.zoneLabel]}>Z{z + 1}</Text>
-              <Text style={[mono, styles.zoneRange]}>
-                {low === null
-                  ? `<${high! + 1}`
-                  : high === null
-                    ? `${low}+`
-                    : `${low}–${high}`}
-              </Text>
+              <Text style={[mono, styles.zoneRange]}>{range}</Text>
               <View
                 style={[styles.zoneTrack, { backgroundColor: theme.goalTrack }]}
               >
@@ -586,6 +599,7 @@ const HeartRateChart = memo(function HeartRateChart({
   max,
   track,
   line,
+  strokes,
 }: {
   data: StairSessionHeartRate
   width: number
@@ -594,6 +608,8 @@ const HeartRateChart = memo(function HeartRateChart({
   track: string
   /** Trace colour when zones are unavailable. */
   line: string
+  /** Trace colour per zone. */
+  strokes: string[]
 }) {
   const height = 140
   const start = Date.parse(workout.startISO)
@@ -652,7 +668,7 @@ const HeartRateChart = memo(function HeartRateChart({
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
-          stroke={run.zone ? ZONE_COLORS[run.zone - 1] : line}
+          stroke={run.zone ? strokes[run.zone - 1] : line}
         />
       ))}
     </Svg>

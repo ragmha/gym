@@ -123,7 +123,7 @@ function StairmasterForDate({ date }: { date: Date }) {
       ) : (
         sessions.map((session, i) => (
           <StairSession
-            key={session.workout.startISO}
+            key={`${session.workout.startISO}-${i}`}
             data={session}
             label={
               sessions.length > 1
