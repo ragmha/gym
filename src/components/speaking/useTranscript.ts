@@ -84,24 +84,25 @@ export function useTranscript() {
     ): Promise<boolean> => {
       const gen = ++generation.current
       setError(null)
+      if (Platform.OS === 'web') {
+        setError(ON_DEVICE_COPY)
+        return false
+      }
       if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
         setError('Speech recognition is not available on this device.')
         return false
       }
-      const native = Platform.OS !== 'web'
-      if (native) {
-        if (!ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) {
-          setError(ON_DEVICE_COPY)
-          return false
-        }
-        const { granted } =
-          await ExpoSpeechRecognitionModule.requestPermissionsAsync()
-        // stop(), reset(), or unmount ran while the prompt was open.
-        if (gen !== generation.current) return false
-        if (!granted) {
-          setError(PERMISSION_COPY)
-          return false
-        }
+      if (!ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) {
+        setError(ON_DEVICE_COPY)
+        return false
+      }
+      const { granted } =
+        await ExpoSpeechRecognitionModule.requestPermissionsAsync()
+      // stop(), reset(), or unmount ran while the prompt was open.
+      if (gen !== generation.current) return false
+      if (!granted) {
+        setError(PERMISSION_COPY)
+        return false
       }
       // A reset session's 'end' must land before this one starts, or it
       // would restart or finish the new session.
@@ -111,8 +112,7 @@ export function useTranscript() {
         lang: 'en-US',
         addsPunctuation: true,
         ...options,
-        // Native transcripts must never leave the device.
-        requiresOnDeviceRecognition: native,
+        requiresOnDeviceRecognition: true,
       }
       session.current = { options: full, keepAlive }
       setListening(true)

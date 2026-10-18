@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react-native'
 import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition'
-import { Alert } from 'react-native'
+import { Alert, Platform } from 'react-native'
 
 import SpeakingScreen from '@/app/speaking'
 import SpeakingHistoryScreen from '@/app/speaking-history'
@@ -19,7 +19,7 @@ const mockCamera = { recordAsync: jest.fn(), stopRecording: jest.fn() }
 
 jest.mock('expo-speech-recognition', () => ({
   ExpoSpeechRecognitionModule: {
-    isRecognitionAvailable: () => true,
+    isRecognitionAvailable: jest.fn(() => true),
     supportsOnDeviceRecognition: jest.fn(() => true),
     requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
     start: jest.fn(),
@@ -73,7 +73,10 @@ beforeEach(() => {
   jest.clearAllMocks()
   useSpeakingLogStore.setState({ sessions: [] })
 })
-afterEach(() => jest.useRealTimers())
+afterEach(() => {
+  jest.useRealTimers()
+  jest.restoreAllMocks()
+})
 
 describe('SpeakingScreen', () => {
   it('runs a live session from setup through the transcript review', async () => {
@@ -164,6 +167,22 @@ describe('SpeakingScreen', () => {
         "On-device speech recognition isn't available on this device, so no transcript is made.",
       ),
     ).toBeOnTheScreen()
+    expect(speech.requestPermissionsAsync).not.toHaveBeenCalled()
+    expect(speech.start).not.toHaveBeenCalled()
+  })
+
+  it('does not use browser-backed recognition on web', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web')
+    const { result } = renderHook(() => useTranscript())
+
+    await act(async () => {
+      expect(await result.current.start({})).toBe(false)
+    })
+
+    expect(result.current.error).toBe(
+      "On-device speech recognition isn't available on this device, so no transcript is made.",
+    )
+    expect(speech.isRecognitionAvailable).not.toHaveBeenCalled()
     expect(speech.requestPermissionsAsync).not.toHaveBeenCalled()
     expect(speech.start).not.toHaveBeenCalled()
   })
