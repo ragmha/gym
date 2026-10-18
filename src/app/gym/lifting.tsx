@@ -365,11 +365,7 @@ function ExerciseFocus({
   return (
     <View
       testID={`gym-exercise-${exercise.id}`}
-      style={[
-        styles.card,
-        focus && styles.grow,
-        { borderColor: theme.goalTrack },
-      ]}
+      style={[styles.card, styles.grow, { borderColor: theme.goalTrack }]}
     >
       <View style={[styles.focusHeader, { backgroundColor: theme.goalTrack }]}>
         <View style={[styles.badge, { backgroundColor: theme.goalComplete }]}>
@@ -413,7 +409,7 @@ function ExerciseFocus({
         </Text>
       </View>
 
-      <View style={[styles.cardBody, focus && styles.grow]}>
+      <View style={[styles.cardBody, styles.grow]}>
         {!locked && (
           <View style={styles.entryRow}>
             <View style={[styles.flex, styles.entryTarget]}>
@@ -873,8 +869,7 @@ function FinishCard({
         </View>
         <ActionButton
           testID="gym-finish"
-          label={setCount ? 'Finish workout' : 'Save a set to finish'}
-          disabled={setCount === 0}
+          label="Finish workout"
           onPress={() =>
             finishWorkout(dateKey, { rating, finishedAt: new Date() })
           }
@@ -982,8 +977,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Layout.gutter,
     paddingBottom: Spacing.xxl,
     gap: Spacing.sm,
+    flexGrow: 1,
   },
-  focusContent: { flexGrow: 1, paddingVertical: Spacing.sm },
+  focusContent: { paddingVertical: Spacing.sm },
   grow: { flexGrow: 1 },
   flex: { flex: 1 },
   center: { alignSelf: 'center', textAlign: 'center' },
