@@ -167,6 +167,7 @@ function StepsForDate({ date }: { date: Date }) {
                           text: `${steps.toLocaleString()} of ${DAILY_STEP_GOAL.toLocaleString()} steps`,
                         }
                   }
+                  style={styles.gaugeArc}
                 >
                   <Svg
                     width="100%"
@@ -221,7 +222,7 @@ function StepsForDate({ date }: { date: Date }) {
                     )}
                   </Svg>
                 </View>
-                <View style={styles.dateRow}>
+                <View testID="steps-date-row" style={styles.dateRow}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Previous day"
@@ -569,11 +570,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
   },
   dateRow: {
-    position: 'absolute',
-    top: 64,
-    left: 0,
-    right: 0,
     width: '100%',
+    marginTop: 64,
+    marginBottom: 78,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -586,16 +585,19 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     ...Typography.headingSm,
+    flex: 1,
     textAlign: 'center',
   },
+  // The date row sits in flow so wrapped Dynamic Type text grows the gauge;
+  // its margins reproduce the 190pt arc at default size and keep a 34pt gap
+  // above the step count, which overlaps the gauge's last 44pt.
   gauge: {
     width: '100%',
     maxWidth: 440,
-    height: 190,
-    position: 'relative',
     marginTop: Spacing.xs,
     marginBottom: -44,
   },
+  gaugeArc: { position: 'absolute', top: 0, left: 0, right: 0 },
   heroSteps: {
     width: '100%',
     textAlign: 'center',

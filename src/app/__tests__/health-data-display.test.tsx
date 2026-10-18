@@ -6,6 +6,7 @@ import {
   within,
 } from '@testing-library/react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { StyleSheet } from 'react-native'
 
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
@@ -341,6 +342,18 @@ describe('StepsScreen health data', () => {
     expect(within(progress).queryByLabelText('Previous day')).toBeNull()
     expect(within(progress).queryByLabelText('Next day')).toBeNull()
     expect(getByLabelText('Previous day')).toBeTruthy()
+    await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
+  })
+
+  it('lets a long date label wrap and grow the gauge instead of overlapping', async () => {
+    mockSnapshot = completeSnapshot
+    const { getByTestId } = render(<StepsScreen />)
+
+    const row = getByTestId('steps-date-row')
+    expect(StyleSheet.flatten(row.props.style).position).toBeUndefined()
+    const label = within(row).getByRole('header')
+    expect(StyleSheet.flatten(label.props.style).flex).toBe(1)
+    expect(label.props.numberOfLines).toBeUndefined()
     await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
   })
 
