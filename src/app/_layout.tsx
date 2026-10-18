@@ -30,6 +30,9 @@ if (!__DEV__) {
 
 SplashScreen.preventAutoHideAsync()
 
+// Deep-linked screens keep the dashboard below them so Back works.
+export const unstable_settings = { anchor: 'index' }
+
 export default function RootLayout() {
   const colorScheme = useColorScheme()
   const [loaded] = useFonts({
