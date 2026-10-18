@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot'
 import { Colors, type ThemeName } from '@/constants/Colors'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
+import { publishDailySummary } from '@/lib/widgets/publishDailySummary'
 
 import HomeScreen from '../index'
 
@@ -55,6 +56,10 @@ jest.mock('expo', () => ({
 }))
 
 jest.mock('@/lib/readingActivity', () => mockLive)
+
+jest.mock('@/lib/widgets/publishDailySummary', () => ({
+  publishDailySummary: jest.fn(() => null),
+}))
 
 jest.mock('@/hooks/useThemeColor', () => {
   const { Colors } =
@@ -156,6 +161,46 @@ describe('HomeScreen', () => {
     expect(
       screen.getByRole('button', { name: 'See achievements' }),
     ).toBeTruthy()
+  })
+
+  it('publishes current-day readings but not demo data, loading data, or historical days', () => {
+    const view = render(<HomeScreen />)
+    expect(publishDailySummary).toHaveBeenCalledWith(mockState.snapshot)
+    jest.mocked(publishDailySummary).mockClear()
+
+    mockState = { ...mockState, isDemoMode: true }
+    view.rerender(<HomeScreen />)
+    expect(publishDailySummary).not.toHaveBeenCalled()
+
+    mockState = { ...mockState, isDemoMode: false, status: 'loading' }
+    view.rerender(<HomeScreen />)
+    expect(publishDailySummary).not.toHaveBeenCalled()
+
+    mockState = { ...mockState, status: 'ready' }
+    mockInitialParams = { date: '2026-09-11' }
+    view.rerender(<HomeScreen />)
+    expect(publishDailySummary).not.toHaveBeenCalled()
+  })
+
+  it('clears widget readings when the current-day Health read fails', () => {
+    mockState = {
+      ...mockState,
+      status: 'error',
+      error: 'Unable to load health data',
+    }
+    render(<HomeScreen />)
+    expect(publishDailySummary).toHaveBeenCalledWith(null)
+  })
+
+  it('surfaces a widget update failure without hiding the dashboard', () => {
+    jest
+      .mocked(publishDailySummary)
+      .mockReturnValueOnce(
+        'Unable to update Daily rings. Reopen the app to try again.',
+      )
+    render(<HomeScreen />)
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
   })
 
   it('keeps a steps-only day useful without empty metric cards', () => {

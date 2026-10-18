@@ -61,6 +61,14 @@ extension; minutes are never persisted, written to Health, or used as coach
 input. Older builds, web, and Android keep the plain Apple Books link.
 No other manual-entry feature is approved.
 
+The user-approved Daily rings Home Screen widget shares only today's formatted
+steps, water and active-calorie summary, progress and update/expiry times through
+the dedicated `group.io.raghib.gym.widgets` App Group. Its display targets are
+20,000 steps, 2.5 L and 500 active kcal, not new dashboard goals. Timeline readings
+expire after one hour or local midnight; this is display expiry, not automatic
+storage deletion. Never share historical/demo readings, Health history, or coach
+context, or turn this narrow widget exception into a general Health cache.
+
 Before adding a feature, check whether the data already exists in HealthKit. If
 it does, read it. If it does not, adding a form, a store that persists user
 input, or a network backend is a scope decision that needs explicit sign-off —
