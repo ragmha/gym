@@ -19,6 +19,7 @@ import {
   stairmasterHighlights,
   zoneMinutes,
 } from '@/components/gym/activities'
+import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory'
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
@@ -63,6 +64,10 @@ jest.mock('@/hooks/useWorkoutHistory', () => ({
 
 beforeEach(() => {
   jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-10-17' })
+  jest.mocked(useHealthSnapshot).mockReturnValue({
+    snapshot: mockToday,
+    isDemoMode: false,
+  } as never)
   jest.mocked(useWorkoutHistory).mockReturnValue(null)
   useGymLogStore.setState({ programmeStart: null, logs: {} })
   useThemeStore.setState({ gymTileOrder: [] })
@@ -150,6 +155,33 @@ describe('Gym hub', () => {
 })
 
 describe('Gym detail screens', () => {
+  // The calendar runs from the first session to the real current month.
+  // Only the clock is frozen: fake timers would let waits render every month.
+  beforeEach(() => {
+    jest.useFakeTimers({
+      doNotFake: [
+        'hrtime',
+        'nextTick',
+        'performance',
+        'queueMicrotask',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+        'requestIdleCallback',
+        'cancelIdleCallback',
+        'setImmediate',
+        'clearImmediate',
+        'setInterval',
+        'clearInterval',
+        'setTimeout',
+        'clearTimeout',
+      ],
+      now: new Date(2026, 9, 17, 12),
+    })
+  })
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
   it('shows stairmaster progress, streak and a calendar of sessions', async () => {
     jest
       .spyOn(healthSnapshot, 'getStairWorkouts')
@@ -211,6 +243,67 @@ describe('Gym detail screens', () => {
     screen.rerender(<StairmasterScreen />)
     expect(screen.getByLabelText(/^Longest streak: 2 days/)).toBeTruthy()
     expect(screen.getByLabelText(/^Total sessions: 6\./)).toBeTruthy()
+  })
+
+  it('rereads history on a same-day reload, not when picking a day, and keeps the calendar meanwhile', async () => {
+    const readAll = jest
+      .spyOn(healthSnapshot, 'getStairWorkouts')
+      .mockClear()
+      .mockResolvedValue([stairs('2026-10-15', 30)])
+    jest.spyOn(healthSnapshot, 'getStairSessions').mockResolvedValue([])
+    jest.mocked(useRouter).mockReturnValue({ setParams: jest.fn() } as never)
+    render(<StairmasterScreen />)
+    expect(await screen.findByLabelText('October 15, 30/30 min')).toBeTruthy()
+
+    // Picking a day blanks the snapshot, then loads that day's.
+    jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-10-15' })
+    jest.mocked(useHealthSnapshot).mockReturnValue({
+      snapshot: null,
+      isDemoMode: false,
+    } as never)
+    screen.rerender(<StairmasterScreen />)
+    jest.mocked(useHealthSnapshot).mockReturnValue({
+      snapshot: { ...mockToday, date: '2026-10-15' },
+      isDemoMode: false,
+    } as never)
+    screen.rerender(<StairmasterScreen />)
+    expect(await screen.findByText('No stair session this day')).toBeTruthy()
+    expect(readAll).toHaveBeenCalledTimes(1)
+
+    // Focus, foreground and new workouts reload the same day's snapshot.
+    jest.mocked(useHealthSnapshot).mockReturnValue({
+      snapshot: { ...mockToday },
+      isDemoMode: false,
+    } as never)
+    screen.rerender(<StairmasterScreen />)
+    expect(screen.getByLabelText('October 15, 30/30 min')).toBeTruthy()
+    await act(async () => {})
+    expect(readAll).toHaveBeenCalledTimes(2)
+    expect(screen.getByLabelText('October 15, 30/30 min')).toBeTruthy()
+  })
+
+  it('labels zone ranges with the whole BPMs each zone counts', async () => {
+    jest.spyOn(healthSnapshot, 'getStairWorkouts').mockResolvedValue([])
+    jest.mocked(useRouter).mockReturnValue({ setParams: jest.fn() } as never)
+    jest.spyOn(healthSnapshot, 'getStairSessions').mockResolvedValue([
+      {
+        workout: stairs('2026-10-17', 45),
+        samples: [
+          { bpm: 150, startISO: '2026-10-17T06:00:00' },
+          { bpm: 169, startISO: '2026-10-17T06:10:00' },
+        ],
+        maxHeartRate: 188,
+      },
+    ])
+    render(<StairmasterScreen />)
+    expect(await screen.findByText('151–169')).toBeTruthy()
+    expect(screen.getByText('<113')).toBeTruthy()
+    expect(screen.getByText('113–131')).toBeTruthy()
+    expect(screen.getByText('132–150')).toBeTruthy()
+    expect(screen.getByText('170+')).toBeTruthy()
+    // 150 BPM counts in Z3 and 169 BPM in Z4, matching the labels.
+    expect(screen.getByLabelText('Zone 3: 1:00')).toBeTruthy()
+    expect(screen.getByLabelText('Zone 4: 1:00')).toBeTruthy()
   })
 
   it('shows -- instead of zero zones when a session has no heart-rate samples', async () => {

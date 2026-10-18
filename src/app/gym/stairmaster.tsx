@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ActivityDetail, streakStats } from '@/components/gym/ActivityDetail'
 import {
@@ -23,47 +23,58 @@ export default function StairmasterScreen() {
   )
 }
 
-/** Reads `read()` once per `key`, again whenever `refresh` changes; 'error' on failure, undefined while loading. */
+/**
+ * Reads `read()` once per `key` and again whenever `refresh` changes; 'error' on failure,
+ * undefined while the first read for `key` loads. A refresh keeps the previous result until it settles.
+ */
 function useHealthRead<T>(
   key: string,
   read: () => Promise<T>,
-  refresh: unknown,
+  refresh: number,
 ): T | 'error' | undefined {
-  const [state, setState] = useState<{
-    key: string
-    refresh: unknown
-    data: T | 'error'
-  }>()
+  const [state, setState] = useState<{ key: string; data: T | 'error' }>()
   useEffect(() => {
     let active = true
     read().then(
-      (data) => active && setState({ key, refresh, data }),
-      () => active && setState({ key, refresh, data: 'error' }),
+      (data) => active && setState({ key, data }),
+      () => active && setState({ key, data: 'error' }),
     )
     return () => {
       active = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` identifies `read`
   }, [key, refresh])
-  return state?.key === key && state.refresh === refresh
-    ? state.data
-    : undefined
+  return state?.key === key ? state.data : undefined
+}
+
+/** Counts snapshot reloads for the same day (focus, foreground, workout change), ignoring day changes. */
+function useRefreshCount(key: string, snapshot: unknown): number {
+  const seen = useRef<{ key: string; snapshot: unknown }>(null)
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    if (!snapshot) return
+    const prev = seen.current
+    seen.current = { key, snapshot }
+    if (prev?.key === key && prev.snapshot !== snapshot) setCount((c) => c + 1)
+  }, [key, snapshot])
+  return count
 }
 
 function StairmasterForDate({ date }: { date: Date }) {
   const router = useRouter()
   const key = localDateKey(date)
   const { snapshot, isDemoMode } = useHealthSnapshot(date)
+  const refresh = useRefreshCount(key, snapshot)
   const sessions = useHealthRead(
     key,
     () => healthSnapshot.getStairSessions(new Date(`${key}T12:00:00`)),
-    snapshot,
+    refresh,
   )
   // Every stair session ever feeds the calendar and the streak.
   const all = useHealthRead(
     'all',
     () => healthSnapshot.getStairWorkouts(),
-    snapshot,
+    refresh,
   )
   const stairs = Array.isArray(all) ? all : null
   const days = useMemo(() => {

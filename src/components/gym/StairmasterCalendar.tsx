@@ -508,6 +508,7 @@ export function StairSession({
           min={min}
           max={max}
           track={theme.goalTrack}
+          line={theme.subtitleText}
         />
       )}
       {min !== null && (
@@ -530,14 +531,15 @@ export function StairSession({
       ) : (
         [4, 3, 2, 1, 0].map((z) => {
           const total = zones.reduce((a, b) => a + b, 0) || 1
+          // Smallest whole BPM that heartRateZone counts in each zone.
           const low =
             z === 0
               ? null
-              : Math.round(HEART_RATE_ZONE_BOUNDS[z - 1] * maxHeartRate)
+              : Math.ceil(HEART_RATE_ZONE_BOUNDS[z - 1] * maxHeartRate)
           const high =
             z === 4
               ? null
-              : Math.round(HEART_RATE_ZONE_BOUNDS[z] * maxHeartRate) - 1
+              : Math.ceil(HEART_RATE_ZONE_BOUNDS[z] * maxHeartRate) - 1
           return (
             <View
               key={z}
@@ -583,12 +585,15 @@ const HeartRateChart = memo(function HeartRateChart({
   min,
   max,
   track,
+  line,
 }: {
   data: StairSessionHeartRate
   width: number
   min: number
   max: number
   track: string
+  /** Trace colour when zones are unavailable. */
+  line: string
 }) {
   const height = 140
   const start = Date.parse(workout.startISO)
@@ -647,7 +652,7 @@ const HeartRateChart = memo(function HeartRateChart({
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
-          stroke={run.zone ? ZONE_COLORS[run.zone - 1] : track}
+          stroke={run.zone ? ZONE_COLORS[run.zone - 1] : line}
         />
       ))}
     </Svg>

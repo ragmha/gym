@@ -605,22 +605,24 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       stairs.map(async (native) => {
         const workout = mapWorkout(native)
         const [samples, averageHeartRate] = await Promise.all([
-          queryQuantitySamples('HKQuantityTypeIdentifierHeartRate', {
-            limit: 0,
-            ascending: true,
-            unit: 'count/min',
-            filter: {
-              date: {
-                startDate: new Date(workout.startISO),
-                endDate: new Date(workout.endISO),
+          readMetric('stair heart rate', () =>
+            queryQuantitySamples('HKQuantityTypeIdentifierHeartRate', {
+              limit: 0,
+              ascending: true,
+              unit: 'count/min',
+              filter: {
+                date: {
+                  startDate: new Date(workout.startISO),
+                  endDate: new Date(workout.endISO),
+                },
               },
-            },
-          }),
+            }),
+          ),
           readAverageHeartRate(native),
         ])
         return {
           workout: { ...workout, averageHeartRate },
-          samples: samples
+          samples: (samples ?? [])
             .filter((s) => Number.isFinite(s.quantity) && s.quantity > 0)
             .map((s) => ({
               bpm: roundInt(s.quantity),

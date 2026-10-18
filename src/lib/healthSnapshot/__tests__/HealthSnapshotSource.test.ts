@@ -1193,6 +1193,34 @@ describe('HealthSnapshotSource adapters', () => {
     ).resolves.toMatchObject([{ samples: [], maxHeartRate: null }])
   })
 
+  it('keeps a stair session when its heart-rate samples fail to load', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation()
+    hk.queryWorkoutSamples.mockResolvedValue([
+      {
+        workoutActivityType: 44,
+        duration: { quantity: 1800, unit: 's' },
+        startDate: new Date(2026, 1, 15, 8),
+        endDate: new Date(2026, 1, 15, 8, 30),
+        getStatistic: jest.fn(async () => ({
+          averageQuantity: { quantity: 141 },
+        })),
+      },
+    ])
+    hk.queryQuantitySamples.mockRejectedValue(new Error('private samples'))
+
+    await expect(
+      iosHealthKitAdapter.getStairSessions(new Date(2026, 1, 15, 12)),
+    ).resolves.toMatchObject([
+      {
+        workout: { durationMinutes: 30, averageHeartRate: 141 },
+        samples: [],
+      },
+    ])
+    expect(warn).toHaveBeenCalledWith(
+      '[HealthSnapshotSource] stair heart rate read failed (Error)',
+    )
+  })
+
   it('reads all stair history in one query, oldest first', async () => {
     hk.queryWorkoutSamples.mockResolvedValue([
       {
