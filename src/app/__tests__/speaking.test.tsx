@@ -82,6 +82,25 @@ describe('SpeakingScreen', () => {
     expect(screen.getByText('Choose a topic')).toBeOnTheScreen()
   })
 
+  it('highlights the script words already read while shadowing', async () => {
+    render(<SpeakingScreen />)
+    fireEvent.press(screen.getByRole('button', { name: 'Start' }))
+    await waitFor(() =>
+      expect(ExpoSpeechRecognitionModule.start).toHaveBeenCalled(),
+    )
+
+    act(() =>
+      mockHandlers.result({
+        isFinal: false,
+        results: [{ transcript: 'In the, um, next five minutes' }],
+      }),
+    )
+
+    expect(screen.getByTestId('script-read')).toHaveTextContent(
+      'In the next five minutes,',
+    )
+  })
+
   it('opens the foundation talk and explains a failed launch', async () => {
     const openURL = jest
       .spyOn(Linking, 'openURL')

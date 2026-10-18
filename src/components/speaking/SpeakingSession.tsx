@@ -5,12 +5,13 @@ import {
 } from 'expo-camera'
 import { Directory, File, Paths } from 'expo-file-system'
 import { useKeepAwake } from 'expo-keep-awake'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
+import { followScript, normalizeWord } from '@/lib/speaking/follow'
 import type { SpeakingTopic } from '@/lib/speaking/scripts'
 
 import { SpeakingButton } from './SpeakingButton'
@@ -75,8 +76,37 @@ export function SpeakingSession({
   const mounted = useRef(true)
   const camera = useRef<CameraView>(null)
   const transcriptView = useRef<ScrollView>(null)
+  const scriptView = useRef<ScrollView>(null)
+  const paragraphY = useRef<number[]>([])
   const [cameraPermission, requestCamera] = useCameraPermissions()
   const [micPermission, requestMic] = useMicrophonePermissions()
+
+  const paragraphs = useMemo(() => {
+    let start = 0
+    return topic.paragraphs.map((text) => {
+      const words = text.split(/\s+/)
+      const paragraph = { words, start }
+      start += words.length
+      return paragraph
+    })
+  }, [topic])
+  const scriptWords = useMemo(
+    () => paragraphs.flatMap(({ words }) => words.map(normalizeWord)),
+    [paragraphs],
+  )
+  // Live shadowing highlights the words already read.
+  const following = style === 'shadow' && capture === 'live'
+  const read = following
+    ? followScript(scriptWords, `${transcript.finalText} ${transcript.interim}`)
+    : 0
+  const currentParagraph = paragraphs.findLastIndex(
+    ({ start }) => start <= read,
+  )
+  useEffect(() => {
+    if (!following) return
+    const y = paragraphY.current[currentParagraph]
+    if (y !== undefined) scriptView.current?.scrollTo({ y, animated: true })
+  }, [following, currentParagraph])
 
   const begin = useCallback(() => {
     startedRef.current = Date.now()
@@ -223,13 +253,15 @@ export function SpeakingSession({
           <Text style={[Typography.bodyMd, { color: theme.text }]}>
             {transcript.finalText}
             {transcript.interim ? (
-              <Text style={muted}>
+              <Text style={[Typography.bodyMd, muted]}>
                 {transcript.finalText ? ' ' : ''}
                 {transcript.interim}
               </Text>
             ) : null}
             {!transcript.finalText && !transcript.interim ? (
-              <Text style={muted}>Your words appear here as you speak.</Text>
+              <Text style={[Typography.bodyMd, muted]}>
+                Your words appear here as you speak.
+              </Text>
             ) : null}
           </Text>
         </ScrollView>
@@ -245,6 +277,7 @@ export function SpeakingSession({
       ) : null}
 
       <ScrollView
+        ref={scriptView}
         style={styles.script}
         contentContainerStyle={styles.scriptContent}
       >
@@ -262,18 +295,38 @@ export function SpeakingSession({
                 ? ' The script runs about 5 minutes; when you finish, start again and drift further from the words each pass.'
                 : ''}
             </Text>
-            {topic.paragraphs.map((paragraph) => (
-              <Text
-                key={paragraph}
-                style={[
-                  Typography.bodyLg,
-                  styles.paragraph,
-                  { color: theme.text },
-                ]}
-              >
-                {paragraph}
-              </Text>
-            ))}
+            {paragraphs.map(({ words, start }, index) => {
+              const done = Math.min(words.length, Math.max(0, read - start))
+              return (
+                <Text
+                  key={start}
+                  onLayout={(e) => {
+                    paragraphY.current[index] = e.nativeEvent.layout.y
+                  }}
+                  style={[
+                    Typography.bodyLg,
+                    styles.paragraph,
+                    { color: theme.text },
+                  ]}
+                >
+                  {done ? (
+                    <Text
+                      testID="script-read"
+                      style={[
+                        Typography.bodyLg,
+                        styles.paragraph,
+                        { color: theme.accent },
+                        styles.read,
+                      ]}
+                    >
+                      {words.slice(0, done).join(' ')}
+                    </Text>
+                  ) : null}
+                  {done && done < words.length ? ' ' : ''}
+                  {words.slice(done).join(' ')}
+                </Text>
+              )
+            })}
           </>
         ) : (
           <>
@@ -322,6 +375,7 @@ const styles = StyleSheet.create({
   script: { flex: 1 },
   scriptContent: { gap: Spacing.md, paddingBottom: Spacing.xxxl },
   paragraph: { lineHeight: 28 },
+  read: { textDecorationLine: 'underline' },
   point: { flexDirection: 'row', gap: Spacing.sm },
   flex: { flex: 1 },
 })
