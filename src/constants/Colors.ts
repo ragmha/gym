@@ -1,6 +1,68 @@
 const lightAccent = '#245BDB'
 const darkAccent = '#8AB4FF'
 
+export const AchievementMedalColors = {
+  highlight: '#FFF1BA',
+  gold: '#E6B44B',
+  shadow: '#8C591C',
+  enamel: {
+    steps: {
+      top: '#38E2E1',
+      bottom: '#096BC2',
+      accent: '#C4FFF2',
+      detail: '#14518A',
+    },
+    running: {
+      top: '#FF9470',
+      bottom: '#E33263',
+      accent: '#FFE7A2',
+      detail: '#983C75',
+    },
+    stairs: {
+      top: '#63DDFA',
+      bottom: '#226CD3',
+      accent: '#5BDE9B',
+      detail: '#196D61',
+    },
+    workout: {
+      top: '#BDFE44',
+      bottom: '#3FA647',
+      accent: '#E9FFA5',
+      detail: '#154F54',
+    },
+    energy: {
+      top: '#FFDD58',
+      bottom: '#ED394B',
+      accent: '#FFF39D',
+      detail: '#F78425',
+    },
+    lifting: {
+      top: '#B284FF',
+      bottom: '#503BB6',
+      accent: '#8DEEF2',
+      detail: '#403780',
+    },
+    water: {
+      top: '#61EEFF',
+      bottom: '#1471D4',
+      accent: '#68F2CE',
+      detail: '#0E559F',
+    },
+    streak: {
+      top: '#FFEB60',
+      bottom: '#F19C27',
+      accent: '#FFF5BD',
+      detail: '#CC573B',
+    },
+    trophy: {
+      top: '#F877CF',
+      bottom: '#8430C4',
+      accent: '#FEE8A5',
+      detail: '#70258B',
+    },
+  },
+} as const
+
 export const Colors = {
   light: {
     text: '#171923',

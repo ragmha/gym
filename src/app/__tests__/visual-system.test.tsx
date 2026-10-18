@@ -21,6 +21,14 @@ const mockBack = jest.fn()
 jest.mock('@/hooks/useHealthSnapshot', () => ({
   useHealthSnapshot: jest.fn(() => mockState),
 }))
+jest.mock('@/lib/healthSnapshot/HealthSnapshotSource', () => ({
+  healthSnapshot: {
+    getStepHistory: jest.fn(async () => []),
+    getWaterHistory: jest.fn(async () => []),
+    getWorkoutHistory: jest.fn(async () => []),
+    isAvailable: jest.fn(() => false),
+  },
+}))
 jest.mock('@/hooks/useThemeColor', () => {
   const { Colors } =
     jest.requireActual<typeof import('@/constants/Colors')>(
@@ -79,6 +87,7 @@ const screens = [
 ] as const
 
 beforeEach(() => {
+  jest.useFakeTimers()
   jest.clearAllMocks()
   mockTheme = 'light'
   mockRefresh.mockResolvedValue(undefined)
@@ -96,12 +105,20 @@ beforeEach(() => {
   jest.mocked(useRouter).mockReturnValue({ ...useRouter(), back: mockBack })
 })
 
+afterEach(() => {
+  jest.clearAllTimers()
+  jest.useRealTimers()
+})
+
 describe.each(['light', 'dark'] as const)('Whole-app %s appearance', (mode) => {
   it.each(screens)(
     'uses the shared surface and an accessible back control in $name',
-    ({ Screen, testID, surface }) => {
+    async ({ Screen, testID, surface, name }) => {
       mockTheme = mode
       const result = render(<Screen />)
+      if (name === 'Achievements') {
+        await screen.findByTestId('badge-most-steps')
+      }
       expect(
         StyleSheet.flatten(screen.getByTestId(testID).props.style)
           .backgroundColor,

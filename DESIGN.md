@@ -59,8 +59,10 @@ not completion colors.
   unavailable distance/minute readings are grouped below; there are no
   calorie-progress rings, invented distance, or estimated active minutes.
 - **Achievements:** Personal records, Steps, Streaks, Workouts, Lifting, and
-  Hydration sections in a three-column badge grid. Earned medals are filled and
-  show the value and first date; locked medals are outlined with progress.
+  Hydration sections in a three-column award grid. Original enamel-style
+  illustrations use distinct silhouettes, vivid colors, and metallic outlines;
+  locked awards show only muted linework. Milestone numbers are inset into the
+  artwork. Values, first-earned dates, and progress stay below each award.
   Built from the past year of Health readings plus the on-device lifting log;
   pace and distance records are not shown.
 - **Settings:** inset groups, a single Health-access action, and full-width

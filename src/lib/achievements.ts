@@ -1,6 +1,3 @@
-import type { Ionicons } from '@expo/vector-icons'
-import type { ComponentProps } from 'react'
-
 import { DAILY_STEP_GOAL } from '@/lib/dailyGoals'
 import type {
   DailyStepReading,
@@ -10,11 +7,21 @@ import type {
 } from '@/lib/healthSnapshot/types'
 import type { GymDayLog } from '@/stores/GymLogStore'
 
+export type BadgeArtwork =
+  | 'steps'
+  | 'running'
+  | 'stairs'
+  | 'workout'
+  | 'energy'
+  | 'lifting'
+  | 'water'
+  | 'streak'
+  | 'trophy'
+
 export interface Badge {
   id: string
   title: string
-  icon: ComponentProps<typeof Ionicons>['name']
-  /** Short text shown on the medal instead of the icon. */
+  art: BadgeArtwork
   mark?: string
   /** Local YYYY-MM-DD it was first earned; null means locked. */
   date: string | null
@@ -41,7 +48,7 @@ type Entry = { date: string; value: number }
 function record(
   id: string,
   title: string,
-  icon: Badge['icon'],
+  art: BadgeArtwork,
   entries: Entry[],
   format: (value: number) => string,
 ): Badge {
@@ -51,14 +58,14 @@ function record(
     null,
   )
   return best
-    ? { id, title, icon, date: best.date, value: format(best.value) }
-    : { id, title, icon, date: null }
+    ? { id, title, art, date: best.date, value: format(best.value) }
+    : { id, title, art, date: null }
 }
 
 /** `dates[i]` is the day the (i+1)th event happened, oldest first. */
 function milestones(
   id: string,
-  icon: Badge['icon'],
+  art: BadgeArtwork,
   dates: string[],
   targets: number[],
   title: (target: number) => string,
@@ -67,7 +74,7 @@ function milestones(
   return targets.map((target) => ({
     id: `${id}-${target}`,
     title: title(target),
-    icon,
+    art,
     mark: mark(target),
     date: dates[target - 1] ?? null,
     progress: { current: Math.min(dates.length, target), target },
@@ -131,52 +138,48 @@ export function buildAchievements({
     {
       title: 'Personal records',
       badges: [
-        record(
-          'most-steps',
-          'Most steps',
-          'footsteps-outline',
-          stepEntries,
-          (v) => v.toLocaleString(),
+        record('most-steps', 'Most steps', 'steps', stepEntries, (v) =>
+          v.toLocaleString(),
         ),
         record(
           'longest-run',
           'Longest run',
-          'walk-outline',
+          'running',
           workoutEntries((w) => w.durationMinutes, 'running'),
           minutes,
         ),
         record(
           'longest-stairs',
           'Longest stair climb',
-          'trending-up-outline',
+          'stairs',
           workoutEntries((w) => w.durationMinutes, 'stairClimber'),
           minutes,
         ),
         record(
           'longest-workout',
           'Longest workout',
-          'stopwatch-outline',
+          'workout',
           workoutEntries((w) => w.durationMinutes),
           minutes,
         ),
         record(
           'biggest-burn',
           'Biggest burn',
-          'flame-outline',
+          'energy',
           workoutEntries((w) => w.calories),
           (v) => `${v.toLocaleString()} kcal`,
         ),
         record(
           'heaviest-set',
           'Heaviest set',
-          'barbell-outline',
+          'lifting',
           sets,
           (v) => `${v} kg`,
         ),
         record(
           'most-water',
           'Most water',
-          'water-outline',
+          'water',
           water.flatMap(({ date, liters }) =>
             liters === null ? [] : [{ date, value: liters }],
           ),
@@ -190,7 +193,7 @@ export function buildAchievements({
         (target) => ({
           id: `steps-${target}`,
           title: `${target.toLocaleString()} steps`,
-          icon: 'footsteps-outline',
+          art: 'steps',
           mark: thousands(target),
           date:
             stepEntries.find((entry) => entry.value >= target)?.date ?? null,
@@ -203,7 +206,7 @@ export function buildAchievements({
       badges: [
         ...milestones(
           'goal-streak',
-          'flash-outline',
+          'streak',
           streakDates(
             steps.map(({ date, steps: value }) => ({
               date,
@@ -216,7 +219,7 @@ export function buildAchievements({
         ),
         ...milestones(
           'workout-streak',
-          'calendar-outline',
+          'workout',
           streakDates(
             workouts.map(({ date }) => ({ date, hit: workoutDays.has(date) })),
           ),
@@ -230,7 +233,7 @@ export function buildAchievements({
       title: 'Workouts',
       badges: milestones(
         'workouts',
-        'fitness-outline',
+        'trophy',
         allWorkouts.map(({ date }) => date),
         [1, 10, 25, 50, 100, 250],
         (n) => (n === 1 ? 'First workout' : plural(n, 'workout')),
@@ -239,16 +242,12 @@ export function buildAchievements({
     {
       title: 'Lifting',
       badges: [
-        ...milestones(
-          'lifts',
-          'barbell-outline',
-          liftDays,
-          [1, 5, 10, 25, 50],
-          (n) => (n === 1 ? 'First session' : plural(n, 'session')),
+        ...milestones('lifts', 'lifting', liftDays, [1, 5, 10, 25, 50], (n) =>
+          n === 1 ? 'First session' : plural(n, 'session'),
         ),
         ...milestones(
           'sets',
-          'layers-outline',
+          'lifting',
           sets.map(({ date }) => date),
           [100, 500, 1000],
           (n) => `${n.toLocaleString()} sets`,
@@ -260,7 +259,7 @@ export function buildAchievements({
       title: 'Hydration',
       badges: milestones(
         'water',
-        'water-outline',
+        'water',
         water.flatMap(({ date, liters }) =>
           liters !== null && liters > 0 ? [date] : [],
         ),

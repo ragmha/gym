@@ -1,9 +1,9 @@
-import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 import React, { useCallback, useEffect, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { AchievementMedal } from '@/components/achievements/AchievementMedal'
 import { ScreenHeader } from '@/components/common/ScreenHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { HealthReadState } from '@/components/health/HealthReadState'
@@ -34,7 +34,6 @@ function formatDay(date: string) {
 function Medal({ badge }: { badge: Badge }) {
   const theme = useTheme()
   const earned = badge.date !== null
-  const color = earned ? theme.goalOnComplete : theme.subtitleText
   const detail = earned
     ? [badge.value, formatDay(badge.date!)].filter(Boolean).join(', ')
     : badge.progress
@@ -48,20 +47,7 @@ function Medal({ badge }: { badge: Badge }) {
       accessible
       accessibilityLabel={`${badge.title}, ${earned ? `earned, ${detail}` : detail}`}
     >
-      <View
-        style={[
-          styles.medal,
-          earned
-            ? { backgroundColor: theme.goalComplete }
-            : { borderColor: theme.goalTrack, borderWidth: 2 },
-        ]}
-      >
-        {badge.mark ? (
-          <Text style={[styles.mark, { color }]}>{badge.mark}</Text>
-        ) : (
-          <Ionicons name={badge.icon} size={30} color={color} />
-        )}
-      </View>
+      <AchievementMedal art={badge.art} mark={badge.mark} earned={earned} />
       <Text
         style={[
           styles.title,
@@ -203,15 +189,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xxs,
   },
-  medal: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xxs,
-  },
-  mark: { ...Typography.labelLg, fontSize: 18 },
-  title: { ...Typography.labelMd, textAlign: 'center' },
+  title: { ...Typography.bodySm, textAlign: 'center' },
   small: { ...Typography.bodySm, textAlign: 'center' },
 })

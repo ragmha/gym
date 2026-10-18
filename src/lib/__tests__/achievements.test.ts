@@ -57,8 +57,13 @@ describe('buildAchievements', () => {
     expect(get('most-steps')).toMatchObject({
       date: '2026-02-01',
       value: (21_000).toLocaleString(),
+      art: 'steps',
     })
-    expect(get('steps-20000').date).toBe('2026-02-01')
+    expect(get('steps-20000')).toMatchObject({
+      date: '2026-02-01',
+      art: 'steps',
+      mark: '20K',
+    })
     expect(get('steps-25000')).toMatchObject({
       date: null,
       progress: { current: 21_000, target: 25_000 },
