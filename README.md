@@ -63,3 +63,9 @@ modules/phone-rest/       Experimental native phone-rest prototype
 
 - If Metro hangs, stop it and run `bun run start` again.
 - If native dependencies drift, run `bun run prebuild:clean` and rebuild with `bun run ios`.
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE.md). Free for personal, hobby, research,
+and other noncommercial use. Commercial use needs a separate license from the
+copyright holder — open an issue to ask.
