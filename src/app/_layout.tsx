@@ -96,6 +96,7 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
             <Stack.Screen name="gym" options={{ headerShown: false }} />
+            <Stack.Screen name="speaking" options={{ headerShown: false }} />
             <Stack.Screen
               name="steps"
               options={{

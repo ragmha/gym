@@ -6,6 +6,18 @@ My personal gym app.
 
 You need [Bun](https://bun.sh/), [Node.js](https://nodejs.org/) 20.19.4+, and Xcode for iOS.
 
+Speaking practice lets you shadow a topic script or speak solo for 5 or 15 minutes. Speech is transcribed on-device; optional iOS video can be reviewed, shared, or discarded.
+
+## Quick start
+
+### Prerequisites
+
+- [Bun](https://bun.sh/) 1.3.5
+- Node.js 20.19.4 or newer
+- Xcode 26 for iOS development, or a web browser for the web version
+
+### Install
+
 ```bash
 bun install
 bun run ios   # iOS simulator

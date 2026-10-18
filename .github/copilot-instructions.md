@@ -30,6 +30,12 @@ it is the app's only in-app data fetch, and media must not be bundled.
 The Lifting rest timer between sets is ephemeral screen state: a rule-based
 target (`restSeconds` in `rest.ts`, 2:00 default) adjustable by ±15 s. It is
 never persisted, written to Health, or used as coach input.
+The user also approved `/speaking`, a practice tool based on Patrick Winston's
+"How to Speak". It offers shadow scripts or solo points, 5 or 15 minutes, and
+on-device speech recognition. The transcript exists only in React state. An
+optional front-camera video stays in the app cache until the user shares it
+through the share sheet (YouTube) or leaves. Nothing is persisted, written to
+Health, or given to the coach.
 No other manual-entry feature is approved.
 
 Before adding a feature, check whether the data already exists in HealthKit. If
@@ -98,6 +104,7 @@ src/
     settings.tsx        #   pushed from the dashboard header
     coach.tsx           #   streaming coach chat
     add-weight.tsx      #   explicit body-mass save to Apple Health
+    speaking.tsx        #   speaking practice: shadow/solo, live transcript, video
     gym/                #   hub grid + stairmaster/cardio/lifting/weight/food screens
   components/
     dashboard/          #   dashboard sections + the ring builder

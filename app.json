@@ -65,6 +65,21 @@
           "photosPermission": "Choose a meal photo so this device can estimate its calories. The photo is not saved.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Record your practice talk so you can review it and choose whether to share it.",
+          "microphonePermission": "Hear your practice talk so it can be transcribed on this device.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Hear your practice talk so it can be transcribed on this device.",
+          "speechRecognitionPermission": "Turn your practice talk into a transcript on this device."
+        }
       ]
     ],
     "runtimeVersion": {
