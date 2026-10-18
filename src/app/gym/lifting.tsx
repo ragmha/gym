@@ -155,7 +155,7 @@ function LiftingForDate({ date }: { date: Date }) {
           </View>
         ) : day ? (
           <LiftingDay
-            key={day.day}
+            key={dateKey}
             day={day}
             dateKey={dateKey}
             log={log}
@@ -226,8 +226,24 @@ function LiftingDay({
   onRest: OnRest
 }) {
   const theme = useTheme()
-  const [active, setActive] = useState(0)
+  const count = day.exercises.length
+  // ponytail: the day can finish once its final exercise has a set; the rating
+  // is then a full-screen page after the last exercise (index === count).
+  const canFinish = Boolean(
+    log?.finishedAt || log?.sets[day.exercises.at(-1)?.id ?? '']?.length,
+  )
+  const [active, setActive] = useState(log?.finishedAt ? count : 0)
   const exercise = day.exercises[active]
+  const move = (step: number) => {
+    const next = Math.min(count, Math.max(0, active + step))
+    if (next === active) return
+    setActive(next)
+    AccessibilityInfo.announceForAccessibility(
+      next === count
+        ? 'Rate this workout'
+        : `Exercise ${next + 1}: ${day.exercises[next].title}`,
+    )
+  }
   return (
     <>
       {!focus && (
@@ -255,43 +271,30 @@ function LiftingDay({
           </Pressable>
         </View>
       )}
-      {exercise === undefined ? (
+      {count === 0 ? (
         <View style={styles.block}>
           <Text style={[Typography.bodyMd, { color: theme.text }]}>
             Active rest day. Cardio only.
           </Text>
         </View>
+      ) : exercise === undefined ? (
+        <FinishCard dateKey={dateKey} log={log} onBack={() => move(-1)} />
       ) : (
-        <>
-          <ExerciseFocus
-            key={exercise.id}
-            index={active}
-            total={day.exercises.length}
-            exercise={exercise}
-            dateKey={dateKey}
-            day={day.day}
-            logged={log?.sets[exercise.id] ?? []}
-            locked={Boolean(log?.finishedAt)}
-            focus={focus}
-            onToggleFocus={onToggleFocus}
-            onRest={onRest}
-            onMove={(step) => {
-              const next = Math.min(
-                day.exercises.length - 1,
-                Math.max(0, active + step),
-              )
-              if (next === active) return
-              setActive(next)
-              AccessibilityInfo.announceForAccessibility(
-                `Exercise ${next + 1}: ${day.exercises[next].title}`,
-              )
-            }}
-          />
-          {/* ponytail: the day is "complete" once its final exercise has a set. */}
-          {(log?.finishedAt ||
-            (log?.sets[day.exercises[day.exercises.length - 1].id]?.length ??
-              0) > 0) && <FinishCard dateKey={dateKey} log={log} />}
-        </>
+        <ExerciseFocus
+          key={exercise.id}
+          index={active}
+          total={count}
+          hasNext={active < count - 1 || canFinish}
+          exercise={exercise}
+          dateKey={dateKey}
+          day={day.day}
+          logged={log?.sets[exercise.id] ?? []}
+          locked={Boolean(log?.finishedAt)}
+          focus={focus}
+          onToggleFocus={onToggleFocus}
+          onRest={onRest}
+          onMove={move}
+        />
       )}
     </>
   )
@@ -309,6 +312,7 @@ const shortDate = (key: string) =>
 function ExerciseFocus({
   index,
   total,
+  hasNext,
   exercise,
   dateKey,
   day,
@@ -321,6 +325,7 @@ function ExerciseFocus({
 }: {
   index: number
   total: number
+  hasNext: boolean
   exercise: ProgrammeExercise
   dateKey: string
   day: string
@@ -560,7 +565,7 @@ function ExerciseFocus({
           icon="chevron-forward"
           label={`${index + 1}/${total}`}
           accessibilityLabel="Next exercise"
-          disabled={index === total - 1}
+          disabled={!hasNext}
           onPress={() => onMove(1)}
         />
       </View>
@@ -823,9 +828,11 @@ function OneRepMaxPanel({
 function FinishCard({
   dateKey,
   log,
+  onBack,
 }: {
   dateKey: string
   log: GymDayLog | undefined
+  onBack: () => void
 }) {
   const theme = useTheme()
   const finishWorkout = useGymLogStore((s) => s.finishWorkout)
@@ -834,45 +841,60 @@ function FinishCard({
     (sum, sets) => sum + sets.length,
     0,
   )
-
-  if (log?.finishedAt) {
-    const finished = new Date(log.finishedAt)
-    return (
-      <View
-        testID="gym-finished"
-        style={[styles.block, { backgroundColor: theme.goalComplete }]}
-      >
-        <Text style={[styles.mono, { color: theme.goalOnComplete }]}>
-          Finished{' '}
-          {finished.toLocaleTimeString(undefined, {
-            hour: 'numeric',
-            minute: '2-digit',
-          })}{' '}
-          · {setCount} {setCount === 1 ? 'set' : 'sets'} · rated {log.rating}/10
-        </Text>
-      </View>
-    )
-  }
+  const finished = log?.finishedAt ? new Date(log.finishedAt) : null
 
   return (
-    <View style={[styles.card, { borderColor: theme.goalTrack }]}>
-      <View style={styles.cardBody}>
-        <Text style={[styles.mono, styles.center, { color: theme.text }]}>
-          Rate this workout
-        </Text>
-        <View style={styles.center}>
-          <Stepper
-            label="Rating"
-            value={rating}
-            onChange={(next) => setRating(Math.min(10, Math.max(1, next)))}
-          />
-        </View>
-        <ActionButton
-          testID="gym-finish"
-          label="Finish workout"
-          onPress={() =>
-            finishWorkout(dateKey, { rating, finishedAt: new Date() })
-          }
+    <View style={[styles.card, styles.grow, { borderColor: theme.goalTrack }]}>
+      <View style={[styles.cardBody, styles.grow, styles.finishBody]}>
+        {finished ? (
+          <View
+            testID="gym-finished"
+            style={[styles.block, { backgroundColor: theme.goalComplete }]}
+          >
+            <Text style={[styles.mono, { color: theme.goalOnComplete }]}>
+              Finished{' '}
+              {finished.toLocaleTimeString(undefined, {
+                hour: 'numeric',
+                minute: '2-digit',
+              })}{' '}
+              · {setCount} {setCount === 1 ? 'set' : 'sets'} · rated{' '}
+              {log?.rating}/10
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={[styles.grow, styles.finishBody]}>
+              <Text style={[styles.mono, styles.center, { color: theme.text }]}>
+                Rate this workout
+              </Text>
+              <View style={styles.center}>
+                <Stepper
+                  label="Rating"
+                  value={rating}
+                  onChange={(next) =>
+                    setRating(Math.min(10, Math.max(1, next)))
+                  }
+                />
+              </View>
+            </View>
+            <View style={styles.row}>
+              <ActionButton
+                testID="gym-finish"
+                label="Finish workout"
+                onPress={() =>
+                  finishWorkout(dateKey, { rating, finishedAt: new Date() })
+                }
+              />
+            </View>
+          </>
+        )}
+      </View>
+      <View style={[styles.toolbar, { borderTopColor: theme.goalTrack }]}>
+        <ToolButton
+          icon="chevron-back"
+          label="Back"
+          accessibilityLabel="Previous exercise"
+          onPress={onBack}
         />
       </View>
     </View>
@@ -1011,16 +1033,22 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
   },
   cardBody: { padding: Spacing.sm, gap: Spacing.xs },
+  finishBody: { justifyContent: 'center', gap: Spacing.md },
+  row: { flexDirection: 'row' },
+  // The circles take the card's spare height so the sets sit mid-screen.
   circles: {
+    flexGrow: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-    paddingTop: Spacing.xs,
+    alignContent: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
   },
   circleSlot: {
     flexGrow: 1,
-    flexBasis: 40,
-    maxWidth: 56,
+    flexBasis: 48,
+    maxWidth: 96,
     alignItems: 'center',
     gap: Spacing.xxs,
   },
@@ -1034,7 +1062,7 @@ const styles = StyleSheet.create({
   },
   circleText: {
     fontFamily: 'SpaceMono',
-    fontSize: 18,
+    fontSize: 24,
     fontVariant: ['tabular-nums'],
   },
   caption: { fontSize: 9, letterSpacing: 0.5 },

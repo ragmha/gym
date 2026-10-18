@@ -41,12 +41,16 @@ describe('Lifting screen', () => {
     fireEvent.press(screen.getByLabelText('1 rep max'))
     expect(screen.getByTestId('gym-one-rep-max')).toHaveTextContent(/63\.8 kg/)
 
-    // The rating appears only once the day's final exercise has a set.
+    // The rating is a full-screen page after the final exercise has a set.
     expect(screen.queryByTestId('gym-finish')).toBeNull()
     const last = PROGRAMME[0].exercises.at(-1)!
     for (let i = 1; i < PROGRAMME[0].exercises.length; i++)
       fireEvent.press(screen.getByLabelText('Next exercise'))
+    expect(screen.getByLabelText('Next exercise')).toBeDisabled()
     fireEvent.press(screen.getByTestId(`gym-save-set-${last.id}`))
+    expect(screen.queryByTestId('gym-finish')).toBeNull()
+    fireEvent.press(screen.getByLabelText('Next exercise'))
+    expect(screen.queryByTestId(`gym-exercise-${last.id}`)).toBeNull()
     expect(screen.queryByTestId('gym-notes')).toBeNull()
     fireEvent.press(screen.getByTestId('gym-finish'))
 
@@ -134,6 +138,38 @@ describe('Lifting screen', () => {
     expect(
       screen.getByTestId(`gym-set-${first.id}-${planned + 1}`),
     ).toBeTruthy()
+  })
+
+  it('opens the rating page after the final planned set', () => {
+    useGymLogStore.setState({ programmeStart: '2026-10-17' })
+    render(<GymScreen />)
+    const { exercises } = PROGRAMME[0]
+    const last = exercises.at(-1)!
+    for (let i = 1; i < exercises.length; i++)
+      fireEvent.press(screen.getByLabelText('Next exercise'))
+    const planned = typeof last.sets === 'number' ? last.sets : 5
+    for (let i = 0; i < planned; i++)
+      fireEvent.press(screen.getByTestId(`gym-save-set-${last.id}`))
+    expect(screen.getByTestId('gym-finish')).toBeTruthy()
+
+    fireEvent.press(screen.getByLabelText('Previous exercise'))
+    expect(screen.getByTestId(`gym-exercise-${last.id}`)).toBeTruthy()
+  })
+
+  it('opens a finished day on its summary', () => {
+    useGymLogStore.setState({
+      programmeStart: '2026-10-17',
+      logs: {
+        '2026-10-17': {
+          day: '1',
+          sets: {},
+          rating: 8,
+          finishedAt: new Date(2026, 9, 17, 9).toISOString(),
+        },
+      },
+    })
+    render(<GymScreen />)
+    expect(screen.getByTestId('gym-finished')).toHaveTextContent(/rated 8\/10/)
   })
 
   it('steps rest from the shown target after clamping', () => {
