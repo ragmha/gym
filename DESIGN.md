@@ -1,143 +1,331 @@
-# Visual system
+---
+version: alpha
+name: Gym
+description: A quiet, iOS-first goal dashboard with expressive progress tiles, restrained blue actions, and readable health summaries.
+colors:
+  primary: '#245BDB'
+  primary-dark: '#8AB4FF'
+  text: '#171923'
+  text-dark: '#F4F6FA'
+  background: '#F7F8FA'
+  background-dark: '#11151D'
+  home-background: '#FFFFFF'
+  home-background-dark: '#000000'
+  panel: '#FFFFFF'
+  panel-dark: '#1B202B'
+  surface: '#F0F2F6'
+  surface-dark: '#262E3C'
+  muted: '#626773'
+  muted-dark: '#AFB7C6'
+  border: '#DDE1E8'
+  border-dark: '#394252'
+  success: '#236747'
+  success-dark: '#83D7AB'
+  warning: '#865711'
+  warning-dark: '#EBC17C'
+  danger: '#B42335'
+  danger-dark: '#FF9AAA'
+  goal-track: '#DEDEE2'
+  goal-track-dark: '#262626'
+  goal-fill: '#F4C6C8'
+  goal-fill-dark: '#681F22'
+  goal-complete: '#D84242'
+  goal-on-complete: '#090909'
+  goal-progress-text: '#B52F33'
+  goal-progress-text-dark: '#EF7171'
+  progress: '#3478F6'
+  progress-dark: '#8AB4FF'
+typography:
+  display-lg:
+    fontSize: 64px
+    fontWeight: 300
+    lineHeight: 72px
+    letterSpacing: -2px
+  display-md:
+    fontSize: 48px
+    fontWeight: 300
+    lineHeight: 56px
+    letterSpacing: -1.4px
+  heading-xl:
+    fontSize: 32px
+    fontWeight: 700
+    lineHeight: 40px
+    letterSpacing: -0.8px
+  heading-lg:
+    fontSize: 24px
+    fontWeight: 700
+    lineHeight: 30px
+    letterSpacing: -0.4px
+  heading-md:
+    fontSize: 20px
+    fontWeight: 700
+    lineHeight: 26px
+  heading-sm:
+    fontSize: 17px
+    fontWeight: 600
+    lineHeight: 24px
+  heading-xs:
+    fontSize: 14px
+    fontWeight: 600
+    lineHeight: 18px
+  body-lg:
+    fontSize: 18px
+    fontWeight: 400
+    lineHeight: 26px
+  body-md:
+    fontSize: 17px
+    fontWeight: 400
+    lineHeight: 25px
+  body-sm:
+    fontSize: 14px
+    fontWeight: 400
+    lineHeight: 21px
+  label-lg:
+    fontSize: 14px
+    fontWeight: 600
+    lineHeight: 20px
+  label-md:
+    fontSize: 12px
+    fontWeight: 600
+    lineHeight: 18px
+  label-sm:
+    fontSize: 11px
+    fontWeight: 600
+    lineHeight: 14px
+  numeric-lg:
+    fontSize: 40px
+    fontWeight: 300
+    lineHeight: 48px
+    letterSpacing: -0.8px
+    fontFeature: '"tnum"'
+  numeric-md:
+    fontSize: 28px
+    fontWeight: 400
+    lineHeight: 36px
+    fontFeature: '"tnum"'
+rounded:
+  sm: 10px
+  md: 14px
+  lg: 18px
+  xl: 24px
+  panel: 28px
+  pill: 999px
+spacing:
+  xxs: 4px
+  xs: 8px
+  sm: 12px
+  md: 16px
+  lg: 20px
+  xl: 24px
+  xxl: 32px
+  xxxl: 40px
+components:
+  primary-action:
+    backgroundColor: '{colors.primary}'
+    textColor: '#FFFFFF'
+    typography: '{typography.label-lg}'
+    rounded: '{rounded.pill}'
+    height: 48px
+  icon-button:
+    textColor: '{colors.primary}'
+    rounded: '{rounded.pill}'
+    width: 48px
+    height: 48px
+  panel:
+    backgroundColor: '{colors.panel}'
+    textColor: '{colors.text}'
+    rounded: '{rounded.panel}'
+    padding: 20px
+  settings-row:
+    backgroundColor: '{colors.panel}'
+    textColor: '{colors.text}'
+    typography: '{typography.body-md}'
+    height: 64px
+    padding: 16px
+  numeric-input:
+    backgroundColor: '{colors.panel}'
+    textColor: '{colors.text}'
+    typography: '{typography.numeric-md}'
+    rounded: '{rounded.md}'
+    height: 64px
+  goal-tile:
+    backgroundColor: '{colors.home-background}'
+    textColor: '{colors.text}'
+    rounded: 20px
+  goal-tile-complete:
+    backgroundColor: '{colors.goal-complete}'
+    textColor: '{colors.goal-on-complete}'
+    rounded: 20px
+  selected-chip:
+    backgroundColor: '{colors.primary}'
+    textColor: '#FFFFFF'
+    typography: '{typography.label-md}'
+    rounded: '{rounded.pill}'
+  calendar-day:
+    backgroundColor: '{colors.surface}'
+    textColor: '{colors.text}'
+    rounded: '{rounded.pill}'
+    width: 44px
+    height: 44px
+  coach-user-bubble:
+    backgroundColor: '{colors.primary}'
+    textColor: '#FFFFFF'
+    typography: '{typography.body-md}'
+    rounded: '{rounded.pill}'
+    padding: 16px
+---
 
-## Direction
+# Design System: Gym
 
-The reference's white activity-detail screen informs the app's visual language:
-generous space, ink headings, lighter-weight numbers, quiet gray labels, a
-single blue accent, circular icon controls, and white panels with soft,
-downward shadows. Its map, profile photograph, decorative line graph, floating
-general-purpose add action, and tab bar are not part of this app. The later,
-separately approved Add weight action is contextual to the weight reading.
+## Overview
 
-The interface is primarily a daily reading surface. It presents the five Home
-priorities without turning every reading into an identical card or implying
-more data than Health provides. The sole manual-entry exception is the
-user-approved body-mass save directly to Apple Health.
+**Creative North Star: "The Goal Board"**
 
-## Tokens
+Gym is a calm daily dashboard organized around visible progress, not a wall of
+identical metric cards. A clean canvas lets each goal tile carry the visual
+weight; restrained blue actions and generous spacing keep navigation and health
+readings clear.
 
-`src/constants/Colors.ts` defines both complete theme palettes.
+The Home screen is a paginated, reorderable goal grid. Completion is expressed
+with a solid red tile; incomplete progress uses a soft red fill. Detail screens
+use the same theme-aware surfaces, readable type, and rounded controls.
 
-| Role | Light | Dark |
-| --- | --- | --- |
-| Ink / primary text | `#171923` | `#F4F6FA` |
-| Secondary text | `#626773` | `#AFB7C6` |
-| Page ground | `#F7F8FA` | `#11151D` |
-| Home / Steps / Coach ground | `#FFFFFF` | `#11151D` |
-| Reading panel | `#FFFFFF` | `#1B202B` |
-| Quiet icon / inset surface | `#F0F2F6` | `#262E3C` |
-| Action blue | `#245BDB` | `#8AB4FF` |
-| Progress stroke | `#3478F6` | `#8AB4FF` |
+**Key Characteristics:**
 
-Action blue is darker than the reference's decorative blue in light mode so
-small action labels remain legible. Status colors are reserved for actual
-success, warning, or error meanings. The heatmap uses a four-level blue scale,
-not completion colors.
+- Goal tiles are the signature visual; blue marks actions, links, progress strokes, and metric accents.
+- Light and dark themes use distinct, explicit surfaces; the dark Home canvas is black.
+- Large readings are light-weight and tabular; labels remain quiet and legible.
+- Motion communicates progress, completion, or user-controlled rearrangement.
 
-`src/constants/DesignSystem.ts` contains the reusable structure:
+**The Goal Board Rule.** Make progress scannable before adding decoration.
 
-- System sans-serif typography; no display-font dependency.
-- 32-point bold page headings, 20–24-point section headings, 17-point body copy,
-  and 14-point supporting copy at the standard text size.
-- Light 64-point primary counts and 28–40-point secondary readings, with
-  tabular numerals for measurements.
-- A 24-point page gutter, a 720-point maximum reading width, and a 4-point
-  spacing foundation.
-- 28-point continuous panel corners and 48-point circular controls.
-- Offset `boxShadow` styles: a subtle `0 6px 24px` panel shadow, not legacy
-  native shadow or elevation properties.
+## Colors
 
-## Screen patterns
+### Primary
 
-- **Home:** date selection and Coach/Settings controls; an open, measured step
-  reading; then one floating panel grouping Cardio, Lift, Water, and Morning
-  weight. Training is a pair of separated rows, water is an inline reading,
-  and weight has its own weekly comparison. All other metrics remain behind
-  the existing navigation action.
-- **Steps:** the same light, open reading treatment replaces the former black
-  ring screen. One line measures the fixed step goal. Daily calorie and
-  unavailable distance/minute readings are grouped below; there are no
-  calorie-progress rings, invented distance, or estimated active minutes.
-- **Achievements:** Personal records, Steps, Streaks, Workouts, Lifting, and
-  Hydration sections in a three-column award grid. Original enamel-style
-  illustrations use distinct silhouettes, vivid colors, and metallic outlines;
-  locked awards show only muted linework. Milestone numbers are inset into the
-  artwork. Values, first-earned dates, and progress stay below each award.
-  Built from the past year of Health readings plus the on-device lifting log;
-  pace and distance records are not shown.
-- **Settings:** inset groups, a single Health-access action, and full-width
-  theme radio rows. Authorization completion still does not claim read access.
-- **Add weight:** an action beside Morning weight opens a focused modal in the
-  same token system. It contains kilograms, the native date/time picker, a
-  readable local timestamp, and explicit timestamp confirmation before
-  **Save to Apple Health**. The current day defaults to now; past-day defaults
-  are disclosed and must be confirmed as the actual measurement time. There
-  are no invented morning timestamps. Saving exposes a busy state and blocks
-  conflicting actions; inline errors retain input. A saved result explains
-  separate read access and returns to the original selected Home day.
-- **Coach:** a quiet conversation surface, accessible suggestion actions, an
-  inset composer, and blue user messages. The date and on-device identity are
-  visible; engine, context, streaming, and session lifetime are unchanged.
-- **Unavailable/error screens:** neutral circular symbols, readable explanations,
-  and a blue recovery action where one exists. The Phone rest JavaScript shell
-  follows these styles; the native Screen Time report remains platform-owned
-  and its privacy/distribution gates are unchanged.
+- **Action blue — light (#245BDB):** Primary actions, links, selected controls, and progress strokes.
+- **Action blue — dark (#8AB4FF):** The same action roles in dark mode.
 
-## Interaction and accessibility
+### Secondary
 
-`ScreenHeader` provides consistent 48-point back controls without changing
-stack presentations or back gestures. Scroll containers and native safe-area
-views replace hardcoded top offsets on detail screens. The Coach composer
-accounts for the bottom safe area and keyboard.
+- **Goal red (#D84242):** Completed goal tiles only.
+- **Progress blush — light (#F4C6C8), dark (#681F22):** Incomplete goal fill; keep the track distinguishable.
 
-`DashboardText` remeasures glyphs and line boxes when Dynamic Type changes.
-Content rows wrap instead of truncating explanatory text. Large counts may
-fit their line, but the complete measured value remains in the accessible
-label. At larger text sizes, the heatmap scrolls horizontally rather than
-compressing its labels; each dated square exposes a relative activity level or
-absence to assistive technology. These scores combine available steps and
-workouts and are never labelled as measured step counts.
+### Tertiary
 
-Normal small-text token combinations meet a 4.5:1 contrast ratio in both themes.
-The step-progress stroke meets 3:1 against its track. Missing steps do not
-mount a zero-progress indicator. Existing accessible names and test IDs are
-retained, and new controls use explicit roles and labels.
+- **Success — light (#236747), dark (#83D7AB):** Confirmed positive status.
+- **Warning — light (#865711), dark (#EBC17C):** Cautionary status and calorie-related metric accents.
+- **Danger — light (#B42335), dark (#FF9AAA):** Errors and heart-related metric accents.
 
-The weight form does not submit on Enter or blur, and cancel/dismiss never
-writes. It checks the immutable native binary capability before importing the
-new picker; web, Android, and old/missing native builds get an explanation,
-not a mock save. Its form state is ephemeral and its permission scope is only
-Body Mass writing. No other health-entry form is authorized.
+### Neutral
 
-No new repeating or entrance animation is introduced. Navigation keeps its
-platform transitions; data changes do not require motion to communicate state.
+- **Page ground — light (#F7F8FA), dark (#11151D):** General screen background.
+- **Home ground — light (#FFFFFF), dark (#000000):** Goal-grid canvas.
+- **Panel — light (#FFFFFF), dark (#1B202B):** Grouped content surfaces.
+- **Inset surface — light (#F0F2F6), dark (#262E3C):** Quiet grouped areas and tracks.
+- **Primary text — light (#171923), dark (#F4F6FA):** Headings and essential values.
+- **Secondary text — light (#626773), dark (#AFB7C6):** Supporting labels and iconography.
+- **Border — light (#DDE1E8), dark (#394252):** Input and panel boundaries.
 
-## Data boundaries and regression coverage
+**The Meaning Rule.** Status colors communicate actual status; never use them as generic decoration.
 
-The redesign does not change HealthKit queries, daily goal logic, morning-weight
-calculations, coach behavior, native capabilities, or stored preferences.
-Missing values remain `--`, observed zeroes remain visible, StairMaster intensity
-stays unverified, and the PPL program stays unconfigured.
+## Typography
 
-While Home stays focused and active, a five-minute fallback catches delayed
-workout imports missed by the native observer. Observer notifications, app
-foregrounding, and pull-to-refresh do not wait for that fallback.
-The shared snapshot hook refreshes on screen focus and owns the workout and
-foreground listeners only while that route is focused. Covered stack screens
-detach their listeners and cancel queued callbacks until they become visible
-again, without duplicating Home's focus refresh.
+- **Display:** Platform system sans-serif; light 64px and 48px styles for exceptional readings.
+- **Headings:** 32px page title, 24px section title, 20px subsection, and 17px compact heading.
+- **Body:** 17px standard copy; 18px spacious copy; 14px supporting copy.
+- **Labels:** 14px, 12px, and 11px semibold styles for actions and compact metadata.
+- **Numeric:** 40px and 28px tabular-number styles for measurements.
+- **Gym accent:** The loaded SpaceMono face is reserved for selected Gym captions and compact values, not general body copy.
 
-The separately approved weight-entry feature adds a narrow writer port and the
-native date/time/application dependencies, gated to compatible 1.0.7-or-later
-binaries. The updated Expo native dependency stack uses runtime 1.0.8 and requires
-a new binary, not an OTA to 1.0.6 or 1.0.7. Weight entry does not change
-the read contract, morning-window calculations, or storage architecture. It
-reports success only for an actual native saved body-mass sample, marks manual
-entry with HealthKit metadata, and never manufactures a read-back value.
+React Native uses its platform system font by default; these type tokens are
+styles, not a request to set a custom font family globally. Allow explanatory
+text to wrap at larger Dynamic Type sizes.
 
-Unit/component coverage checks both theme palettes, small-text and progress
-contrast, accessible touch targets, scrollable detail screens, theme selection,
-loading/retry states, measured step progress, and heatmap sizing at standard
-and large text scales. Existing behavioral tests remain the source of truth
-for dates, Health access, streaming, workout sync, and missing data. Native and
-browser visual inspection are separate from these structural checks.
+**The Reading Rule.** Use tabular numerals for changing measurements so values remain easy to compare.
+
+## Layout
+
+Use a 24px page gutter, a 720px content maximum for wide layouts, and a 4px
+spacing base. Keep important controls at least 48px square. Respect safe-area
+insets rather than positioning screens with fixed top offsets.
+
+Home presents two columns by three rows of goal tiles per page, with pagination
+for the remaining tile. The Gym hub uses a two-column tile grid. Settings groups
+related controls inside inset panels; detail pages scroll instead of compressing
+their content.
+
+**The Breathing Room Rule.** Keep controls and explanations readable before filling unused space.
+
+## Elevation & Depth
+
+Use the soft panel shadow, `0 6px 24px rgba(24, 29, 43, 0.06)`, sparingly on
+raised panels. The Home goal board stays flat; rely on surface contrast and tile
+outlines rather than floating cards. Avoid stacking shadows or adding native
+elevation to theme-aware surfaces.
+
+**The Single Lift Rule.** Elevation marks a panel boundary, not every component boundary.
+
+## Shapes
+
+Use the shared 10px, 14px, 18px, 24px, and 28px radii for small controls through
+large panels. Pill controls are fully rounded. Goal tiles use a 20px outline
+radius; day cells are circular.
+
+**The Shape Rule.** Keep repeated controls consistent within a screen; do not mix arbitrary corner radii.
+
+## Components
+
+### Buttons
+
+Primary actions use the blue accent, white text, pill shape, and a 48px minimum
+height. Contextual save actions may be 56px high. Icon controls are circular
+with a 48px target and an outline icon.
+
+### Chips
+
+Selected date and filter chips use a filled accent and clear text contrast.
+Unselected chips remain quiet and must still expose their state accessibly.
+
+### Cards and containers
+
+Panels use theme-aware surfaces, 28px corners, and 20–24px internal spacing.
+Goal tiles are the main Home containers and use an outlined progress track,
+upward fill, and solid completion state.
+
+### Inputs
+
+Numeric inputs use tabular values, a clear 1px boundary, 14px corners, and at
+least 64px height. Pair labels with inputs and preserve entered values when an
+error is shown.
+
+### Navigation
+
+Use the root stack and 48px back controls. Keep outline icons, concise labels,
+and visible selected states; do not introduce a tab bar.
+
+### Signature components
+
+- **Goal tile:** SVG outline, upward progress fill, solid red completion, and a short completion bounce.
+- **Gym tile:** Reuses the goal-tile treatment with restrained uppercase SpaceMono captions.
+- **Calendar day:** 44px circular target with accessible date and activity labels.
+- **Coach bubble:** Pill-shaped blue user message; keep assistant content on the quiet surface.
+- **Rest timer:** Pill track using goal-track and completion colors.
+- **Achievement medal:** Original enamel illustration with distinct silhouettes and medal-specific colors.
+
+## Do's and Don'ts
+
+### Do:
+
+- **Do** use `Colors`, `Typography`, `Spacing`, `Radii`, and `Layout` tokens from `src/constants/`.
+- **Do** check both themes, text contrast, Dynamic Type wrapping, and Reduce Motion behavior.
+- **Do** keep the outline-icon treatment and preserve accessible names and touch targets.
+- **Do** reserve red tile completion for completed goals.
+
+### Don't:
+
+- **Don't** restore the former Home layout of a step reading plus a floating metrics panel.
+- **Don't** use blue for decorative status or red for generic emphasis.
+- **Don't** add looping or entrance motion; honor reduced-motion preferences.
+- **Don't** copy legacy hardcoded colors or native shadows into new components.
+- **Don't** truncate explanatory copy or imply that a missing health reading is zero.

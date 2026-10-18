@@ -1,6 +1,6 @@
 ---
 name: new-zustand-store
-description: 'Guards Zustand state under the ThemeStore-only policy and shows the persisted preference-store pattern. Use when adding or changing state in src/stores, or before persisting any app state.'
+description: 'Guards the approved Zustand stores and shows the persisted preference-store pattern. Use when adding or changing state in src/stores, or before persisting any app state.'
 ---
 
 # New Zustand Store

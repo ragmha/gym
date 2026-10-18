@@ -44,8 +44,22 @@ const requiredSkills: RequiredSkill[] = [
     requiredTerms: [
       "Platform.OS === 'ios'",
       'Platform.select',
-      'generateMockData',
+      'createDeterministicMockSnapshot',
     ],
+  },
+  {
+    name: 'healthkit-data',
+    requiredTerms: [
+      'HealthSnapshotSource',
+      'READ_PERMISSIONS',
+      'bodyMassWriter',
+      'waterWriter',
+      'native saved sample',
+    ],
+  },
+  {
+    name: 'ui-change',
+    requiredTerms: ['DESIGN.md', 'useTheme', 'Reduce Motion', '48pt'],
   },
 ]
 
@@ -55,8 +69,8 @@ const requiredAgents: RequiredAgent[] = [
     name: 'HealthKit Data Pipeline Auditor',
     readOnly: true,
     requiredTerms: [
-      'daily_health_snapshots',
-      'generateMockData',
+      'HealthSnapshotSource',
+      'createDeterministicMockSnapshot',
       'READ_PERMISSIONS',
     ],
   },
@@ -131,18 +145,23 @@ function parseFrontmatter(markdown: string, path: string) {
   return frontmatter
 }
 
-function parseInlineArray(value: string | undefined) {
-  if (!value) {
+function parseFrontmatterArray(markdown: string, key: string) {
+  const frontmatter = /^---\n([\s\S]*?)\n---\n/.exec(markdown)?.[1]
+
+  if (!frontmatter) {
     return []
   }
 
-  const match = /^\[(.*)\]$/.exec(value.trim())
+  const match = new RegExp(`^${key}:\\s*(\\[[\\s\\S]*?\\])`, 'm').exec(
+    frontmatter,
+  )
 
   if (!match) {
     return []
   }
 
   return match[1]
+    .slice(1, -1)
     .split(',')
     .map((item) => item.trim().replace(/^['"]|['"]$/g, ''))
     .filter(Boolean)
@@ -185,7 +204,7 @@ function validateAgent(agent: RequiredAgent) {
   const path = `.github/agents/${agent.file}`
   const markdown = readArtifact(path)
   const frontmatter = parseFrontmatter(markdown, path)
-  const tools = parseInlineArray(frontmatter.tools)
+  const tools = parseFrontmatterArray(markdown, 'tools')
 
   if (frontmatter.name !== agent.name) {
     fail(`${path}: frontmatter name must be "${agent.name}"`)
