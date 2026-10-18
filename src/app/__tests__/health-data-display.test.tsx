@@ -7,6 +7,7 @@ import {
 } from '@testing-library/react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { StyleSheet } from 'react-native'
+import Svg, { Circle, Rect } from 'react-native-svg'
 
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
@@ -355,6 +356,52 @@ describe('StepsScreen health data', () => {
     expect(StyleSheet.flatten(label.props.style).flex).toBe(1)
     expect(label.props.numberOfLines).toBeUndefined()
     await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
+  })
+
+  it('keeps the goal marker inside the gauge at a completed goal', async () => {
+    mockSnapshot = { ...completeSnapshot, steps: 25_000 }
+    const { getByTestId } = render(<StepsScreen />)
+
+    const progress = within(getByTestId('steps-progress'))
+    const viewBoxHeight = Number(
+      String(progress.UNSAFE_getByType(Svg).props.viewBox).split(' ')[3],
+    )
+    const marker = progress.UNSAFE_getByType(Circle).props
+    expect(
+      Number(marker.cy) + Number(marker.r) + Number(marker.strokeWidth) / 2,
+    ).toBeLessThanOrEqual(viewBoxHeight)
+    await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
+  })
+
+  it('keeps step differences above the goal in the weekly chart', async () => {
+    mockSnapshot = completeSnapshot
+    const reading = {
+      calories: 320,
+      walkingDistanceKm: 6,
+      activeMinutes: 50,
+    }
+    const historyRead = jest
+      .spyOn(healthSnapshot, 'getActivityHistory')
+      .mockResolvedValue([
+        { ...reading, date: '2026-09-10', steps: 20_000 },
+        { ...reading, date: '2026-09-11', steps: 25_000 },
+        { ...reading, date: '2026-09-12', steps: 30_000 },
+      ])
+
+    try {
+      const { findByTestId } = render(<StepsScreen />)
+      const chart = await findByTestId('steps-week-chart')
+      const barHeights = within(chart)
+        .UNSAFE_getAllByType(Rect)
+        .filter((rect) => rect.props.width === 10)
+        .map((rect) => Number(rect.props.height))
+
+      expect(barHeights).toHaveLength(3)
+      expect(barHeights[0]).toBeLessThan(barHeights[1])
+      expect(barHeights[1]).toBeLessThan(barHeights[2])
+    } finally {
+      historyRead.mockRestore()
+    }
   })
 
   it('rereads weekly activity when the day snapshot refreshes, keeping the chart visible', async () => {

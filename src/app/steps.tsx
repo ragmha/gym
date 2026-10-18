@@ -171,8 +171,8 @@ function StepsForDate({ date }: { date: Date }) {
                 >
                   <Svg
                     width="100%"
-                    height={190}
-                    viewBox="0 0 320 190"
+                    height={200}
+                    viewBox="0 0 320 200"
                     preserveAspectRatio="xMidYMid meet"
                   >
                     <Path
@@ -420,8 +420,12 @@ function StepWeekChart({
   const plotHeight = CHART_BOTTOM - CHART_TOP
   const xForDay = (index: number) =>
     ((index + 0.5) * CHART_WIDTH) / Math.max(readings.length, 1)
+  const maxSteps = Math.max(
+    DAILY_STEP_GOAL,
+    ...readings.map((reading) => reading.steps ?? 0),
+  )
   const yForSteps = (steps: number) =>
-    CHART_BOTTOM - Math.min(steps / DAILY_STEP_GOAL, 1) * plotHeight
+    CHART_BOTTOM - (steps / maxSteps) * plotHeight
   const segments = readings.flatMap((reading, index) => {
     const previous = readings[index - 1]
     if (index === 0 || previous?.steps == null || reading.steps == null) {
@@ -448,9 +452,7 @@ function StepWeekChart({
         {readings.map((reading, index) => {
           const x = xForDay(index)
           const barHeight =
-            reading.steps === null
-              ? 0
-              : Math.min(reading.steps / DAILY_STEP_GOAL, 1) * plotHeight
+            reading.steps === null ? 0 : CHART_BOTTOM - yForSteps(reading.steps)
           return (
             <React.Fragment key={reading.date}>
               <Rect
@@ -589,8 +591,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // The date row sits in flow so wrapped Dynamic Type text grows the gauge;
-  // its margins reproduce the 190pt arc at default size and keep a 34pt gap
-  // above the step count, which overlaps the gauge's last 44pt.
+  // its margins keep the gauge 190pt tall at default size (the arc layer's
+  // extra 10pt holds the end marker) and a 34pt gap above the step count,
+  // which overlaps the gauge's last 44pt.
   gauge: {
     width: '100%',
     maxWidth: 440,
