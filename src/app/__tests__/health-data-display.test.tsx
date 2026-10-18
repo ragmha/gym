@@ -3,6 +3,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
@@ -329,5 +330,50 @@ describe('StepsScreen health data', () => {
     expect(queryByLabelText('Steps unavailable')).toBeNull()
     expect(queryByLabelText('Calories unavailable')).toBeNull()
     await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
+  })
+
+  it('keeps the date controls outside the progress element for VoiceOver', async () => {
+    mockSnapshot = completeSnapshot
+    const { getByLabelText, getByTestId } = render(<StepsScreen />)
+
+    const progress = getByTestId('steps-progress')
+    expect(progress.props.accessible).toBe(true)
+    expect(within(progress).queryByLabelText('Previous day')).toBeNull()
+    expect(within(progress).queryByLabelText('Next day')).toBeNull()
+    expect(getByLabelText('Previous day')).toBeTruthy()
+    await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
+  })
+
+  it('rereads weekly activity when the day snapshot refreshes, keeping the chart visible', async () => {
+    mockSnapshot = completeSnapshot
+    const reading = {
+      date: '2026-09-12',
+      steps: 8_000,
+      calories: 320,
+      walkingDistanceKm: 6,
+      activeMinutes: 50,
+    }
+    const historyRead = jest
+      .spyOn(healthSnapshot, 'getActivityHistory')
+      .mockResolvedValueOnce([reading])
+      .mockResolvedValueOnce([{ ...reading, activeMinutes: 60 }])
+
+    try {
+      const { getByLabelText, queryByText, rerender } = render(<StepsScreen />)
+      await waitFor(() =>
+        expect(getByLabelText('Active minutes 50 Min')).toBeTruthy(),
+      )
+
+      mockSnapshot = { ...completeSnapshot, steps: 9_000 }
+      rerender(<StepsScreen />)
+
+      expect(queryByText('Loading weekly activity…')).toBeNull()
+      await waitFor(() =>
+        expect(getByLabelText('Active minutes 60 Min')).toBeTruthy(),
+      )
+      expect(historyRead).toHaveBeenCalledTimes(2)
+    } finally {
+      historyRead.mockRestore()
+    }
   })
 })

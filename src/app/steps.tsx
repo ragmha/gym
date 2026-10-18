@@ -54,7 +54,11 @@ function StepsForDate({ date }: { date: Date }) {
   } | null>(null)
   const loadWeek = useCallback(async () => {
     const request = ++requestRef.current
-    setWeekState({ dateKey, status: 'loading', readings: [] })
+    setWeekState((prev) =>
+      prev?.dateKey === dateKey && prev.status === 'ready'
+        ? prev
+        : { dateKey, status: 'loading', readings: [] },
+    )
     try {
       const readings = await healthSnapshot.getActivityHistory(date, 7)
       if (requestRef.current === request) {
@@ -67,21 +71,23 @@ function StepsForDate({ date }: { date: Date }) {
     }
   }, [date, dateKey])
 
+  // Each new snapshot (focus, foreground, workout change, pull-to-refresh)
+  // rereads the week so the chart stays in step with the headline numbers.
   useEffect(() => {
     void loadWeek()
     return () => {
       requestRef.current += 1
     }
-  }, [loadWeek])
+  }, [loadWeek, snapshot])
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      await Promise.all([refresh(), loadWeek()])
+      await refresh()
     } finally {
       setRefreshing(false)
     }
-  }, [loadWeek, refresh])
+  }, [refresh])
 
   const week = weekState?.dateKey === dateKey ? weekState : null
   const selectedReading = week?.readings.find(
@@ -145,73 +151,76 @@ function StepsForDate({ date }: { date: Date }) {
         ) : (
           <>
             <View style={styles.hero}>
-              <View
-                testID="steps-progress"
-                accessible={steps !== null}
-                accessibilityRole={steps === null ? undefined : 'progressbar'}
-                accessibilityLabel="Daily step goal"
-                accessibilityValue={
-                  steps === null
-                    ? undefined
-                    : {
-                        min: 0,
-                        max: DAILY_STEP_GOAL,
-                        now: Math.min(steps, DAILY_STEP_GOAL),
-                        text: `${steps.toLocaleString()} of ${DAILY_STEP_GOAL.toLocaleString()} steps`,
-                      }
-                }
-                style={styles.gauge}
-              >
-                <Svg
-                  width="100%"
-                  height={190}
-                  viewBox="0 0 320 190"
-                  preserveAspectRatio="xMidYMid meet"
+              <View style={styles.gauge}>
+                <View
+                  testID="steps-progress"
+                  accessible={steps !== null}
+                  accessibilityRole={steps === null ? undefined : 'progressbar'}
+                  accessibilityLabel="Daily step goal"
+                  accessibilityValue={
+                    steps === null
+                      ? undefined
+                      : {
+                          min: 0,
+                          max: DAILY_STEP_GOAL,
+                          now: Math.min(steps, DAILY_STEP_GOAL),
+                          text: `${steps.toLocaleString()} of ${DAILY_STEP_GOAL.toLocaleString()} steps`,
+                        }
+                  }
                 >
-                  <Path
-                    d="M 30 170 A 130 130 0 0 1 290 170"
-                    fill="none"
-                    stroke={theme.separator}
-                    strokeWidth={10}
-                    strokeLinecap="round"
-                  />
-                  {steps !== null && (
-                    <>
-                      <Path
-                        d="M 30 170 A 130 130 0 0 1 290 170"
-                        fill="none"
-                        stroke={theme.goalComplete}
-                        strokeWidth={10}
-                        strokeLinecap="round"
-                        strokeDasharray={[ARC_LENGTH * progress, ARC_LENGTH]}
-                      />
-                      <Circle
-                        cx={
-                          160 + ARC_RADIUS * Math.cos(Math.PI * (1 - progress))
-                        }
-                        cy={
-                          170 - ARC_RADIUS * Math.sin(Math.PI * (1 - progress))
-                        }
-                        r={24}
-                        fill={theme.cardSurface}
-                        stroke={theme.goalComplete}
-                        strokeWidth={4}
-                      />
-                      <Path
-                        d={`M ${
-                          160 +
-                          ARC_RADIUS * Math.cos(Math.PI * (1 - progress)) -
-                          8
-                        } ${
-                          170 -
-                          ARC_RADIUS * Math.sin(Math.PI * (1 - progress)) +
-                          2
-                        } l 4 -9 3 1 2 6 7 2 -1 4 h-15 z`}
-                        fill={theme.text}
-                      />
-                    </>
-                  )}
-                </Svg>
+                  <Svg
+                    width="100%"
+                    height={190}
+                    viewBox="0 0 320 190"
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    <Path
+                      d="M 30 170 A 130 130 0 0 1 290 170"
+                      fill="none"
+                      stroke={theme.separator}
+                      strokeWidth={10}
+                      strokeLinecap="round"
+                    />
+                    {steps !== null && (
+                      <>
+                        <Path
+                          d="M 30 170 A 130 130 0 0 1 290 170"
+                          fill="none"
+                          stroke={theme.goalComplete}
+                          strokeWidth={10}
+                          strokeLinecap="round"
+                          strokeDasharray={[ARC_LENGTH * progress, ARC_LENGTH]}
+                        />
+                        <Circle
+                          cx={
+                            160 +
+                            ARC_RADIUS * Math.cos(Math.PI * (1 - progress))
+                          }
+                          cy={
+                            170 -
+                            ARC_RADIUS * Math.sin(Math.PI * (1 - progress))
+                          }
+                          r={24}
+                          fill={theme.cardSurface}
+                          stroke={theme.goalComplete}
+                          strokeWidth={4}
+                        />
+                        <Path
+                          d={`M ${
+                            160 +
+                            ARC_RADIUS * Math.cos(Math.PI * (1 - progress)) -
+                            8
+                          } ${
+                            170 -
+                            ARC_RADIUS * Math.sin(Math.PI * (1 - progress)) +
+                            2
+                          } l 4 -9 3 1 2 6 7 2 -1 4 h-15 z`}
+                          fill={theme.text}
+                        />
+                      </>
+                    )}
+                  </Svg>
+                </View>
                 <View style={styles.dateRow}>
                   <Pressable
                     accessibilityRole="button"
