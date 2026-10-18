@@ -1,8 +1,14 @@
-import { render } from '@testing-library/react-native'
-import { useLocalSearchParams } from 'expo-router'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
+import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 
 import HomeScreen from '../index'
 import StepsScreen from '../steps'
@@ -156,7 +162,7 @@ describe('HomeScreen health data', () => {
   describe('Selected-day health routes', () => {
     it.each([{ name: 'steps', Screen: StepsScreen }])(
       'reads $name for the requested local date instead of today',
-      ({ Screen }) => {
+      async ({ name, Screen }) => {
         jest
           .mocked(useLocalSearchParams)
           .mockReturnValue({ date: '2026-09-11' })
@@ -166,6 +172,11 @@ describe('HomeScreen health data', () => {
         expect(
           jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.toDateString(),
         ).toBe(new Date(2026, 8, 11).toDateString())
+        if (name === 'steps') {
+          await waitFor(() =>
+            expect(screen.getByTestId('steps-week-chart')).toBeTruthy(),
+          )
+        }
 
         jest
           .mocked(useLocalSearchParams)
@@ -174,8 +185,93 @@ describe('HomeScreen health data', () => {
         expect(
           jest.mocked(useHealthSnapshot).mock.lastCall?.[0]?.getDate(),
         ).toBe(10)
+        if (name === 'steps') {
+          await waitFor(() =>
+            expect(screen.getByTestId('steps-week-chart')).toBeTruthy(),
+          )
+        }
       },
     )
+
+    it('shows the selected-day activity and navigates dates without changing data sources', async () => {
+      const replace = jest.fn()
+      jest.mocked(useRouter).mockReturnValue({ ...useRouter(), replace })
+      jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-12' })
+      mockSnapshot = completeSnapshot
+      const historyRead = jest
+        .spyOn(healthSnapshot, 'getActivityHistory')
+        .mockResolvedValue([
+          {
+            date: '2026-09-06',
+            steps: 4_000,
+            calories: 200,
+            walkingDistanceKm: 2,
+            activeMinutes: 20,
+          },
+          {
+            date: '2026-09-07',
+            steps: 5_000,
+            calories: 220,
+            walkingDistanceKm: 3,
+            activeMinutes: 25,
+          },
+          {
+            date: '2026-09-08',
+            steps: 6_000,
+            calories: 240,
+            walkingDistanceKm: 4,
+            activeMinutes: 30,
+          },
+          {
+            date: '2026-09-09',
+            steps: 7_000,
+            calories: 260,
+            walkingDistanceKm: 4.5,
+            activeMinutes: 35,
+          },
+          {
+            date: '2026-09-10',
+            steps: 8_000,
+            calories: 280,
+            walkingDistanceKm: 5,
+            activeMinutes: 40,
+          },
+          {
+            date: '2026-09-11',
+            steps: 9_000,
+            calories: 300,
+            walkingDistanceKm: 5.5,
+            activeMinutes: 45,
+          },
+          {
+            date: '2026-09-12',
+            steps: 10_000,
+            calories: 320,
+            walkingDistanceKm: 6,
+            activeMinutes: 50,
+          },
+        ])
+
+      try {
+        const { getByLabelText, getByRole, getByText } = render(<StepsScreen />)
+
+        expect(getByText('Week analytics')).toBeTruthy()
+        expect(getByRole('button', { name: 'Next day' })).toBeTruthy()
+        await waitFor(() =>
+          expect(getByLabelText('Active minutes 50 Min')).toBeTruthy(),
+        )
+        expect(getByLabelText('Walking distance 6 Km')).toBeTruthy()
+        expect(historyRead).toHaveBeenCalledWith(new Date(2026, 8, 12, 12), 7)
+
+        fireEvent.press(getByRole('button', { name: 'Previous day' }))
+        expect(replace).toHaveBeenCalledWith({
+          pathname: '/steps',
+          params: { date: '2026-09-11' },
+        })
+      } finally {
+        historyRead.mockRestore()
+      }
+    })
 
     it.each([
       { date: 'invalid' },
@@ -199,34 +295,39 @@ describe('HomeScreen health data', () => {
 describe('StepsScreen health data', () => {
   it.each([null, missingSnapshot])(
     'shows unavailable steps and calories without inventing zeros: %j',
-    (snapshot) => {
+    async (snapshot) => {
       mockSnapshot = snapshot
-      const { getByLabelText } = render(<StepsScreen />)
+      const { getByLabelText, getByTestId } = render(<StepsScreen />)
 
       expect(getByLabelText('Steps unavailable')).toBeTruthy()
       expect(getByLabelText('Calories unavailable')).toBeTruthy()
       expect(getByLabelText('Walking distance unavailable')).toBeTruthy()
       expect(getByLabelText('Active minutes unavailable')).toBeTruthy()
+      await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
     },
   )
 
-  it('does not infer missing calories, distance, or active minutes from steps', () => {
+  it('does not infer missing calories, distance, or active minutes from steps', async () => {
     mockSnapshot = { ...completeSnapshot, calories: null }
-    const { getByLabelText, getByText } = render(<StepsScreen />)
+    const { getByLabelText, getByText, getByTestId } = render(<StepsScreen />)
 
     expect(getByText('8,000')).toBeTruthy()
     expect(getByLabelText('Calories unavailable')).toBeTruthy()
     expect(getByLabelText('Walking distance unavailable')).toBeTruthy()
     expect(getByLabelText('Active minutes unavailable')).toBeTruthy()
+    await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
   })
 
-  it('displays measured zero steps and calories', () => {
+  it('displays measured zero steps and calories', async () => {
     mockSnapshot = { ...missingSnapshot, steps: 0, calories: 0 }
-    const { getByLabelText, queryByLabelText } = render(<StepsScreen />)
+    const { getByLabelText, queryByLabelText, getByTestId } = render(
+      <StepsScreen />,
+    )
 
     expect(getByLabelText('0 steps')).toBeTruthy()
     expect(getByLabelText('0 kcal')).toBeTruthy()
     expect(queryByLabelText('Steps unavailable')).toBeNull()
     expect(queryByLabelText('Calories unavailable')).toBeNull()
+    await waitFor(() => expect(getByTestId('steps-week-chart')).toBeTruthy())
   })
 })

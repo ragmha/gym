@@ -72,6 +72,12 @@ export interface DailyWorkouts {
   workouts: HealthWorkout[]
 }
 
+export interface DailyActivityReading extends DailyStepReading {
+  calories: number | null
+  walkingDistanceKm: number | null
+  activeMinutes: number | null
+}
+
 export interface MealEntry {
   /** HKFoodType metadata, when the app that saved the sample named it. */
   name: string | null
@@ -95,6 +101,11 @@ export interface HealthSnapshotSource {
   getFoodLog(date: Date): Promise<DailyFoodLog>
   /** Daily step totals for `days` local days ending on `endDate`, oldest first, in one bulk query. */
   getStepHistory(endDate: Date, days: number): Promise<DailyStepReading[]>
+  /** Daily steps, kcal, km and exercise minutes for `days` local days ending on `endDate`, oldest first. */
+  getActivityHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyActivityReading[]>
   /** Daily water totals for `days` local days ending on `endDate`, oldest first, in one bulk query. */
   getWaterHistory(endDate: Date, days: number): Promise<DailyWaterReading[]>
   /** Workouts for `days` local days ending on `endDate`, oldest first, in one bulk query. */

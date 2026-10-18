@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet } from 'react-native'
 import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot'
 import { Colors, type ThemeName } from '@/constants/Colors'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
+import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import type { ThemePreference } from '@/stores/ThemeStore'
 
 import CoachScreen from '../coach'
@@ -24,6 +25,7 @@ jest.mock('@/hooks/useHealthSnapshot', () => ({
 jest.mock('@/lib/healthSnapshot/HealthSnapshotSource', () => ({
   healthSnapshot: {
     getStepHistory: jest.fn(async () => []),
+    getActivityHistory: jest.fn(async () => []),
     getWaterHistory: jest.fn(async () => []),
     getWorkoutHistory: jest.fn(async () => []),
     isAvailable: jest.fn(() => false),
@@ -89,6 +91,9 @@ const screens = [
 beforeEach(() => {
   jest.useFakeTimers()
   jest.clearAllMocks()
+  jest
+    .spyOn(healthSnapshot, 'getActivityHistory')
+    .mockReturnValue(new Promise(() => {}))
   mockTheme = 'light'
   mockRefresh.mockResolvedValue(undefined)
   mockState = {
@@ -123,7 +128,9 @@ describe.each(['light', 'dark'] as const)('Whole-app %s appearance', (mode) => {
         StyleSheet.flatten(screen.getByTestId(testID).props.style)
           .backgroundColor,
       ).toBe(Colors[mode][surface])
-      const back = screen.getByRole('button', { name: /^(Go back|Back)$/ })
+      const back = screen.getByRole('button', {
+        name: /^(Go to Home|Go back|Back)$/,
+      })
       expect(StyleSheet.flatten(back.props.style).width).toBeGreaterThanOrEqual(
         44,
       )
@@ -146,7 +153,7 @@ it('goes to the dashboard when there is no screen to go back to', () => {
     canGoBack: () => false,
   })
   render(<StepsScreen />)
-  fireEvent.press(screen.getByRole('button', { name: /^(Go back|Back)$/ }))
+  fireEvent.press(screen.getByRole('button', { name: 'Go to Home' }))
   expect(replace).toHaveBeenCalledWith('/')
   expect(mockBack).not.toHaveBeenCalled()
 })

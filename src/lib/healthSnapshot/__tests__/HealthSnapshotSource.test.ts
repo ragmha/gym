@@ -145,6 +145,68 @@ describe('HealthSnapshotSource adapters', () => {
     )
   })
 
+  it('getActivityHistory returns real daily totals and preserves measured zeroes', async () => {
+    const date = new Date(2026, 1, 15, 12)
+    const days = [new Date(2026, 1, 13, 12), new Date(2026, 1, 14, 12)]
+    hk.queryStatisticsCollectionForQuantity.mockImplementation(
+      (identifier: string) => {
+        const totals =
+          identifier === 'HKQuantityTypeIdentifierStepCount'
+            ? [
+                { startDate: days[0], sumQuantity: { quantity: 1_234.6 } },
+                { startDate: days[1], sumQuantity: { quantity: 0 } },
+              ]
+            : identifier === 'HKQuantityTypeIdentifierActiveEnergyBurned'
+              ? [{ startDate: days[1], sumQuantity: { quantity: 250.4 } }]
+              : identifier === 'HKQuantityTypeIdentifierDistanceWalkingRunning'
+                ? [{ startDate: days[1], sumQuantity: { quantity: 3.46 } }]
+                : [{ startDate: days[1], sumQuantity: { quantity: 45.2 } }]
+        return Promise.resolve(totals)
+      },
+    )
+
+    const history = await iosHealthKitAdapter.getActivityHistory(date, 7)
+
+    expect(history).toHaveLength(7)
+    expect(history[4]).toMatchObject({
+      date: '2026-02-13',
+      steps: 1235,
+      calories: null,
+      walkingDistanceKm: null,
+      activeMinutes: null,
+    })
+    expect(history[5]).toMatchObject({
+      date: '2026-02-14',
+      steps: 0,
+      calories: 250,
+      walkingDistanceKm: 3.5,
+      activeMinutes: 45,
+    })
+    expect(history[6]).toMatchObject({
+      date: '2026-02-15',
+      steps: null,
+      calories: null,
+      walkingDistanceKm: null,
+      activeMinutes: null,
+    })
+    expect(hk.queryStatisticsCollectionForQuantity).toHaveBeenCalledTimes(4)
+  })
+
+  it('keeps mock weekly activity deterministic and aligned with the daily snapshot', async () => {
+    const date = new Date(2026, 1, 15, 12)
+    const history = await deterministicMockAdapter.getActivityHistory(date, 7)
+
+    expect(history).toEqual(
+      await deterministicMockAdapter.getActivityHistory(date, 7),
+    )
+    expect(history).toHaveLength(7)
+    expect(history[6]).toMatchObject({
+      date: '2026-02-15',
+      steps: createDeterministicMockSnapshot(date).steps,
+      calories: createDeterministicMockSnapshot(date).calories,
+    })
+  })
+
   it.each([
     { activityType: 37, label: 'Running', kind: 'running' },
     { activityType: 13, label: 'Cycling', kind: 'other' },
@@ -902,6 +964,7 @@ describe('HealthSnapshotSource adapters', () => {
       getDailySnapshot: true,
       getFoodLog: true,
       getStepHistory: true,
+      getActivityHistory: true,
       getWaterHistory: true,
       getWorkoutHistory: true,
       getStairWorkouts: true,
@@ -926,6 +989,8 @@ describe('HealthSnapshotSource adapters', () => {
       toRead: [
         'HKQuantityTypeIdentifierStepCount',
         'HKQuantityTypeIdentifierActiveEnergyBurned',
+        'HKQuantityTypeIdentifierDistanceWalkingRunning',
+        'HKQuantityTypeIdentifierAppleExerciseTime',
         'HKQuantityTypeIdentifierHeartRate',
         'HKQuantityTypeIdentifierRestingHeartRate',
         'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
@@ -995,6 +1060,17 @@ describe('HealthSnapshotSource adapters', () => {
       await expect(
         iosHealthKitAdapter.getStepHistory(new Date(2026, 1, 20, 12), 1),
       ).resolves.toEqual([{ date: '2026-02-20', steps: null }])
+      await expect(
+        iosHealthKitAdapter.getActivityHistory(new Date(2026, 1, 20, 12), 1),
+      ).resolves.toEqual([
+        {
+          date: '2026-02-20',
+          steps: null,
+          calories: null,
+          walkingDistanceKm: null,
+          activeMinutes: null,
+        },
+      ])
       expect(
         iosHealthKitAdapter.subscribeToWorkoutChanges(jest.fn()),
       ).toBeNull()

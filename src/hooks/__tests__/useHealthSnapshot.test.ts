@@ -55,6 +55,7 @@ function createSource(
       createDeterministicMockSnapshot(date),
     ),
     getStepHistory: jest.fn(async (_endDate: Date, _days: number) => []),
+    getActivityHistory: jest.fn(async (_endDate: Date, _days: number) => []),
     getWaterHistory: jest.fn(async (_endDate: Date, _days: number) => []),
     getFoodLog: jest.fn(async (_date: Date) => ({
       proteinGrams: null,
