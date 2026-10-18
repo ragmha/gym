@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
+import { usePreventRemove } from '@react-navigation/native'
+import { Stack, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -77,6 +78,10 @@ export default function SpeakingScreen() {
   const last = useSpeakingLogStore((state) => state.sessions[0])
   const topic = TOPICS[index]
   const muted = { color: theme.subtitleText }
+  // Leaving mid-finalization would abort recognition, skip the save and
+  // delete the recording.
+  const finishing = phase === 'review' && transcript.listening
+  usePreventRemove(finishing, () => undefined)
 
   useEffect(() => {
     if (!VIDEO_AVAILABLE) return
@@ -107,7 +112,14 @@ export default function SpeakingScreen() {
       style={[styles.container, { backgroundColor: theme.homeBackground }]}
       edges={['top', 'left', 'right', 'bottom']}
     >
+      <Stack.Screen
+        options={{
+          gestureEnabled: !finishing,
+          headerBackButtonMenuEnabled: !finishing,
+        }}
+      />
       <ScreenHeader
+        backDisabled={finishing}
         title={phase === 'setup' ? 'Choose a topic' : topic.title}
         subtitle={
           phase === 'setup'

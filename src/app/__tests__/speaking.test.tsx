@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react-native'
+import { usePreventRemove } from '@react-navigation/native'
 import { ExpoSpeechRecognitionModule } from 'expo-speech-recognition'
 import { Alert, Platform } from 'react-native'
 
@@ -54,6 +55,9 @@ jest.mock('expo-camera', () => {
   }
 })
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }))
+jest.mock('@react-navigation/native', () => ({
+  usePreventRemove: jest.fn(),
+}))
 jest.mock('expo-file-system', () => ({
   File: jest.fn(),
   Directory: jest.fn(() => ({ exists: false })),
@@ -118,7 +122,17 @@ describe('SpeakingScreen', () => {
     expect(
       screen.getByRole('button', { name: 'Practice again' }),
     ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeDisabled()
+    expect(usePreventRemove).toHaveBeenLastCalledWith(
+      true,
+      expect.any(Function),
+    )
     act(() => mockHandlers.end())
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeEnabled()
+    expect(usePreventRemove).toHaveBeenLastCalledWith(
+      false,
+      expect.any(Function),
+    )
 
     expect(screen.getByLabelText('Words: 6')).toBeOnTheScreen()
     expect(screen.getByLabelText('Fillers: 1')).toBeOnTheScreen()
