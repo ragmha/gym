@@ -15,8 +15,13 @@ import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot
 import { currentStreak, streakStats } from '@/components/gym/ActivityDetail'
 import { StairHighlights } from '@/components/gym/StairmasterCalendar'
 import {
+  foodEmoji,
+  foodSummary,
   heartRateZone,
+  macroTargets,
+  mealSlot,
   stairmasterHighlights,
+  workoutKcal,
   zoneMinutes,
 } from '@/components/gym/activities'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
@@ -70,11 +75,11 @@ beforeEach(() => {
   } as never)
   jest.mocked(useWorkoutHistory).mockReturnValue(null)
   useGymLogStore.setState({ programmeStart: null, logs: {} })
-  useThemeStore.setState({ gymTileOrder: [] })
+  useThemeStore.setState({ gymTileOrder: [], foodGoalKcal: 2200 })
 })
 
 describe('Gym hub', () => {
-  it('shows four activity tiles that open their own screens', () => {
+  it('shows five activity tiles that open their own screens', () => {
     const push = jest.fn()
     jest.mocked(useRouter).mockReturnValue({ push } as never)
     render(<GymScreen />)
@@ -83,8 +88,9 @@ describe('Gym hub', () => {
     expect(screen.getByLabelText('Cardio, no data')).toBeTruthy()
     expect(screen.getByLabelText('Lifting, Not started')).toBeTruthy()
     expect(screen.getByLabelText('Weight, 82.4 kg')).toBeTruthy()
+    expect(screen.getByLabelText('Food, no data')).toBeTruthy()
 
-    for (const id of ['stairmaster', 'cardio', 'lifting', 'weight']) {
+    for (const id of ['stairmaster', 'cardio', 'lifting', 'weight', 'food']) {
       fireEvent.press(screen.getByTestId(`gym-tile-${id}`))
       expect(push).toHaveBeenLastCalledWith({
         pathname: `/gym/${id}`,
@@ -131,6 +137,7 @@ describe('Gym hub', () => {
       'cardio',
       'lifting',
       'weight',
+      'food',
       'stairmaster',
     ])
     fireEvent.press(screen.getByTestId('gym-tile-cardio'))
@@ -389,6 +396,142 @@ describe('Gym detail screens', () => {
       pathname: '/add-weight',
       params: { date: '2026-10-17' },
     })
+  })
+})
+
+describe('foodSummary', () => {
+  const day = (
+    dietaryCalories: number | null,
+    workoutKcal: (number | null)[] = [],
+  ) => ({
+    ...makeSnapshot({ date: '2026-10-17' }),
+    dietaryCalories,
+    workouts: workoutKcal.map((calories) => ({
+      ...stairs('2026-10-17', 30),
+      calories,
+    })),
+  })
+
+  it('shows no data rather than a full budget when nothing was logged', () => {
+    expect(foodSummary(day(null, [300]), 2200)).toEqual({
+      progress: null,
+      done: false,
+      caption: '--',
+      headline: 'No meals logged',
+    })
+  })
+
+  it('adds workout calories back to the goal and reports what is left or over', () => {
+    expect(foodSummary(day(1450.4, [200.2, 112.2]), 2200)).toEqual({
+      progress: 1450 / 2512,
+      done: false,
+      caption: '1450/2512 kcal',
+      headline: '1062 kcal left',
+    })
+    expect(foodSummary(day(2400), 2200)).toEqual({
+      progress: 1,
+      done: false,
+      caption: '2400/2200 kcal',
+      headline: '200 kcal over',
+    })
+    expect(foodSummary(day(0), 2200).headline).toBe('2200 kcal left')
+  })
+
+  it('leaves the budget unknown while workout calories are', () => {
+    expect(foodSummary(day(1450.4, [null]), 2200)).toEqual({
+      progress: null,
+      done: false,
+      caption: '1450 kcal',
+      headline: 'Workout calories unavailable',
+    })
+  })
+})
+
+describe('mealSlot', () => {
+  it.each([
+    [4, 'Breakfast'],
+    [10, 'Breakfast'],
+    [11, 'Lunch'],
+    [14, 'Lunch'],
+    [15, 'Snacks'],
+    [17, 'Dinner'],
+    [21, 'Dinner'],
+    [22, 'Snacks'],
+    [3, 'Snacks'],
+  ])('groups %i:30 as %s', (hour, slot) => {
+    expect(mealSlot(new Date(2026, 9, 17, hour, 30))).toBe(slot)
+  })
+})
+
+describe('workoutKcal', () => {
+  const burned = (...calories: (number | null)[]) => ({
+    date: '2026-10-17',
+    workouts: calories.map((kcal) => ({
+      ...stairs('2026-10-17', 30),
+      calories: kcal,
+    })),
+  })
+
+  it('keeps unknown workout calories unknown instead of zero', () => {
+    expect(workoutKcal(null)).toBeNull()
+    expect(workoutKcal(burned(null, null))).toBeNull()
+  })
+
+  it('sums the known calories, and a day without workouts burned none', () => {
+    expect(workoutKcal(burned())).toBe(0)
+    expect(workoutKcal(burned(200.2, null, 112.2))).toBe(312)
+  })
+})
+
+describe('macroTargets', () => {
+  it('sets protein from body mass, fat from the goal and refuels workouts with carbs', () => {
+    expect(macroTargets(2200, 312, 78)).toEqual({
+      protein: 125,
+      carbs: 339,
+      fat: 73,
+    })
+    expect(macroTargets(2200, 0, 78).carbs).toBe(261)
+  })
+
+  it('leaves protein and carbs unknown without a weigh-in', () => {
+    expect(macroTargets(2200, 312, null)).toEqual({
+      protein: null,
+      carbs: null,
+      fat: 73,
+    })
+  })
+
+  it('leaves carbs unknown while workout calories are', () => {
+    expect(macroTargets(2200, null, 78)).toEqual({
+      protein: 125,
+      carbs: null,
+      fat: 73,
+    })
+  })
+
+  it('never sets a negative carb target', () => {
+    expect(macroTargets(1200, 0, 200).carbs).toBe(0)
+  })
+})
+
+describe('foodEmoji', () => {
+  it.each([
+    ['Oatmeal', '🥣'],
+    ['Protein bar', '🍫'],
+    ['Chicken salad', '🥗'],
+    ['Salmon & rice', '🐟'],
+    ['Chicken rice bowl', '🍗'],
+    ['Iced tea', '🍵'],
+    ['Steak frites', '🥩'],
+    ['Goat cheese', '🍽️'],
+    ['Cheeseburger', '🍔'],
+    ['Milkshake', '🥤'],
+    ['Chicken noodle soup', '🍲'],
+    ['Cheesecake', '🍰'],
+    ['Pancakes', '🥞'],
+    [null, '🍽️'],
+  ])('shows %s as %s', (name, emoji) => {
+    expect(foodEmoji(name)).toBe(emoji)
   })
 })
 

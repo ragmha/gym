@@ -12,6 +12,7 @@ import { DoneButton, GoalTileSurface } from '@/components/dashboard/GoalGrid'
 import type { GoalMascotKind } from '@/components/dashboard/GoalMascot'
 import {
   cardioSummary,
+  foodSummary,
   liftingSummary,
   stairmasterSummary,
   weightSummary,
@@ -48,6 +49,7 @@ function GymHub({ date }: { date: Date }) {
   const log = useGymLogStore((s) => s.logs[dateKey])
   const gymTileOrder = useThemeStore((s) => s.gymTileOrder)
   const setGymTileOrder = useThemeStore((s) => s.setGymTileOrder)
+  const foodGoalKcal = useThemeStore((s) => s.foodGoalKcal)
   const [grid, setGrid] = useState({ width: 0, height: 0 })
   const [editing, setEditing] = useState(false)
 
@@ -88,6 +90,12 @@ function GymHub({ date }: { date: Date }) {
       label: 'Weight',
       icon: 'weight',
       summary: weightSummary(snapshot, date),
+    },
+    {
+      id: 'food',
+      label: 'Food',
+      icon: 'food',
+      summary: foodSummary(snapshot, foodGoalKcal),
     },
   ]
   const tiles = sortByOrder(defaultTiles, gymTileOrder, (tile) => tile.id)

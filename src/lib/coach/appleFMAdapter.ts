@@ -164,7 +164,7 @@ function mapFoundationModelsAvailability(
   }
 }
 
-async function generateValidatedJson<T>({
+export async function generateValidatedJson<T>({
   system,
   prompt,
   retryInstruction,

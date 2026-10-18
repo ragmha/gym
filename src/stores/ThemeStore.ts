@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { DASHBOARD_GOALS } from '@/lib/fitnessMetrics/presenter'
+
 export type ThemePreference = 'system' | 'light' | 'dark'
 
 interface ThemeState {
@@ -14,6 +16,9 @@ interface ThemeState {
   /** Gym hub tile ids in the user's order. */
   gymTileOrder: string[]
   setGymTileOrder: (gymTileOrder: string[]) => void
+  /** Daily food goal in kcal, before workout calories are added back. */
+  foodGoalKcal: number
+  setFoodGoalKcal: (foodGoalKcal: number) => void
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -25,6 +30,8 @@ export const useThemeStore = create<ThemeState>()(
       setTileOrder: (tileOrder) => set({ tileOrder }),
       gymTileOrder: [],
       setGymTileOrder: (gymTileOrder) => set({ gymTileOrder }),
+      foodGoalKcal: DASHBOARD_GOALS.dietaryCaloriesGoal,
+      setFoodGoalKcal: (foodGoalKcal) => set({ foodGoalKcal }),
     }),
     {
       name: 'theme-preference',

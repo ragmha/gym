@@ -26,6 +26,7 @@ const ICONS = {
     'M7 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM3 7.5h4M3 12h4M3 16.5h4M10 8h6',
   speaking:
     'M12 4C7 4 3 7.4 3 11.5c0 2 1 3.9 2.6 5.2L5 20.5l4-1.8c1 .3 2 .3 3 .3c5 0 9-3.4 9-7.5S17 4 12 4Z',
+  food: 'M5 3v5a2.5 2.5 0 0 0 5 0V3M7.5 3v18M18.5 21V3c-2.2 1.2-3.5 3.8-3.5 7v3.5h3.5',
 }
 
 export type GoalMascotKind = keyof typeof ICONS
