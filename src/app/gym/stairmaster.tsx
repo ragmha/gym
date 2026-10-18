@@ -108,12 +108,15 @@ function StairmasterForDate({ date }: { date: Date }) {
       recent={null}
     >
       <StairHighlights workouts={all} demo={isDemoMode} />
-      <StairCalendar
-        selected={date}
-        first={stairs?.[0] ? new Date(stairs[0].startISO) : null}
-        days={days}
-        onSelect={(date) => router.setParams({ date })}
-      />
+      {/* Unread history must not show as empty days; highlights explain loading and errors. */}
+      {stairs && (
+        <StairCalendar
+          selected={date}
+          first={stairs[0] ? new Date(stairs[0].startISO) : null}
+          days={days}
+          onSelect={(date) => router.setParams({ date })}
+        />
+      )}
       {sessions === undefined ? null : sessions === 'error' ||
         sessions.length === 0 ? (
         <StairSession data={sessions === 'error' ? 'error' : null} />

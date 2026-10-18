@@ -282,6 +282,19 @@ describe('Gym detail screens', () => {
     expect(screen.getByLabelText('October 15, 30/30 min')).toBeTruthy()
   })
 
+  it('hides the calendar while history is unread but still shows the day', async () => {
+    jest
+      .spyOn(healthSnapshot, 'getStairWorkouts')
+      .mockRejectedValue(new Error('denied'))
+    jest.spyOn(healthSnapshot, 'getStairSessions').mockResolvedValue([])
+    jest.mocked(useRouter).mockReturnValue({ setParams: jest.fn() } as never)
+    render(<StairmasterScreen />)
+    expect(screen.queryByTestId('stair-calendar')).toBeNull()
+    expect(await screen.findByText(/Could not load your history/)).toBeTruthy()
+    expect(await screen.findByText('No stair session this day')).toBeTruthy()
+    expect(screen.queryByTestId('stair-calendar')).toBeNull()
+  })
+
   it('labels zone ranges with the whole BPMs each zone counts', async () => {
     jest.spyOn(healthSnapshot, 'getStairWorkouts').mockResolvedValue([])
     jest.mocked(useRouter).mockReturnValue({ setParams: jest.fn() } as never)
