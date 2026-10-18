@@ -438,124 +438,55 @@ describe('HealthSnapshotSource adapters', () => {
     jest.useRealTimers()
   })
 
-  it('uses one daily statistics collection and one bulk workouts query for intensity', async () => {
+  it('reads step history in one daily statistics query, keeping observed zero and leaving gaps null', async () => {
     jest.useFakeTimers()
-    jest.setSystemTime(new Date('2026-02-20T10:00:00.000Z'))
-
+    jest.setSystemTime(new Date(2026, 1, 20, 10))
     hk.queryStatisticsCollectionForQuantity.mockResolvedValue([
-      { sumQuantity: { quantity: 3500 }, startDate: new Date(2026, 1, 19) },
-      { sumQuantity: { quantity: 500 }, startDate: new Date(2026, 1, 20) },
-    ])
-    hk.queryWorkoutSamples.mockResolvedValue([
-      {
-        startDate: '2026-02-19T18:00:00.000Z',
-        endDate: '2026-02-19T18:30:00.000Z',
-      },
-      {
-        startDate: '2026-02-18T18:00:00.000Z',
-        endDate: '2026-02-18T18:30:00.000Z',
-      },
+      { sumQuantity: null, startDate: new Date(2026, 1, 18) },
+      { sumQuantity: { quantity: 8499.6 }, startDate: new Date(2026, 1, 19) },
+      { sumQuantity: { quantity: 0 }, startDate: new Date(2026, 1, 20) },
     ])
 
-    const intensity = await iosHealthKitAdapter.getRangeIntensity(7)
+    const history = await iosHealthKitAdapter.getStepHistory(
+      new Date(2026, 1, 20, 12),
+      4,
+    )
 
-    expect(hk.queryQuantitySamples).not.toHaveBeenCalled()
     expect(hk.queryStatisticsCollectionForQuantity).toHaveBeenCalledTimes(1)
     expect(hk.queryStatisticsCollectionForQuantity).toHaveBeenCalledWith(
       'HKQuantityTypeIdentifierStepCount',
       ['cumulativeSum'],
-      new Date(2026, 1, 14),
+      new Date(2026, 1, 17),
       { day: 1 },
       {
         unit: 'count',
         filter: {
           date: {
-            startDate: new Date(2026, 1, 14),
-            endDate: new Date('2026-02-20T10:00:00.000Z'),
+            startDate: new Date(2026, 1, 17),
+            endDate: new Date(2026, 1, 20, 10),
           },
         },
       },
     )
-    expect(hk.queryWorkoutSamples).toHaveBeenCalledTimes(1)
-    expect(intensity.get('2026-02-19')).toBe(8500)
-    expect(intensity.get('2026-02-20')).toBe(500)
-    expect(intensity.get('2026-02-18')).toBe(5000)
-
-    jest.useRealTimers()
-  })
-
-  it('omits missing step measurements from range intensity but retains observed zero', async () => {
-    hk.queryStatisticsCollectionForQuantity.mockResolvedValue([
-      { startDate: new Date(2026, 1, 18) },
-      { sumQuantity: null, startDate: new Date(2026, 1, 19) },
-      { sumQuantity: { quantity: 0 }, startDate: new Date(2026, 1, 20) },
+    expect(history).toEqual([
+      { date: '2026-02-17', steps: null },
+      { date: '2026-02-18', steps: null },
+      { date: '2026-02-19', steps: 8500 },
+      { date: '2026-02-20', steps: 0 },
     ])
-
-    const intensity = await iosHealthKitAdapter.getRangeIntensity(7)
-
-    expect(Array.from(intensity.entries())).toEqual([['2026-02-20', 0]])
   })
 
-  it('does not fill an empty intensity range with zero measurements', async () => {
-    await expect(iosHealthKitAdapter.getRangeIntensity(7)).resolves.toEqual(
-      new Map(),
-    )
-  })
+  it('keeps mock step history consistent with the daily snapshot', async () => {
+    const date = new Date(2026, 1, 20, 12)
+    const history = await deterministicMockAdapter.getStepHistory(date, 3)
+    const snapshot = await deterministicMockAdapter.getDailySnapshot(date)
 
-  it('keeps range reads isolated when steps are rejected and workouts remain readable', async () => {
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-    hk.queryStatisticsCollectionForQuantity.mockRejectedValue(
-      new Error('steps denied'),
-    )
-    hk.queryWorkoutSamples.mockResolvedValue([
-      {
-        startDate: '2026-02-19T08:00:00.000Z',
-        endDate: '2026-02-19T08:30:00.000Z',
-      },
+    expect(history.map((day) => day.date)).toEqual([
+      '2026-02-18',
+      '2026-02-19',
+      '2026-02-20',
     ])
-
-    await expect(iosHealthKitAdapter.getRangeIntensity(7)).resolves.toEqual(
-      new Map([['2026-02-19', 5000]]),
-    )
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[HealthSnapshotSource] intensity steps read failed (Error)',
-    )
-  })
-
-  it('leaves range measurements absent when every range read is rejected', async () => {
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
-    hk.queryStatisticsCollectionForQuantity.mockRejectedValue(
-      new Error('steps denied'),
-    )
-    hk.queryWorkoutSamples.mockRejectedValue(new Error('workouts denied'))
-
-    await expect(iosHealthKitAdapter.getRangeIntensity(7)).resolves.toEqual(
-      new Map(),
-    )
-    expect(consoleWarnSpy).toHaveBeenCalledTimes(2)
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[HealthSnapshotSource] intensity workouts read failed (Error)',
-    )
-  })
-
-  it('keeps mock intensity consistent for overlapping date ranges', async () => {
-    jest.useFakeTimers()
-    jest.setSystemTime(new Date('2026-02-20T10:00:00.000Z'))
-
-    const first = await deterministicMockAdapter.getRangeIntensity(10)
-    const second = await deterministicMockAdapter.getRangeIntensity(10)
-    const different = await deterministicMockAdapter.getRangeIntensity(11)
-
-    expect(Array.from(second.entries())).toEqual(Array.from(first.entries()))
-    expect(Array.from(different.entries())).not.toEqual(
-      Array.from(first.entries()),
-    )
-    expect(first.size).toBeGreaterThan(0)
-    for (const [date, steps] of first) {
-      expect(different.get(date)).toBe(steps)
-    }
-
-    jest.useRealTimers()
+    expect(history[2].steps).toBe(snapshot.steps)
   })
 
   it('reads water history in one daily statistics query, keeping missing days null and observed zero', async () => {
@@ -871,7 +802,7 @@ describe('HealthSnapshotSource adapters', () => {
   ])('exposes only read operations in the %s source contract', (_, adapter) => {
     const readOnlyMethods: Record<keyof HealthSnapshotSource, true> = {
       getDailySnapshot: true,
-      getRangeIntensity: true,
+      getStepHistory: true,
       getWaterHistory: true,
       getWorkoutHistory: true,
       subscribeToWorkoutChanges: true,
@@ -956,9 +887,9 @@ describe('HealthSnapshotSource adapters', () => {
           new Date('2026-02-15T12:00:00.000Z'),
         ),
       ).resolves.toEqual(emptySnapshot)
-      await expect(iosHealthKitAdapter.getRangeIntensity(7)).resolves.toEqual(
-        new Map(),
-      )
+      await expect(
+        iosHealthKitAdapter.getStepHistory(new Date(2026, 1, 20, 12), 1),
+      ).resolves.toEqual([{ date: '2026-02-20', steps: null }])
       expect(
         iosHealthKitAdapter.subscribeToWorkoutChanges(jest.fn()),
       ).toBeNull()

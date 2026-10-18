@@ -26,7 +26,6 @@ import {
   GoalSummary,
   type GoalGridHandle,
 } from '@/components/dashboard/GoalGrid'
-import { WeightCard } from '@/components/dashboard/WeightCard'
 import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot'
 import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/hooks/useThemeColor'
@@ -164,7 +163,9 @@ describe('GoalGrid', () => {
     expect(surface.width).toBe(surface.height)
     expect(surface.height).toBeGreaterThanOrEqual(44)
     expect(surface.height).toBeLessThanOrEqual(138)
-    expect(screen.queryByRole('button', { name: 'See all metrics' })).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'See achievements' }),
+    ).toBeNull()
     fireEvent.scroll(screen.getByTestId('goal-pages'), {
       nativeEvent: {
         contentOffset: { x: 402, y: 0 },
@@ -177,9 +178,9 @@ describe('GoalGrid', () => {
     expect(
       within(screen.getByTestId('goal-page-2')).getAllByTestId(/^goal-tile-/),
     ).toHaveLength(2)
-    fireEvent.press(screen.getByRole('button', { name: 'See all metrics' }))
+    fireEvent.press(screen.getByRole('button', { name: 'See achievements' }))
     expect(push).toHaveBeenCalledWith({
-      pathname: '/fitness-metrics',
+      pathname: '/achievements',
       params: { date: '2026-09-12' },
     })
     act(() => grid.current?.showPage(0))
@@ -699,7 +700,7 @@ describe('GoalGrid', () => {
       'Journal',
       'Steps',
       'Speaking',
-      'All metrics',
+      'Achievements',
     ])
     expect(
       within(screen.getByTestId('goal-page-1')).getByTestId('goal-tile-steps'),
@@ -711,7 +712,7 @@ describe('GoalGrid', () => {
     expect(useThemeStore.getState().tileOrder.slice(5)).toEqual([
       'Speaking',
       'Steps',
-      'All metrics',
+      'Achievements',
     ])
     expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
       'Steps moved to position 7 of 8',
@@ -743,49 +744,5 @@ describe('GoalGrid', () => {
     expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull()
     fireEvent.press(screen.getByRole('button', { name: 'Done' }))
     expect(onDone).toHaveBeenCalled()
-  })
-})
-
-describe('WeightCard', () => {
-  it('shows a morning reading and partial-week coverage without adjustment advice', () => {
-    render(
-      <WeightCard snapshot={makeSnapshot()} date={new Date(2026, 8, 12, 12)} />,
-    )
-    expect(screen.getByLabelText('Morning weight 78.4 kilograms')).toBeTruthy()
-    expect(screen.getByText('7-day average: 78.4 kg')).toBeTruthy()
-    expect(screen.getByText('First reading at 7:00 AM')).toBeTruthy()
-    expect(screen.getByText('1/7 mornings / previous 0/7')).toBeTruthy()
-    expect(screen.getByText('Weekly change unavailable')).toBeTruthy()
-    expect(screen.queryByText(/eat less|eat more|deficit|surplus/i)).toBeNull()
-  })
-
-  it('never replaces a missing morning reading with the latest known body mass', () => {
-    render(
-      <WeightCard
-        snapshot={makeSnapshot({ bodyMassKg: 78.4, bodyMassHistory: null })}
-        date={new Date(2026, 8, 12, 12)}
-      />,
-    )
-    expect(screen.getByLabelText('Morning weight unavailable')).toBeTruthy()
-    expect(screen.queryByText(/78\.4/)).toBeNull()
-    expect(screen.getByText('7-day average: -- kg')).toBeTruthy()
-  })
-
-  it('compares observed morning averages rather than two single latest readings', () => {
-    render(
-      <WeightCard
-        date={new Date(2026, 8, 12, 12)}
-        snapshot={makeSnapshot({
-          bodyMassHistory: [
-            { kilograms: 78, startISO: new Date(2026, 8, 12, 7).toISOString() },
-            { kilograms: 79, startISO: new Date(2026, 8, 11, 7).toISOString() },
-            { kilograms: 80, startISO: new Date(2026, 8, 5, 7).toISOString() },
-          ],
-        })}
-      />,
-    )
-    expect(screen.getByText('7-day average: 78.5 kg')).toBeTruthy()
-    expect(screen.getByText('-1.5 kg vs previous 7 days')).toBeTruthy()
-    expect(screen.getByText('2/7 mornings / previous 1/7')).toBeTruthy()
   })
 })

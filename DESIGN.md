@@ -58,13 +58,11 @@ not completion colors.
   ring screen. One line measures the fixed step goal. Daily calorie and
   unavailable distance/minute readings are grouped below; there are no
   calorie-progress rings, invented distance, or estimated active minutes.
-- **All metrics:** Activity, Recovery & sleep, and Body & intake use grouped
-  compact name/value rows without repeated source or missing-reading captions.
-  "Latest weight" and "Recovery estimate" retain essential context in the labels.
-  All workouts and the recent-activity heatmap remain visible. Coach insight
-  is collapsed below the readings; source, recovery, and heatmap explanations
-  share one collapsed "About these readings" control. Intake and hydration
-  readings do not present decorative targets as personalized goals.
+- **Achievements:** Personal records, Steps, Streaks, Workouts, Lifting, and
+  Hydration sections in a three-column badge grid. Earned medals are filled and
+  show the value and first date; locked medals are outlined with progress.
+  Built from the past year of Health readings plus the on-device lifting log;
+  pace and distance records are not shown.
 - **Settings:** inset groups, a single Health-access action, and full-width
   theme radio rows. Authorization completion still does not claim read access.
 - **Add weight:** an action beside Morning weight opens a focused modal in the

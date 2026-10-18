@@ -17,8 +17,8 @@ and its actual measurement date/time directly to Apple Health.
 
 ## Capabilities and constraints
 
-- Home, Steps, All metrics, Coach, and Settings share a date-aware navigation
-  stack. There is no tab bar, account, or backend.
+- Home, Steps, Coach, and Settings share a date-aware navigation stack;
+  Achievements covers the past year. There is no tab bar, account, or backend.
 - **Add weight** beside Morning weight opens an ephemeral kilograms/date/time
   form on compatible iOS builds. Only an explicit **Save to Apple Health**
   requests body-mass write access and saves. It does not authorize other

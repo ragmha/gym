@@ -52,11 +52,11 @@ import { useThemeStore } from '@/stores/ThemeStore'
 const EDGE_FLIP = 32
 const FLIP_COOLDOWN_MS = 800
 
-type Route = '/steps' | '/water' | '/gym' | '/fitness-metrics'
+type Route = '/steps' | '/water' | '/gym' | '/achievements'
 
 interface Tile {
   label: string
-  icon: GoalMascotKind | 'metrics'
+  icon: GoalMascotKind | 'trophy'
   caption: string
   accessibilityLabel: string
   hint: string
@@ -238,15 +238,15 @@ function buildTiles(
       status: 'Coming soon',
     },
     {
-      label: 'All metrics',
-      icon: 'metrics',
-      caption: 'Health readings',
-      accessibilityLabel: 'See all metrics',
-      hint: 'Opens all health measurements for the selected day.',
+      label: 'Achievements',
+      icon: 'trophy',
+      caption: 'Badges & records',
+      accessibilityLabel: 'See achievements',
+      hint: 'Opens badges and personal records from the past year.',
       done: null,
       progress: null,
-      status: 'Health readings',
-      route: '/fitness-metrics',
+      status: 'Badges & records',
+      route: '/achievements',
     },
   ]
 }
@@ -359,7 +359,7 @@ export function GoalTileSurface({
   done,
 }: {
   id: string
-  icon: GoalMascotKind | 'metrics'
+  icon: GoalMascotKind | 'trophy'
   size: number
   progress: number | null
   done: boolean | null
@@ -417,12 +417,8 @@ export function GoalTileSurface({
           strokeWidth={6}
         />
       </Svg>
-      {icon === 'metrics' ? (
-        <Ionicons
-          name="stats-chart-outline"
-          size={size * 0.44}
-          color={theme.text}
-        />
+      {icon === 'trophy' ? (
+        <Ionicons name="trophy-outline" size={size * 0.44} color={theme.text} />
       ) : (
         <GoalMascot
           kind={icon}

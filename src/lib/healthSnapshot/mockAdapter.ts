@@ -1,12 +1,12 @@
 import { localDateKey, localDaysEnding } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
+  DailyStepReading,
   DailyWaterReading,
   DailyWorkouts,
   HealthBodyMassSample,
   HealthSnapshotSource,
   HealthWorkout,
-  IntensityMap,
 } from '@/lib/healthSnapshot/types'
 
 function seededRand(seed: number, min: number, max: number): number {
@@ -97,17 +97,14 @@ export const deterministicMockAdapter: HealthSnapshotSource = {
     return createDeterministicMockSnapshot(date)
   },
 
-  async getRangeIntensity(daysBack: number): Promise<IntensityMap> {
-    const intensity = new Map<string, number>()
-    const today = new Date()
-    for (let i = 0; i < daysBack; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() - i)
-      const { steps } = createDeterministicMockSnapshot(date)
-      if (steps !== null) intensity.set(localDateKey(date), steps)
-    }
-
-    return intensity
+  async getStepHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<DailyStepReading[]> {
+    return localDaysEnding(endDate, days).map((day) => ({
+      date: localDateKey(day),
+      steps: createDeterministicMockSnapshot(day).steps,
+    }))
   },
 
   async getWaterHistory(

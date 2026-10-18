@@ -35,7 +35,12 @@ export interface HealthBodyMassSample {
   startISO: string
 }
 
-export type IntensityMap = Map<string, number>
+export interface DailyStepReading {
+  /** Local calendar date in YYYY-MM-DD format. */
+  date: string
+  /** Null means Health returned no step count for that day. */
+  steps: number | null
+}
 
 export interface DailyWaterReading {
   /** Local calendar date in YYYY-MM-DD format. */
@@ -54,8 +59,8 @@ export interface DailyWorkouts {
 export interface HealthSnapshotSource {
   /** Single entry point that fetches one day's metrics in parallel internally. */
   getDailySnapshot(date: Date): Promise<DailyHealthSnapshot>
-  /** Heatmap input — one bulk query, not N daily ones. */
-  getRangeIntensity(daysBack: number): Promise<IntensityMap>
+  /** Daily step totals for `days` local days ending on `endDate`, oldest first, in one bulk query. */
+  getStepHistory(endDate: Date, days: number): Promise<DailyStepReading[]>
   /** Daily water totals for `days` local days ending on `endDate`, oldest first, in one bulk query. */
   getWaterHistory(endDate: Date, days: number): Promise<DailyWaterReading[]>
   /** Workouts for `days` local days ending on `endDate`, oldest first, in one bulk query. */

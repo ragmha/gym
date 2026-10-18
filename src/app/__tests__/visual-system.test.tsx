@@ -8,7 +8,7 @@ import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import type { ThemePreference } from '@/stores/ThemeStore'
 
 import CoachScreen from '../coach'
-import FitnessMetricsScreen from '../fitness-metrics'
+import AchievementsScreen from '../achievements'
 import SettingsScreen from '../settings'
 import StepsScreen from '../steps'
 
@@ -47,12 +47,6 @@ jest.mock('@/stores/ThemeStore', () => ({
       gymTileOrder: [],
     }),
 }))
-jest.mock('@/hooks/useDailyCoachInsight', () => ({
-  useDailyCoachInsight: () => ({ insight: null, status: 'idle' }),
-}))
-jest.mock('@/components/charts/ActivityHeatmap', () => ({
-  ActivityHeatmap: () => null,
-}))
 jest.mock('@/lib/coach', () => ({
   activeCoachEngine: { chat: jest.fn() },
 }))
@@ -65,9 +59,9 @@ const screens = [
     surface: 'homeBackground',
   },
   {
-    name: 'Metrics',
-    Screen: FitnessMetricsScreen,
-    testID: 'fitness-metrics-screen',
+    name: 'Achievements',
+    Screen: AchievementsScreen,
+    testID: 'achievements-screen',
     surface: 'background',
   },
   {
@@ -127,10 +121,7 @@ describe.each(['light', 'dark'] as const)('Whole-app %s appearance', (mode) => {
 })
 
 describe('Restyled detail states', () => {
-  it.each([
-    { name: 'steps', Screen: StepsScreen },
-    { name: 'all metrics', Screen: FitnessMetricsScreen },
-  ])(
+  it.each([{ name: 'steps', Screen: StepsScreen }])(
     'does not show missing measurements during loading in $name and retains error retry',
     async ({ Screen }) => {
       mockState = { ...mockState, status: 'loading', snapshot: null }

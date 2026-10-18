@@ -54,7 +54,7 @@ function createSource(
     getDailySnapshot: jest.fn(async (date: Date) =>
       createDeterministicMockSnapshot(date),
     ),
-    getRangeIntensity: jest.fn(async (_daysBack: number) => new Map()),
+    getStepHistory: jest.fn(async (_endDate: Date, _days: number) => []),
     getWaterHistory: jest.fn(async (_endDate: Date, _days: number) => []),
     getWorkoutHistory: jest.fn(async (_endDate: Date, _days: number) => []),
     subscribeToWorkoutChanges: jest.fn((_onChange: () => void) => null),
