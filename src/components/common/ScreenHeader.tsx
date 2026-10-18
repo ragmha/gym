@@ -25,7 +25,11 @@ export function ScreenHeader({
     <View style={styles.header}>
       <Pressable
         onPress={() => {
-          if (!backDisabled) (onBack ?? router.back)()
+          if (backDisabled) return
+          if (onBack) onBack()
+          // A reload or deep link leaves no history; fall back to the dashboard.
+          else if (router.canGoBack()) router.back()
+          else router.replace('/')
         }}
         disabled={backDisabled}
         accessibilityState={{ disabled: backDisabled }}
