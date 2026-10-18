@@ -50,7 +50,8 @@ the device. The local `FoodVision` module (`modules/food-vision`, iOS 18 Vision
 `ClassifyImageRequest`) labels the photo and deletes the cached file; Apple
 Intelligence (`generateValidatedJson`, Zod-validated) estimates the name, kcal,
 and protein, carbohydrate, and fat grams from those labels; EXIF capture time
-sets when it was eaten, and photos from another day are rejected because only
+sets when it was eaten (pick time only when the photo has none), and photos from
+another day or with an invalid or future capture time are rejected because only
 today's meals can be logged. The
 photo never leaves the device, the estimate is not persisted or coach input,
 and only **Save to Apple Health** writes it. Never invent an estimate when

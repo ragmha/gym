@@ -8,7 +8,10 @@ import { Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
-import type { DailyFoodLog } from '@/lib/healthSnapshot/types'
+import type {
+  DailyFoodLog,
+  DailyHealthSnapshot,
+} from '@/lib/healthSnapshot/types'
 
 const WEEKS = ['3 wks ago', '2 wks ago', 'Last week', 'This week'] as const
 const DAYS = [
@@ -35,8 +38,13 @@ export function weekDays(date: Date, weeksAgo: number): Date[] {
   })
 }
 
-// Days after `date` are not read; they render as empty bars.
-function useWeekLogs(date: Date, weeksAgo: number) {
+// Days after `date` are not read; they render as empty bars. Rereads, keeping
+// the chart on screen, whenever `refreshSnapshot` changes.
+function useWeekLogs(
+  date: Date,
+  weeksAgo: number,
+  refreshSnapshot: DailyHealthSnapshot | null,
+) {
   const days = weekDays(date, weeksAgo)
   const key = `${localDateKey(days[0])}:${localDateKey(date)}`
   const requestRef = useRef(0)
@@ -48,7 +56,7 @@ function useWeekLogs(date: Date, weeksAgo: number) {
 
   const load = useCallback(async () => {
     const request = ++requestRef.current
-    setState({ key, logs: null, failed: false })
+    setState((prev) => (prev.failed ? { ...prev, failed: false } : prev))
     try {
       const end = localDateKey(date)
       const logs = await Promise.all(
@@ -71,7 +79,7 @@ function useWeekLogs(date: Date, weeksAgo: number) {
     return () => {
       requestRef.current += 1
     }
-  }, [load])
+  }, [load, refreshSnapshot])
 
   const current = state.key === key
   return {
@@ -82,10 +90,16 @@ function useWeekLogs(date: Date, weeksAgo: number) {
 }
 
 /** Stacked macro calories per day for one of the last four weeks, read from Apple Health. */
-export function FoodWeekCard({ date }: { date: Date }) {
+export function FoodWeekCard({
+  date,
+  refreshSnapshot,
+}: {
+  date: Date
+  refreshSnapshot: DailyHealthSnapshot | null
+}) {
   const theme = useTheme()
   const [weeksAgo, setWeeksAgo] = useState(0)
-  const { logs, failed, load } = useWeekLogs(date, weeksAgo)
+  const { logs, failed, load } = useWeekLogs(date, weeksAgo, refreshSnapshot)
   const mono = [styles.mono, { color: theme.subtitleText }]
 
   return (
@@ -189,6 +203,13 @@ function WeekChart({ logs }: { logs: (DailyFoodLog | null)[] }) {
   const segments = logs.map((log) =>
     MACROS.map(({ key }) => (log?.[`${key}Grams`] ?? 0) * KCAL_PER_GRAM[key]),
   )
+  // Days with meals but a macro Health could not read; their bars are partial.
+  const partial = logs.map(
+    (log, i) =>
+      eaten[i] !== null &&
+      MACROS.some(({ key }) => log?.[`${key}Grams`] == null),
+  )
+  const anyPartial = partial.some(Boolean)
   const max = Math.max(1, ...segments.map((day) => day[0] + day[1] + day[2]))
 
   return (
@@ -215,6 +236,14 @@ function WeekChart({ logs }: { logs: (DailyFoodLog | null)[] }) {
                   ).join(', ')}`
             }
           >
+            {anyPartial && (
+              <Text
+                testID={partial[i] ? 'food-week-missing' : undefined}
+                style={mono}
+              >
+                {partial[i] ? '--' : ' '}
+              </Text>
+            )}
             <View style={[styles.bar, { height: CHART_HEIGHT }]}>
               {MACROS.map(({ key, color }, m) => (
                 <View
@@ -230,6 +259,9 @@ function WeekChart({ logs }: { logs: (DailyFoodLog | null)[] }) {
           </View>
         ))}
       </View>
+      {anyPartial && (
+        <Text style={[mono, styles.note]}>-- Some macros not in Health</Text>
+      )}
     </>
   )
 }
@@ -280,6 +312,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   legend: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.md },
+  note: { textAlign: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   dot: { width: 8, height: 8, borderRadius: 4 },
   mono: {

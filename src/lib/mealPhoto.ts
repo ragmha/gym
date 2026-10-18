@@ -23,6 +23,8 @@ const messages = {
   'not-food': 'No food was recognized in that photo. Nothing was saved.',
   'other-day':
     "That photo was taken on another day. Only today's meals can be added. Nothing was saved.",
+  'bad-time':
+    "That photo's capture time is invalid or in the future. Nothing was saved.",
   failed: 'The photo could not be estimated. Nothing was saved. Try again.',
 } as const
 
@@ -73,15 +75,25 @@ const mealEstimateStructure: StructureSchema = {
   fatGrams: { type: 'integer', description: 'Total fat grams for one serving' },
 }
 
-/** EXIF capture time. iOS flattens it to `DateTimeOriginal` plus an optional `OffsetTimeOriginal`. */
+/**
+ * EXIF capture time. iOS flattens it to `DateTimeOriginal` plus an optional
+ * `OffsetTimeOriginal`. Null when the photo has none, including EXIF's blank or
+ * zero-filled "unknown"; 'invalid' when it is impossible or in the future.
+ */
 export function photoTime(
   exif: Record<string, unknown> | null | undefined,
   now = new Date(),
-): Date | null {
-  const taken = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(
-    String(exif?.DateTimeOriginal ?? ''),
-  )
-  if (!taken) return null
+): Date | null | 'invalid' {
+  const raw = String(exif?.DateTimeOriginal ?? '')
+  if (
+    raw.trim() === '' ||
+    raw === '0000:00:00 00:00:00' ||
+    raw === '    :  :     :  :  '
+  ) {
+    return null
+  }
+  const taken = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(raw)
+  if (!taken) return 'invalid'
   const [year, month, day, hour, minute, second] = taken.slice(1).map(Number)
   const wall = new Date(Date.UTC(year, month - 1, day, hour, minute, second))
   // Reject impossible wall times such as 2026:02:30 instead of rolling them over.
@@ -90,7 +102,7 @@ export function photoTime(
     wall.toISOString().slice(0, 19) !==
       `${taken[1]}-${taken[2]}-${taken[3]}T${taken[4]}:${taken[5]}:${taken[6]}`
   ) {
-    return null
+    return 'invalid'
   }
   const offset = /^([+-])(\d{2}):(\d{2})$/.exec(
     String(exif?.OffsetTimeOriginal ?? ''),
@@ -101,7 +113,7 @@ export function photoTime(
         (Number(offset[2]) * 60 + Number(offset[3])) *
         60_000
     : new Date(year, month - 1, day, hour, minute, second).getTime()
-  return time <= now.getTime() ? new Date(time) : null
+  return time <= now.getTime() ? new Date(time) : 'invalid'
 }
 
 /**
@@ -143,8 +155,10 @@ export async function estimateMealPhoto(
   if (!labels.some(({ label }) => label === 'food' || label === 'drink')) {
     throw new MealPhotoError('not-food')
   }
-  const eatenAt = photoTime(asset.exif, pickedAt) ?? pickedAt
   // Checked after classify, which deletes the cached photo.
+  const taken = photoTime(asset.exif, pickedAt)
+  if (taken === 'invalid') throw new MealPhotoError('bad-time')
+  const eatenAt = taken ?? pickedAt
   if (localDateKey(eatenAt) !== localDateKey(pickedAt)) {
     throw new MealPhotoError('other-day')
   }

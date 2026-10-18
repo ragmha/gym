@@ -95,12 +95,19 @@ describe('photoTime', () => {
   it.each([
     [null],
     [{}],
+    [{ DateTimeOriginal: '    :  :     :  :  ' }],
+    [{ DateTimeOriginal: '0000:00:00 00:00:00' }],
+  ])('returns null for a missing or unknown time: %j', (exif) => {
+    expect(photoTime(exif, now)).toBeNull()
+  })
+
+  it.each([
     [{ DateTimeOriginal: '2026-10-17 12:30:05' }],
     [{ DateTimeOriginal: '2026:02:30 12:00:00' }],
     [{ DateTimeOriginal: '2026:10:17 24:00:00' }],
     [{ DateTimeOriginal: '2026:10:20 08:00:00' }],
-  ])('ignores a missing, invalid or future time: %j', (exif) => {
-    expect(photoTime(exif, now)).toBeNull()
+  ])('flags an invalid or future time: %j', (exif) => {
+    expect(photoTime(exif, now)).toBe('invalid')
   })
 })
 
@@ -192,6 +199,30 @@ describe('estimateMealPhoto', () => {
 
     await expect(estimateMealPhoto('library')).rejects.toMatchObject({
       code: 'other-day',
+    })
+    expect(mockClassify).toHaveBeenCalledWith('file:///cache/meal.jpg')
+    expect(generateValidatedJson).not.toHaveBeenCalled()
+  })
+
+  it('rejects a future capture time instead of using the pick time', async () => {
+    picker.launchImageLibraryAsync.mockResolvedValue(
+      photo({ DateTimeOriginal: '2026:10:17 13:30:00' }),
+    )
+
+    await expect(estimateMealPhoto('library')).rejects.toMatchObject({
+      code: 'bad-time',
+    })
+    expect(mockClassify).toHaveBeenCalledWith('file:///cache/meal.jpg')
+    expect(generateValidatedJson).not.toHaveBeenCalled()
+  })
+
+  it('rejects a malformed capture time instead of using the pick time', async () => {
+    picker.launchImageLibraryAsync.mockResolvedValue(
+      photo({ DateTimeOriginal: 'not an EXIF date' }),
+    )
+
+    await expect(estimateMealPhoto('library')).rejects.toMatchObject({
+      code: 'bad-time',
     })
     expect(mockClassify).toHaveBeenCalledWith('file:///cache/meal.jpg')
     expect(generateValidatedJson).not.toHaveBeenCalled()

@@ -134,6 +134,87 @@ describe('Food screen', () => {
     expect(await screen.findByLabelText('Total kcal: 10150')).toBeTruthy()
     expect(mockGetFoodLog).toHaveBeenCalledWith(new Date(2026, 0, 5, 12))
   })
+
+  it('marks week days whose macros Health could not read', async () => {
+    mockDay(
+      '2026-01-15',
+      {},
+      {
+        proteinGrams: 96,
+        carbsGrams: null,
+        fatGrams: 50,
+        meals: [
+          { name: 'Oatmeal', kcal: 412, startISO: '2026-01-15T08:10:00' },
+        ],
+      },
+    )
+    render(<FoodScreen />)
+    await screen.findByTestId('food-slot-Breakfast')
+
+    fireEvent.press(screen.getByRole('tab', { name: 'Week' }))
+    expect(
+      await screen.findByLabelText(
+        'Thursday: 412 kcal, Protein 96 g, Carbs -- g, Fat 50 g',
+      ),
+    ).toBeTruthy()
+    expect(screen.getAllByTestId('food-week-missing')).toHaveLength(4)
+    expect(screen.getByText('-- Some macros not in Health')).toBeTruthy()
+  })
+
+  it('does not mark a measured zero macro as unavailable', async () => {
+    mockDay(
+      '2026-01-15',
+      {},
+      {
+        proteinGrams: 0,
+        carbsGrams: 0,
+        fatGrams: 0,
+        meals: [
+          { name: 'Plain tea', kcal: 0, startISO: '2026-01-15T08:10:00' },
+        ],
+      },
+    )
+    render(<FoodScreen />)
+    await screen.findByTestId('food-slot-Breakfast')
+
+    fireEvent.press(screen.getByRole('tab', { name: 'Week' }))
+    expect(
+      await screen.findByLabelText(
+        'Thursday: 0 kcal, Protein 0 g, Carbs 0 g, Fat 0 g',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByTestId('food-week-missing')).toBeNull()
+    expect(screen.queryByText('-- Some macros not in Health')).toBeNull()
+  })
+
+  it('rereads the day and week when the Health snapshot refreshes', async () => {
+    mockDay('2026-01-15')
+    const { rerender } = render(<FoodScreen />)
+    await screen.findByTestId('food-slot-Breakfast')
+    fireEvent.press(screen.getByRole('tab', { name: 'Week' }))
+    await screen.findByLabelText('Total kcal: 5800')
+    expect(screen.queryByTestId('food-week-missing')).toBeNull()
+    mockGetFoodLog.mockClear()
+
+    mockDay(
+      '2026-01-15',
+      {},
+      {
+        proteinGrams: 30,
+        carbsGrams: 60,
+        fatGrams: 10,
+        meals: [{ name: 'Soup', kcal: 500, startISO: '2026-01-15T12:00:00' }],
+      },
+    )
+    rerender(<FoodScreen />)
+
+    expect(screen.getByLabelText('Total kcal: 5800')).toBeTruthy()
+    expect(await screen.findByLabelText('Total kcal: 2000')).toBeTruthy()
+    expect(mockGetFoodLog).toHaveBeenCalledTimes(5)
+
+    fireEvent.press(screen.getByRole('tab', { name: 'Today' }))
+    expect(await screen.findByText('Soup')).toBeTruthy()
+  })
   it('counts the budget up from 0 unless Reduce Motion is on', async () => {
     jest.useFakeTimers()
     jest.mocked(useReducedMotion).mockReturnValue(false)

@@ -24,7 +24,10 @@ import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import { foodErrorMessage, type FoodEntry } from '@/lib/healthSnapshot/food'
 import { foodWriter } from '@/lib/healthSnapshot/foodWriter'
-import type { DailyFoodLog } from '@/lib/healthSnapshot/types'
+import type {
+  DailyFoodLog,
+  DailyHealthSnapshot,
+} from '@/lib/healthSnapshot/types'
 import { estimateMealPhoto, mealPhotoErrorMessage } from '@/lib/mealPhoto'
 import { useThemeStore } from '@/stores/ThemeStore'
 
@@ -40,7 +43,8 @@ export default function FoodScreen() {
   )
 }
 
-function useFoodLog(date: Date) {
+// Rereads whenever `refreshSnapshot` changes, keeping the log in step with Health.
+function useFoodLog(date: Date, refreshSnapshot: DailyHealthSnapshot | null) {
   const key = localDateKey(date)
   const requestRef = useRef(0)
   const [state, setState] = useState<{
@@ -67,7 +71,7 @@ function useFoodLog(date: Date) {
     return () => {
       requestRef.current += 1
     }
-  }, [load])
+  }, [load, refreshSnapshot])
 
   const current = state.key === key
   return {
@@ -141,7 +145,7 @@ function useMealPhoto(date: Date, reload: () => Promise<unknown>) {
 function FoodForDate({ date }: { date: Date }) {
   const theme = useTheme()
   const { snapshot, refresh } = useHealthSnapshot(date)
-  const { log, failed, load } = useFoodLog(date)
+  const { log, failed, load } = useFoodLog(date, snapshot)
   const goal = useThemeStore((s) => s.foodGoalKcal)
   const setGoal = useThemeStore((s) => s.setFoodGoalKcal)
   const reload = useCallback(
@@ -167,7 +171,7 @@ function FoodForDate({ date }: { date: Date }) {
       />
       <ChipTabs options={VIEWS} selected={view} onSelect={setView} />
       {view === 'Week' ? (
-        <FoodWeekCard date={date} />
+        <FoodWeekCard date={date} refreshSnapshot={snapshot} />
       ) : (
         <>
           <FoodBudgetCard
