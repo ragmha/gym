@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 import React, { useMemo, useState } from 'react'
 import {
+  AccessibilityInfo,
   Alert,
   Linking,
   Pressable,
@@ -15,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { ScreenHeader } from '@/components/common/ScreenHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { ExerciseInfoButton } from '@/components/gym/ExerciseInfoSheet'
+import { RestTimer } from '@/components/gym/RestTimer'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
@@ -28,6 +30,7 @@ import {
   type ProgrammeDay,
   type ProgrammeExercise,
 } from '@/lib/gymProgramme'
+import { clampRest, restSeconds } from '@/lib/gymProgramme/rest'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import {
   isValidSet,
@@ -37,8 +40,10 @@ import {
   type LoggedSet,
 } from '@/stores/GymLogStore'
 
-// To Failure exercises show five set rows; extra sets add rows past it.
+// To Failure exercises plan five set circles; a "+" circle adds extra sets.
 const FAILURE_ROWS = 5
+
+type OnRest = (exercise: ProgrammeExercise, set: LoggedSet | null) => void
 const pad = (n: number) => String(n).padStart(2, '0')
 
 export default function LiftingScreen() {
@@ -56,6 +61,27 @@ function LiftingForDate({ date }: { date: Date }) {
   const programmeStart = useGymLogStore((s) => s.programmeStart)
   const log = useGymLogStore((s) => s.logs[dateKey])
   const startProgramme = useGymLogStore((s) => s.startProgramme)
+  const [focus, setFocus] = useState(false)
+  const [rest, setRest] = useState<{
+    exerciseId: string
+    base: number
+    startedAt: number
+  } | null>(null)
+  // Per-exercise +/- adjustments, kept only while this screen is open.
+  const [restDelta, setRestDelta] = useState<Record<string, number>>({})
+  const resting = log?.finishedAt ? null : rest
+  const onRest: OnRest = (exercise, set) =>
+    setRest((current) =>
+      set
+        ? {
+            exerciseId: exercise.id,
+            base: restSeconds(exercise, set),
+            startedAt: Date.now(),
+          }
+        : current?.exerciseId === exercise.id
+          ? null
+          : current,
+    )
 
   // A saved log keeps its programme day even if the start date changes later.
   const scheduled =
@@ -66,6 +92,8 @@ function LiftingForDate({ date }: { date: Date }) {
       ? scheduled.day
       : null
   const outside = scheduled && 'reason' in scheduled ? scheduled.reason : null
+  // Full screen only applies while an exercise card (with its exit button) shows.
+  const fullScreen = focus && Boolean(day?.exercises.length)
 
   const dateLabel = date.toLocaleDateString(undefined, {
     month: 'long',
@@ -90,20 +118,29 @@ function LiftingForDate({ date }: { date: Date }) {
     <SafeAreaView
       testID="gym-lifting-screen"
       style={[styles.container, { backgroundColor: theme.homeBackground }]}
-      edges={['top', 'left', 'right']}
+      edges={
+        fullScreen || resting
+          ? ['top', 'left', 'right', 'bottom']
+          : ['top', 'left', 'right']
+      }
     >
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <ScreenHeader title="Lifting" subtitle={dateLabel} />
+      {!fullScreen && <ScreenHeader title="Lifting" subtitle={dateLabel} />}
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          fullScreen && styles.focusContent,
+        ]}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
       >
-        <Band
-          title={
-            day ? `Week ${day.week} · Day ${pad(Number(day.day))}` : 'Lifting'
-          }
-        />
+        {!fullScreen && (
+          <Band
+            title={
+              day ? `Week ${day.week} · Day ${pad(Number(day.day))}` : 'Lifting'
+            }
+          />
+        )}
         {!programmeStart && !log ? (
           <View style={styles.block}>
             <Text style={[Typography.bodyMd, { color: theme.text }]}>
@@ -117,7 +154,15 @@ function LiftingForDate({ date }: { date: Date }) {
             />
           </View>
         ) : day ? (
-          <LiftingDay key={day.day} day={day} dateKey={dateKey} log={log} />
+          <LiftingDay
+            key={day.day}
+            day={day}
+            dateKey={dateKey}
+            log={log}
+            focus={fullScreen}
+            onToggleFocus={() => setFocus((on) => !on)}
+            onRest={onRest}
+          />
         ) : (
           <View style={styles.block}>
             <Text style={[Typography.bodyMd, { color: theme.text }]}>
@@ -127,7 +172,7 @@ function LiftingForDate({ date }: { date: Date }) {
             </Text>
           </View>
         )}
-        {programmeStart && !log && (
+        {programmeStart && !log && !fullScreen && (
           <Pressable
             accessibilityRole="button"
             onPress={confirmStart}
@@ -139,6 +184,28 @@ function LiftingForDate({ date }: { date: Date }) {
           </Pressable>
         )}
       </ScrollView>
+      {resting && (
+        <RestTimer
+          key={resting.startedAt}
+          startedAt={resting.startedAt}
+          seconds={clampRest(
+            resting.base + (restDelta[resting.exerciseId] ?? 0),
+          )}
+          onAdjust={(step) =>
+            setRestDelta((delta) => {
+              // Step from the shown (clamped) target so every press is visible.
+              const shown = clampRest(
+                resting.base + (delta[resting.exerciseId] ?? 0),
+              )
+              return {
+                ...delta,
+                [resting.exerciseId]: clampRest(shown + step) - resting.base,
+              }
+            })
+          }
+          onDismiss={() => setRest(null)}
+        />
+      )}
     </SafeAreaView>
   )
 }
@@ -147,39 +214,47 @@ function LiftingDay({
   day,
   dateKey,
   log,
+  focus,
+  onToggleFocus,
+  onRest,
 }: {
   day: ProgrammeDay
   dateKey: string
   log: GymDayLog | undefined
+  focus: boolean
+  onToggleFocus: () => void
+  onRest: OnRest
 }) {
   const theme = useTheme()
   const [active, setActive] = useState(0)
   const exercise = day.exercises[active]
   return (
     <>
-      <View style={styles.titleRow}>
-        <Text
-          style={[Typography.headingSm, styles.flex, { color: theme.text }]}
-        >
-          {day.title}
-        </Text>
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={`Watch ${day.title} video`}
-          onPress={() => {
-            Linking.openURL(day.videoURL).catch(() =>
-              Alert.alert("Couldn't open the video"),
-            )
-          }}
-          hitSlop={8}
-        >
-          <Ionicons
-            name="play-circle-outline"
-            size={32}
-            color={theme.goalComplete}
-          />
-        </Pressable>
-      </View>
+      {!focus && (
+        <View style={styles.titleRow}>
+          <Text
+            style={[Typography.headingSm, styles.flex, { color: theme.text }]}
+          >
+            {day.title}
+          </Text>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`Watch ${day.title} video`}
+            onPress={() => {
+              Linking.openURL(day.videoURL).catch(() =>
+                Alert.alert("Couldn't open the video"),
+              )
+            }}
+            hitSlop={8}
+          >
+            <Ionicons
+              name="play-circle-outline"
+              size={32}
+              color={theme.goalComplete}
+            />
+          </Pressable>
+        </View>
+      )}
       {exercise === undefined ? (
         <View style={styles.block}>
           <Text style={[Typography.bodyMd, { color: theme.text }]}>
@@ -197,11 +272,20 @@ function LiftingDay({
             day={day.day}
             logged={log?.sets[exercise.id] ?? []}
             locked={Boolean(log?.finishedAt)}
-            onMove={(step) =>
-              setActive((current) =>
-                Math.min(day.exercises.length - 1, Math.max(0, current + step)),
+            focus={focus}
+            onToggleFocus={onToggleFocus}
+            onRest={onRest}
+            onMove={(step) => {
+              const next = Math.min(
+                day.exercises.length - 1,
+                Math.max(0, active + step),
               )
-            }
+              if (next === active) return
+              setActive(next)
+              AccessibilityInfo.announceForAccessibility(
+                `Exercise ${next + 1}: ${day.exercises[next].title}`,
+              )
+            }}
           />
           {/* ponytail: the day is "complete" once its final exercise has a set. */}
           {(log?.finishedAt ||
@@ -230,6 +314,9 @@ function ExerciseFocus({
   day,
   logged,
   locked,
+  focus,
+  onToggleFocus,
+  onRest,
   onMove,
 }: {
   index: number
@@ -239,6 +326,9 @@ function ExerciseFocus({
   day: string
   logged: LoggedSet[]
   locked: boolean
+  focus: boolean
+  onToggleFocus: () => void
+  onRest: OnRest
   onMove: (step: number) => void
 }) {
   const theme = useTheme()
@@ -262,9 +352,8 @@ function ExerciseFocus({
   }
   const valid = isValidSet(entry)
   const target = typeof exercise.sets === 'number' ? exercise.sets : null
-  const rowCount = target
-    ? Math.max(target, logged.length)
-    : Math.max(FAILURE_ROWS, logged.length + (locked ? 0 : 1))
+  const planned = target ?? FAILURE_ROWS
+  const circleCount = Math.max(planned, logged.length + (locked ? 0 : 1))
   const setBand = locked
     ? `${logged.length} ${logged.length === 1 ? 'set' : 'sets'} logged`
     : target !== null && logged.length >= target
@@ -276,7 +365,11 @@ function ExerciseFocus({
   return (
     <View
       testID={`gym-exercise-${exercise.id}`}
-      style={[styles.card, { borderColor: theme.goalTrack }]}
+      style={[
+        styles.card,
+        focus && styles.grow,
+        { borderColor: theme.goalTrack },
+      ]}
     >
       <View style={[styles.focusHeader, { backgroundColor: theme.goalTrack }]}>
         <View style={[styles.badge, { backgroundColor: theme.goalComplete }]}>
@@ -297,6 +390,19 @@ function ExerciseFocus({
               : `${exercise.reps} reps per set`}
           </Text>
         </View>
+        <Pressable
+          testID="gym-focus-toggle"
+          accessibilityRole="button"
+          accessibilityLabel={focus ? 'Exit full screen' : 'Full screen'}
+          onPress={onToggleFocus}
+          hitSlop={8}
+        >
+          <Ionicons
+            name={focus ? 'contract-outline' : 'expand-outline'}
+            size={24}
+            color={theme.text}
+          />
+        </Pressable>
         <ExerciseInfoButton title={exercise.title} />
       </View>
       <View style={[styles.setBand, { backgroundColor: theme.goalComplete }]}>
@@ -307,114 +413,119 @@ function ExerciseFocus({
         </Text>
       </View>
 
-      <View style={styles.cardBody}>
+      <View style={[styles.cardBody, focus && styles.grow]}>
         {!locked && (
-          <>
-            <View style={styles.entryRow}>
-              <View style={[styles.flex, styles.entryTarget]}>
-                <Text style={[styles.mono, { color: theme.text }]}>
-                  Target reps: {exercise.reps}
-                </Text>
-                <View
-                  style={[styles.chip, { backgroundColor: theme.goalTrack }]}
+          <View style={styles.entryRow}>
+            <View style={[styles.flex, styles.entryTarget]}>
+              <Text style={[styles.mono, { color: theme.text }]}>
+                Target reps: {exercise.reps}
+              </Text>
+              <View style={[styles.chip, { backgroundColor: theme.goalTrack }]}>
+                <Text
+                  numberOfLines={2}
+                  style={[
+                    styles.mono,
+                    styles.chipText,
+                    { color: theme.subtitleText },
+                  ]}
                 >
-                  <Text
-                    numberOfLines={2}
-                    style={[
-                      styles.mono,
-                      styles.chipText,
-                      { color: theme.subtitleText },
-                    ]}
-                  >
-                    {exercise.variation ?? 'Standard set'}
-                  </Text>
-                </View>
+                  {exercise.variation ?? 'Standard set'}
+                </Text>
               </View>
-              <EntryBox
-                testID={`gym-kg-${exercise.id}`}
-                accessibilityLabel={`${exercise.title} weight in kilograms`}
-                value={kg}
-                onChangeText={setKg}
-                keyboardType="decimal-pad"
-                placeholder="BW"
-                label="kg"
-              />
-              <Text style={[styles.times, { color: theme.subtitleText }]}>
-                ×
-              </Text>
-              <EntryBox
-                testID={`gym-reps-${exercise.id}`}
-                accessibilityLabel={`${exercise.title} reps`}
-                value={reps}
-                onChangeText={setReps}
-                keyboardType="number-pad"
-                placeholder="--"
-                label="reps"
-              />
             </View>
-            <ActionButton
-              testID={`gym-save-set-${exercise.id}`}
-              label="Save set"
-              disabled={!valid}
-              onPress={() => logSet(dateKey, day, exercise.id, entry)}
+            <EntryBox
+              testID={`gym-kg-${exercise.id}`}
+              accessibilityLabel={`${exercise.title} weight in kilograms`}
+              value={kg}
+              onChangeText={setKg}
+              keyboardType="decimal-pad"
+              placeholder="BW"
+              label="kg"
             />
-            {!valid && (
-              <Text style={[Typography.bodySm, { color: theme.danger }]}>
-                Reps 1-{MAX_REPS}. Weight above 0 kg, or blank for body weight.
-              </Text>
-            )}
-          </>
+            <Text style={[styles.times, { color: theme.subtitleText }]}>×</Text>
+            <EntryBox
+              testID={`gym-reps-${exercise.id}`}
+              accessibilityLabel={`${exercise.title} reps`}
+              value={reps}
+              onChangeText={setReps}
+              keyboardType="number-pad"
+              placeholder="--"
+              label="reps"
+            />
+          </View>
         )}
 
-        {Array.from({ length: rowCount }, (_, i) => {
-          const set = logged[i]
-          const isNext = i === logged.length
-          return (
-            <View
-              key={i}
-              style={[
-                styles.setRow,
-                {
-                  borderTopColor: theme.goalTrack,
-                  opacity: set || isNext ? 1 : 0.4,
-                },
-              ]}
-            >
-              <Ionicons
-                name={set ? 'checkmark-circle' : 'ellipse-outline'}
-                size={18}
-                color={set ? theme.goalComplete : theme.subtitleText}
+        <View style={styles.circles}>
+          {Array.from({ length: circleCount }, (_, i) => {
+            const set = logged[i]
+            if (set) {
+              const weight =
+                set.kilograms === null ? null : formatKg(set.kilograms)
+              return (
+                <SetCircle
+                  key={i}
+                  testID={`gym-set-${exercise.id}-${i + 1}`}
+                  tone="done"
+                  label={String(set.reps)}
+                  caption={weight ?? 'BW'}
+                  accessibilityLabel={`Set ${i + 1}: ${set.reps} reps × ${weight === null ? 'body weight' : `${weight} kg`}`}
+                />
+              )
+            }
+            if (i === logged.length && !locked)
+              return (
+                <SetCircle
+                  key={i}
+                  testID={`gym-save-set-${exercise.id}`}
+                  tone="next"
+                  label={i < planned ? reps.trim() || '--' : '+'}
+                  accessibilityLabel={`Log set ${i + 1}`}
+                  disabled={!valid}
+                  onPress={() => {
+                    logSet(dateKey, day, exercise.id, entry)
+                    onRest(exercise, entry)
+                    // The last planned set moves on; extra "+" sets stay put.
+                    if (i + 1 === planned) onMove(1)
+                  }}
+                />
+              )
+            return (
+              <SetCircle
+                key={i}
+                tone="todo"
+                label={String(exercise.reps)}
+                accessibilityLabel={`Set ${i + 1}: target ${exercise.reps} reps`}
               />
-              <Text
-                numberOfLines={1}
-                style={[styles.mono, styles.flex, { color: theme.text }]}
-              >
-                Set {pad(i + 1)}{' '}
-                <Text style={{ color: theme.goalComplete }}>///</Text>{' '}
-                {exercise.variation ?? 'Standard set'}
-              </Text>
-              <Text style={[styles.mono, { color: theme.text }]}>
-                {set
-                  ? `${set.reps} × ${set.kilograms === null ? 'BW' : `${formatKg(set.kilograms)} kg`}`
-                  : `Target ${exercise.reps}`}
-              </Text>
-              {set && i === logged.length - 1 && !locked ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Undo last ${exercise.title} set`}
-                  onPress={() => removeLastSet(dateKey, exercise.id)}
-                  hitSlop={10}
-                >
-                  <Ionicons
-                    name="close-circle"
-                    size={20}
-                    color={theme.subtitleText}
-                  />
-                </Pressable>
-              ) : null}
-            </View>
-          )
-        })}
+            )
+          })}
+        </View>
+        {!locked && !valid && (
+          <Text style={[Typography.bodySm, { color: theme.danger }]}>
+            Reps 1-{MAX_REPS}. Weight above 0 kg, or blank for body weight.
+          </Text>
+        )}
+        {!locked && logged.length > 0 && (
+          <Pressable
+            testID={`gym-undo-set-${exercise.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Undo set ${logged.length}`}
+            onPress={() => {
+              removeLastSet(dateKey, exercise.id)
+              onRest(exercise, null)
+            }}
+            hitSlop={8}
+            style={styles.undo}
+          >
+            <Ionicons
+              name="arrow-undo-outline"
+              size={14}
+              color={theme.subtitleText}
+            />
+            <Text style={[styles.mono, { color: theme.subtitleText }]}>
+              Undo set {logged.length}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {panel === 'previous' && (
@@ -491,6 +602,69 @@ function EntryBox({
         {label}
       </Text>
     </View>
+  )
+}
+
+function SetCircle({
+  tone,
+  label,
+  caption = ' ',
+  accessibilityLabel,
+  testID,
+  disabled = false,
+  onPress,
+}: {
+  tone: 'done' | 'next' | 'todo'
+  label: string
+  caption?: string
+  accessibilityLabel: string
+  testID?: string
+  disabled?: boolean
+  onPress?: () => void
+}) {
+  const theme = useTheme()
+  const done = tone === 'done'
+  return (
+    <Pressable
+      testID={testID}
+      accessible
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={accessibilityLabel}
+      disabled={onPress ? disabled : undefined}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.circleSlot,
+        {
+          opacity:
+            tone === 'todo' || disabled ? 0.4 : pressed && onPress ? 0.7 : 1,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.circle,
+          {
+            backgroundColor: done ? theme.goalComplete : 'transparent',
+            borderColor: tone === 'todo' ? theme.goalTrack : theme.goalComplete,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.circleText,
+            { color: done ? theme.goalOnComplete : theme.text },
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+      <Text
+        numberOfLines={1}
+        style={[styles.mono, styles.caption, { color: theme.subtitleText }]}
+      >
+        {caption}
+      </Text>
+    </Pressable>
   )
 }
 
@@ -809,6 +983,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
     gap: Spacing.sm,
   },
+  focusContent: { flexGrow: 1, paddingVertical: Spacing.sm },
+  grow: { flexGrow: 1 },
   flex: { flex: 1 },
   center: { alignSelf: 'center', textAlign: 'center' },
   mono: {
@@ -839,12 +1015,39 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
   },
   cardBody: { padding: Spacing.sm, gap: Spacing.xs },
-  setRow: {
+  circles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    paddingTop: Spacing.xs,
+  },
+  circleSlot: {
+    flexGrow: 1,
+    flexBasis: 40,
+    maxWidth: 56,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
+  circle: {
+    width: '100%',
+    aspectRatio: 1,
+    borderWidth: 2,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circleText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 18,
+    fontVariant: ['tabular-nums'],
+  },
+  caption: { fontSize: 9, letterSpacing: 0.5 },
+  undo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
-    paddingTop: Spacing.xxs,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.xxs,
   },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   stepButton: {

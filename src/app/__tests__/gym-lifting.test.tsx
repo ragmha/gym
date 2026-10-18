@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native'
+import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { useLocalSearchParams } from 'expo-router'
 
 import GymScreen from '@/app/gym/lifting'
@@ -19,6 +19,8 @@ beforeEach(() => {
   useGymLogStore.setState({ programmeStart: null, logs: {} })
 })
 
+afterEach(() => jest.useRealTimers())
+
 describe('Lifting screen', () => {
   it('starts the programme, logs a set and finishes the workout', () => {
     render(<GymScreen />)
@@ -30,8 +32,11 @@ describe('Lifting screen', () => {
 
     fireEvent.changeText(screen.getByTestId(`gym-kg-${first.id}`), '42.5')
     fireEvent.press(screen.getByTestId(`gym-save-set-${first.id}`))
-    expect(screen.getByText(`${first.reps} × 42.5 kg`)).toBeTruthy()
+    expect(
+      screen.getByLabelText(`Set 1: ${first.reps} reps × 42.5 kg`),
+    ).toBeTruthy()
     expect(screen.getByText(/Set: 2 of 3/i)).toBeTruthy()
+    expect(screen.getByTestId('gym-rest-timer')).toBeTruthy()
 
     fireEvent.press(screen.getByLabelText('1 rep max'))
     expect(screen.getByTestId('gym-one-rep-max')).toHaveTextContent(/63\.8 kg/)
@@ -47,13 +52,14 @@ describe('Lifting screen', () => {
 
     expect(screen.getByTestId('gym-finished')).toBeTruthy()
     expect(screen.queryByTestId(`gym-save-set-${first.id}`)).toBeNull()
+    expect(screen.queryByTestId('gym-rest-timer')).toBeNull()
     expect(useGymLogStore.getState().logs['2026-10-17']).toMatchObject({
       day: '1',
       rating: 7,
     })
   })
 
-  it('shows five set rows for To Failure exercises', () => {
+  it('plans five set circles for To Failure exercises', () => {
     useGymLogStore.setState({ programmeStart: '2026-10-17' })
     render(<GymScreen />)
     const failure = PROGRAMME[0].exercises.findIndex(
@@ -61,8 +67,106 @@ describe('Lifting screen', () => {
     )
     for (let i = 0; i < failure; i++)
       fireEvent.press(screen.getByLabelText('Next exercise'))
-    expect(screen.getByText(/Set 05/)).toBeTruthy()
-    expect(screen.queryByText(/Set 06/)).toBeNull()
+    const { reps } = PROGRAMME[0].exercises[failure]
+    expect(screen.getByLabelText('Log set 1')).toBeTruthy()
+    expect(screen.getByLabelText(`Set 5: target ${reps} reps`)).toBeTruthy()
+    expect(screen.queryByLabelText(/^(Log set|Set) 6/)).toBeNull()
+  })
+
+  it('undoes the last set and stops its rest timer', () => {
+    useGymLogStore.setState({ programmeStart: '2026-10-17' })
+    render(<GymScreen />)
+    const first = PROGRAMME[0].exercises[0]
+    fireEvent.press(screen.getByTestId(`gym-save-set-${first.id}`))
+    expect(screen.getByTestId(`gym-set-${first.id}-1`)).toBeTruthy()
+
+    fireEvent.press(screen.getByTestId(`gym-undo-set-${first.id}`))
+    expect(screen.queryByTestId(`gym-set-${first.id}-1`)).toBeNull()
+    expect(screen.queryByTestId('gym-rest-timer')).toBeNull()
+    expect(
+      useGymLogStore.getState().logs['2026-10-17']?.sets[first.id] ?? [],
+    ).toHaveLength(0)
+  })
+
+  it('times adjustable rest between sets', () => {
+    jest.useFakeTimers()
+    useGymLogStore.setState({ programmeStart: '2026-10-17' })
+    render(<GymScreen />)
+    const first = PROGRAMME[0].exercises[0]
+    expect(screen.queryByTestId('gym-rest-timer')).toBeNull()
+
+    fireEvent.press(screen.getByTestId(`gym-save-set-${first.id}`))
+    expect(screen.getByLabelText('Resting 0:00')).toBeTruthy()
+    expect(screen.getByText('Rest 2:00')).toBeTruthy()
+
+    act(() => jest.advanceTimersByTime(65_000))
+    expect(screen.getByLabelText('Resting 1:05')).toBeTruthy()
+
+    fireEvent.press(screen.getByLabelText('Add 15 seconds of rest'))
+    expect(screen.getByText('Rest 2:15')).toBeTruthy()
+    act(() => jest.advanceTimersByTime(75_000))
+    expect(screen.getByText('Rest done')).toBeTruthy()
+
+    // The adjustment carries over to the next set of the same exercise.
+    fireEvent.press(screen.getByTestId(`gym-save-set-${first.id}`))
+    expect(screen.getByLabelText('Resting 0:00')).toBeTruthy()
+    expect(screen.getByText('Rest 2:15')).toBeTruthy()
+
+    fireEvent.press(screen.getByLabelText('Dismiss rest timer'))
+    expect(screen.queryByTestId('gym-rest-timer')).toBeNull()
+  })
+
+  it('moves to the next exercise once the planned sets are done', () => {
+    useGymLogStore.setState({ programmeStart: '2026-10-17' })
+    render(<GymScreen />)
+    const [first, second] = PROGRAMME[0].exercises
+    const planned = typeof first.sets === 'number' ? first.sets : 5
+    for (let i = 0; i < planned; i++) {
+      expect(screen.getByTestId(`gym-exercise-${first.id}`)).toBeTruthy()
+      fireEvent.press(screen.getByTestId(`gym-save-set-${first.id}`))
+    }
+    expect(screen.getByTestId(`gym-exercise-${second.id}`)).toBeTruthy()
+    expect(screen.getByTestId('gym-rest-timer')).toBeTruthy()
+
+    // An extra "+" set stays on its exercise.
+    fireEvent.press(screen.getByLabelText('Previous exercise'))
+    fireEvent.press(screen.getByLabelText(`Log set ${planned + 1}`))
+    expect(
+      screen.getByTestId(`gym-set-${first.id}-${planned + 1}`),
+    ).toBeTruthy()
+  })
+
+  it('steps rest from the shown target after clamping', () => {
+    useGymLogStore.setState({ programmeStart: '2026-10-17' })
+    render(<GymScreen />)
+    const first = PROGRAMME[0].exercises[0]
+    const reps = screen.getByTestId(`gym-reps-${first.id}`)
+    fireEvent.changeText(reps, String(first.reps - 1))
+    fireEvent.press(screen.getByTestId(`gym-save-set-${first.id}`))
+    for (let i = 0; i < 12; i++)
+      fireEvent.press(screen.getByLabelText('Remove 15 seconds of rest'))
+    expect(screen.getByText('Rest 0:30')).toBeTruthy()
+
+    // Hitting the target lowers the base below the floor; +15 still shows.
+    fireEvent.changeText(reps, String(first.reps))
+    fireEvent.press(screen.getByTestId(`gym-save-set-${first.id}`))
+    expect(screen.getByText('Rest 0:30')).toBeTruthy()
+    fireEvent.press(screen.getByLabelText('Add 15 seconds of rest'))
+    expect(screen.getByText('Rest 0:45')).toBeTruthy()
+  })
+
+  it('expands the exercise card to full screen', () => {
+    useGymLogStore.setState({ programmeStart: '2026-10-17' })
+    render(<GymScreen />)
+    expect(screen.getByText(PROGRAMME[0].title)).toBeTruthy()
+    expect(screen.getByText('Lifting')).toBeTruthy()
+
+    fireEvent.press(screen.getByLabelText('Full screen'))
+    expect(screen.queryByText(PROGRAMME[0].title)).toBeNull()
+    expect(screen.queryByText('Lifting')).toBeNull()
+
+    fireEvent.press(screen.getByLabelText('Exit full screen'))
+    expect(screen.getByText(PROGRAMME[0].title)).toBeTruthy()
   })
 
   it('blocks saving an invalid weight', () => {

@@ -25,6 +25,9 @@ Each lifting exercise's info sheet fetches a reference demo (animation, muscles,
 steps) from ExerciseDB only on tap, using a curated ID in `exerciseMedia.json`.
 That read-only lookup sends only the ID, stores nothing, and is not coach input;
 it is the app's only in-app data fetch, and media must not be bundled.
+The Lifting rest timer between sets is ephemeral screen state: a rule-based
+target (`restSeconds` in `rest.ts`, 2:00 default) adjustable by ±15 s. It is
+never persisted, written to Health, or used as coach input.
 No other manual-entry feature is approved.
 
 Before adding a feature, check whether the data already exists in HealthKit. If
