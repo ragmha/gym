@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { useLocalSearchParams } from 'expo-router'
 
+import FiveByFiveScreen from '@/app/gym/lifting/five-by-five'
 import GymScreen from '@/app/gym/lifting/workout'
 import { PROGRAMME } from '@/lib/gymProgramme'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
@@ -284,19 +285,18 @@ describe('Lifting workout', () => {
   })
 
   it('runs a 5×5 short day without starting the programme', () => {
-    render(<GymScreen />)
-    fireEvent.press(screen.getByLabelText('StrongLifts 5 by 5'))
+    render(<FiveByFiveScreen />)
 
     expect(screen.getByText('StrongLifts 5×5')).toBeTruthy()
     expect(screen.getByText('Workout A')).toBeTruthy()
     expect(screen.queryByTestId('gym-start-programme')).toBeNull()
+    expect(screen.queryByTestId('gym-short-day')).toBeNull()
     expect(screen.getByTestId('gym-next-weight')).toHaveTextContent(
       /First 5×5 · start light/,
     )
     fireEvent.changeText(screen.getByTestId('gym-kg-squat'), '60')
     fireEvent.press(screen.getByTestId('gym-save-set-squat'))
 
-    expect(screen.queryByLabelText('StrongLifts 5 by 5')).toBeNull()
     expect(useGymLogStore.getState().logs['2026-10-17']).toMatchObject({
       day: '5x5-A',
       sets: { squat: [{ reps: 5, kilograms: 60 }] },
@@ -315,9 +315,7 @@ describe('Lifting workout', () => {
         },
       },
     })
-    render(<GymScreen />)
-    expect(screen.getByLabelText('StrongLifts 5 by 5')).toBeTruthy()
-    fireEvent.press(screen.getByLabelText('StrongLifts 5 by 5'))
+    render(<FiveByFiveScreen />)
 
     expect(screen.getByText('Workout B')).toBeTruthy()
     expect(screen.getByTestId('gym-next-weight')).toHaveTextContent(
