@@ -1,0 +1,21 @@
+diff --git a/ios/LiveActivityFactory.swift b/ios/LiveActivityFactory.swift
+index caf1e050224d595d8c57c0a832de182fd35ad897..b4574a6bedc869b5a5a658c4afba74bf0d735552 100644
+--- a/ios/LiveActivityFactory.swift
++++ b/ios/LiveActivityFactory.swift
+@@ -40,10 +40,12 @@ final class LiveActivityFactory: SharedObject {
+   }
+ 
+   func getInstances() throws -> [LiveActivity] {
+-    guard #available(iOS 16.1, *) else { throw LiveActivitiesNotSupportedException() }
++    guard #available(iOS 16.2, *) else { throw LiveActivitiesNotSupportedException() }
+ 
+-    return Activity<LiveActivityAttributes>.activities.map { activity in
+-      LiveActivity(id: activity.id, name: name)
+-    }
++    // Backport of expo/expo#48489: skip other factories and ended or dismissed activities.
++    return Activity<LiveActivityAttributes>.activities
++      .filter { $0.content.state.name == name }
++      .filter { $0.activityState == .active || $0.activityState == .stale }
++      .map { LiveActivity(id: $0.id, name: name) }
+   }
+ }
