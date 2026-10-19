@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "io.raghib.gym",
@@ -85,7 +85,16 @@
         "expo-widgets",
         {
           "bundleIdentifier": "io.raghib.gym.ExpoWidgetsTarget",
-          "groupIdentifier": "group.io.raghib.gym"
+          "groupIdentifier": "group.io.raghib.gym",
+          "widgets": [
+            {
+              "name": "DailySummary",
+              "displayName": "Daily rings",
+              "description": "Today's steps, water, and active calories from Apple Health.",
+              "supportedFamilies": ["systemMedium"],
+              "contentMarginsDisabled": true
+            }
+          ]
         }
       ],
       [

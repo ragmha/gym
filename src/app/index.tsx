@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { AppState, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -19,6 +19,7 @@ import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useReadingTimer, type ReadingTimer } from '@/hooks/useReadingTimer'
 import { useTheme } from '@/hooks/useThemeColor'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
+import { publishDailySummary } from '@/lib/widgets/publishDailySummary'
 
 export default function HomeScreen() {
   const reading = useReadingTimer()
@@ -43,12 +44,24 @@ function HomeForDate({
 
   const [refreshing, setRefreshing] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [widgetError, setWidgetError] = useState<string | null>(null)
   const [pagination, setPagination] = useState({ index: 0, count: 0 })
   const goalGrid = useRef<GoalGridHandle>(null)
 
   const { snapshot, status, error, isDemoMode, refresh } =
     useHealthSnapshot(selectedDate)
   const canPage = status !== 'error' && !(status === 'loading' && !snapshot)
+  useEffect(() => {
+    if (
+      isDemoMode ||
+      status === 'loading' ||
+      localDateKey(selectedDate) !== localDateKey(new Date())
+    ) {
+      return
+    }
+    setWidgetError(publishDailySummary(status === 'ready' ? snapshot : null))
+  }, [snapshot, status, isDemoMode, selectedDate])
+
   useFocusEffect(
     useCallback(() => {
       if (isDemoMode) return
@@ -104,6 +117,14 @@ function HomeForDate({
         {isDemoMode && (
           <Text style={[styles.demo, { color: theme.subtitleText }]}>
             Demo data - Apple Health is available on iOS.
+          </Text>
+        )}
+        {widgetError && (
+          <Text
+            accessibilityRole="alert"
+            style={[styles.demo, { color: theme.danger }]}
+          >
+            {widgetError}
           </Text>
         )}
 

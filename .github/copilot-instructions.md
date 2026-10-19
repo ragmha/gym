@@ -56,10 +56,18 @@ island's Stop button is interactive only on iOS 17+ and works while the app is
 in memory. On iOS 16.2–16.x, the Live Activity instructs users to return to
 gym and stop from the Reading tile. Only the last session's whole minutes stay
 in memory for that day's tile caption. The
-`group.io.raghib.gym` App Group holds only the compiled layout for the widget
-extension; minutes are never persisted, written to Health, or used as coach
-input. Older builds, web, and Android keep the plain Apple Books link.
+`group.io.raghib.gym` App Group holds only the compiled widget layouts and the
+Daily rings timeline below; reading minutes are never persisted, written to
+Health, or used as coach input. Older builds, web, and Android keep the plain Apple Books link.
 No other manual-entry feature is approved.
+
+The user-approved Daily rings Home Screen widget shares only today's formatted
+steps, water and active-calorie summary, progress and update/expiry times through
+the `group.io.raghib.gym` App Group, shared only with the widget extension. Its display targets are
+20,000 steps, 2.5 L and 500 active kcal, not new dashboard goals. Timeline readings
+expire after one hour or local midnight; this is display expiry, not automatic
+storage deletion. Never share historical/demo readings, Health history, or coach
+context, or turn this narrow widget exception into a general Health cache.
 
 Before adding a feature, check whether the data already exists in HealthKit. If
 it does, read it. If it does not, adding a form, a store that persists user

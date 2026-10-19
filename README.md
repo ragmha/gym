@@ -32,6 +32,26 @@ bun run ios   # iOS simulator
 bun run web   # browser, mock data
 ```
 
+### Daily rings widget (iOS)
+
+Version 1.0.15 adds a medium Home Screen widget with three rings for Steps,
+Water, and Active calories. Its fixed display targets are 20,000 steps, 2.5 L,
+and 500 active kcal; these do not change the dashboard's goals or provide
+medical recommendations. Missing readings show `--`; recorded zeroes remain
+zeroes. Tap the widget to open the dashboard.
+
+This requires a **new native build**, not Expo Go or an OTA to an older binary.
+Open today's dashboard, then hold the Home Screen, choose **Edit → Add Widget**,
+and search for **gym → Daily rings**. The widget follows the supplied dark
+three-ring reference in both system appearances.
+
+The widget shares only today's formatted steps, water, active calories, ring
+progress, and update/expiry times through the `group.io.raghib.gym` App Group,
+which only the app and its widget extension use. Historical and demo readings are never published. Readings are hidden
+after one hour or local midnight, whichever comes first; this is display expiry,
+not guaranteed storage deletion. The app does not fetch Health data in the
+background.
+
 ## License
 
 [PolyForm Noncommercial 1.0.0](LICENSE.md): free for noncommercial use.

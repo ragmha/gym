@@ -183,6 +183,36 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        <View style={styles.section}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.sectionTitle, { color: textColor }]}
+          >
+            Home Screen widget
+          </Text>
+          <View style={[styles.card, { backgroundColor: cardBg }]}>
+            <Text style={[styles.rowTitle, { color: textColor }]}>
+              Daily rings
+            </Text>
+            <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
+              {Platform.OS === 'ios'
+                ? 'On version 1.0.15 or later, touch and hold your Home Screen, choose Edit → Add Widget, and search for gym. Open today’s dashboard first to refresh the rings.'
+                : 'Daily rings requires a compatible iOS app. Widgets are not available in the web or Android preview.'}
+            </Text>
+            <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
+              Steps, water, and active calories use display targets of 20,000
+              steps, 2.5 L, and 500 kcal. These are widget targets, not medical
+              recommendations or changes to Home goals.
+            </Text>
+            <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
+              Only this summary is shared on-device with the widget. Readings
+              expire after one hour or at midnight and show -- until you reopen
+              today’s dashboard. iOS controls when widgets redraw; they are not
+              live readings.
+            </Text>
+          </View>
+        </View>
+
         {Platform.OS === 'ios' && (
           <View style={styles.section}>
             <Text
