@@ -15,6 +15,7 @@ import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { HealthReadState } from '@/components/health/HealthReadState'
 import { Layout, Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
+import { useDeepWork, type DeepWork } from '@/hooks/useDeepWork'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useReadingTimer, type ReadingTimer } from '@/hooks/useReadingTimer'
 import { useTheme } from '@/hooks/useThemeColor'
@@ -23,9 +24,16 @@ import { publishDailySummary } from '@/lib/widgets/publishDailySummary'
 
 export default function HomeScreen() {
   const reading = useReadingTimer()
+  const deepWork = useDeepWork()
   return (
     <HealthDateRoute>
-      {(date) => <HomeForDate selectedDate={date} reading={reading} />}
+      {(date) => (
+        <HomeForDate
+          selectedDate={date}
+          reading={reading}
+          deepWork={deepWork}
+        />
+      )}
     </HealthDateRoute>
   )
 }
@@ -33,9 +41,11 @@ export default function HomeScreen() {
 function HomeForDate({
   selectedDate,
   reading,
+  deepWork,
 }: {
   selectedDate: Date
   reading: ReadingTimer | null
+  deepWork: DeepWork
 }) {
   const router = useRouter()
   const theme = useTheme()
@@ -135,6 +145,7 @@ function HomeForDate({
             error={error}
             onRetry={onRefresh}
             onStopReading={reading?.running ? reading.stop : undefined}
+            onEndDeepWork={deepWork.session ? deepWork.end : undefined}
           />
         ) : (
           <GoalGrid
@@ -142,6 +153,7 @@ function HomeForDate({
             snapshot={snapshot}
             date={selectedDate}
             reading={reading}
+            deepWork={deepWork}
             ref={goalGrid}
             onPageChange={setPagination}
             editing={editing}

@@ -59,6 +59,12 @@ in memory for that day's tile caption. The
 `group.io.raghib.gym` App Group holds only the compiled widget layouts and the
 Daily rings timeline below; reading minutes are never persisted, written to
 Health, or used as coach input. Older builds, web, and Android keep the plain Apple Books link.
+The user also approved an ephemeral Deep Work timer (25-minute focus, 5-minute
+break, repeating) on the Home grid. On native 1.0.13+ iOS builds it mirrors the
+current block in a silent `DeepWorkActivity` Live Activity
+(`src/lib/deepWorkActivity.tsx`); other platforms run it in-app only. The
+session lives in memory only: no persistence, notifications, Health writes, or
+coach input.
 No other manual-entry feature is approved.
 
 The user-approved Daily rings Home Screen widget shares only today's formatted

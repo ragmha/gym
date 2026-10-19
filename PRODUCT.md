@@ -58,6 +58,12 @@ and its actual measurement date/time directly to Apple Health.
 - **Apple Watch** shows today's lifting day and logs or undoes sets in the
   iPhone's on-device lifting log. It needs the iPhone reachable and saves
   nothing on the watch or to Health.
+- Deep Work runs 25-minute focus blocks alternating with 5-minute breaks until
+  ended. Tapping the tile starts or pauses it; tapping it while paused offers
+  Resume or End. On native 1.0.13+ iOS builds a silent Dynamic Island countdown
+  shows the current block; it reaches 0:00 rather than flipping to the next
+  block until the app is opened. Sessions stay in memory only: never saved,
+  written to Health, or given to the coach.
 - Theme selection, accessible controls, and light and dark appearances remain
   supported. The experimental Phone rest report retains its privacy and
   distribution restrictions.

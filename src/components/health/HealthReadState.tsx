@@ -10,11 +10,13 @@ export function HealthReadState({
   error,
   onRetry,
   onStopReading,
+  onEndDeepWork,
 }: {
   loading?: boolean
   error?: string | null
   onRetry?: () => void
   onStopReading?: () => void
+  onEndDeepWork?: () => void
 }) {
   const theme = useTheme()
   return (
@@ -48,6 +50,22 @@ export function HealthReadState({
         >
           <Text style={[Typography.labelLg, { color: theme.selectedText }]}>
             Stop reading timer
+          </Text>
+        </Pressable>
+      ) : null}
+      {!loading && onEndDeepWork ? (
+        <Pressable
+          onPress={onEndDeepWork}
+          accessibilityRole="button"
+          accessibilityLabel="End deep work"
+          accessibilityHint="Ends the Deep Work session and its Live Activity"
+          style={({ pressed }) => [
+            styles.button,
+            { backgroundColor: theme.accent, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={[Typography.labelLg, { color: theme.selectedText }]}>
+            End deep work
           </Text>
         </Pressable>
       ) : null}

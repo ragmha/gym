@@ -482,6 +482,29 @@ describe('HomeScreen', () => {
     expect(stopListener.remove).not.toHaveBeenCalled()
   })
 
+  it('keeps an end action for a running Deep Work session after a Health error', () => {
+    const { rerender } = render(<HomeScreen />)
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
+    )
+    fireEvent.press(
+      screen.getByRole('button', {
+        name: 'Deep work, starts a 25 minute focus block',
+      }),
+    )
+    mockState = {
+      ...mockState,
+      status: 'error',
+      snapshot: null,
+      error: 'Unable to load health data',
+    }
+    rerender(<HomeScreen />)
+
+    fireEvent.press(screen.getByRole('button', { name: 'End deep work' }))
+
+    expect(screen.queryByRole('button', { name: 'End deep work' })).toBeNull()
+  })
+
   it('reconciles a deferred stop after the selected date changes', async () => {
     let finishStop: (() => void) | undefined
     mockLive.isReading.mockReturnValue(true)
