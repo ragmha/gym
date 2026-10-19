@@ -323,4 +323,27 @@ describe('Lifting workout', () => {
     )
     expect(screen.getByTestId('gym-kg-squat')).toHaveProp('value', '62.5')
   })
+
+  it('keeps a logged body-weight set instead of the suggested load', () => {
+    const full = Array.from({ length: 5 }, () => ({ reps: 5, kilograms: 60 }))
+    useGymLogStore.setState({
+      logs: {
+        '2026-10-15': {
+          day: '5x5-A',
+          sets: { squat: full },
+          finishedAt: null,
+          rating: null,
+        },
+        '2026-10-17': {
+          day: '5x5-B',
+          sets: { squat: [{ reps: 5, kilograms: null }] },
+          finishedAt: null,
+          rating: null,
+        },
+      },
+    })
+    render(<FiveByFiveScreen />)
+
+    expect(screen.getByTestId('gym-kg-squat')).toHaveProp('value', '')
+  })
 })

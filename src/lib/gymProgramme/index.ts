@@ -200,10 +200,12 @@ export function nextWeight(
 ): NextWeight | null {
   const working = (s: ExerciseSession) =>
     Math.max(0, ...s.sets.map((set) => set.kilograms ?? 0))
+  // Only the planned sets count, so an extra "+" retry cannot hide a miss.
   const complete = (s: ExerciseSession) =>
-    s.sets.filter(
-      (set) => set.kilograms === working(s) && set.reps >= exercise.reps,
-    ).length >= exercise.sets
+    s.sets.length >= exercise.sets &&
+    s.sets
+      .slice(0, exercise.sets)
+      .every((set) => set.kilograms === working(s) && set.reps >= exercise.reps)
   const last = earlier.at(-1)
   const kilograms = last ? working(last) : 0
   if (!last || kilograms === 0) return null

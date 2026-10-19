@@ -151,6 +151,11 @@ describe('StrongLifts 5×5', () => {
       kilograms: 60,
       reason: 'repeat',
     })
+    // An extra "+" set cannot make up for a missed planned set.
+    expect(nextWeight([session(60, [5, 5, 5, 5, 4, 5])], squat)).toEqual({
+      kilograms: 60,
+      reason: 'repeat',
+    })
   })
 
   it('deloads 10% after three misses in a row at the same weight', () => {

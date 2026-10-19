@@ -67,7 +67,11 @@ export function watchState(
   return {
     dateKey,
     day: day?.day ?? null,
-    title: day ? `Week ${day.week} · Day ${pad(Number(day.day))}` : 'Lifting',
+    title: !day
+      ? 'Lifting'
+      : 'week' in day
+        ? `Week ${day.week} · Day ${pad(Number(day.day))}`
+        : 'StrongLifts 5×5',
     subtitle: day?.title ?? null,
     note,
     locked: Boolean(log?.finishedAt),

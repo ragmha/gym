@@ -344,7 +344,8 @@ function ExerciseFocus({
         )
       : null
   const [kg, setKg] = useState(() => {
-    const last = logged.at(-1)?.kilograms ?? next?.kilograms
+    // A saved null is body weight; only suggest a load before the first set.
+    const last = logged.length ? logged.at(-1)?.kilograms : next?.kilograms
     return last == null ? '' : String(last)
   })
 
