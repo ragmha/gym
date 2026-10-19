@@ -652,6 +652,132 @@ describe('GoalGrid', () => {
     openURL.mockRestore()
   })
 
+  it('starts a Dynamic Island reading timer as it opens Apple Books', async () => {
+    const reading = {
+      running: false,
+      last: null,
+      start: jest.fn(),
+      stop: jest.fn(),
+    }
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />)
+
+    const tile = screen.getByRole('link', {
+      name: 'Reading, starts a reading timer and opens Apple Books',
+    })
+    expect(tile.props.accessibilityHint).toBe(
+      'Shows the timer in the Dynamic Island. Reading minutes are not saved.',
+    )
+    expect(
+      screen.getByTestId('goal-badge-reading-play', {
+        includeHiddenElements: true,
+      }),
+    ).toBeTruthy()
+    fireEvent.press(tile)
+    await Promise.resolve()
+
+    expect(reading.start).toHaveBeenCalledTimes(1)
+    expect(openURL).toHaveBeenCalledWith('ibooks://')
+    openURL.mockRestore()
+  })
+
+  it('stops a running reading timer without reopening Apple Books', () => {
+    const reading = {
+      running: true,
+      last: null,
+      start: jest.fn(),
+      stop: jest.fn(),
+    }
+    const openURL = jest.spyOn(Linking, 'openURL')
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />)
+
+    const tile = screen.getByRole('button', {
+      name: 'Reading, stops the reading timer',
+    })
+    expect(tile.props.accessibilityValue.text).toBe('Timer running')
+    expect(screen.getByText('Tap to stop')).toBeTruthy()
+    expect(
+      screen.getByTestId('goal-badge-reading-stop', {
+        includeHiddenElements: true,
+      }),
+    ).toBeTruthy()
+    fireEvent.press(tile)
+
+    expect(reading.stop).toHaveBeenCalledTimes(1)
+    expect(reading.start).not.toHaveBeenCalled()
+    expect(openURL).not.toHaveBeenCalled()
+    openURL.mockRestore()
+  })
+
+  it('shows the last reading session only on the day it happened', async () => {
+    const reading = {
+      running: false,
+      last: { minutes: 12, day: '2026-09-12' },
+      start: jest.fn(),
+      stop: jest.fn(),
+    }
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {})
+    const openURL = jest
+      .spyOn(Linking, 'openURL')
+      .mockRejectedValue(new Error('app missing'))
+    const { rerender } = render(
+      <GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />,
+    )
+
+    expect(screen.getByText('Read 12 min')).toBeTruthy()
+    expect(
+      screen.getByRole('link', {
+        name: 'Reading, starts a reading timer and opens Apple Books',
+      }).props.accessibilityValue.text,
+    ).toBe('Read 12 min')
+    fireEvent.press(
+      screen.getByRole('link', {
+        name: 'Reading, starts a reading timer and opens Apple Books',
+      }),
+    )
+    await Promise.resolve()
+    expect(alert).toHaveBeenCalledWith(
+      "Couldn't open Apple Books",
+      'Check that the app is installed or the link is available, then try again.',
+    )
+
+    rerender(
+      <GoalGrid
+        snapshot={makeSnapshot()}
+        date={new Date(2026, 8, 11, 12)}
+        reading={reading}
+      />,
+    )
+    expect(screen.queryByText('Read 12 min')).toBeNull()
+    expect(
+      screen.getByRole('link', {
+        name: 'Reading, starts a reading timer and opens Apple Books',
+      }).props.accessibilityValue.text,
+    ).toBe('Not tracked')
+    alert.mockRestore()
+    openURL.mockRestore()
+  })
+
+  it('does not open Apple Books when starting the reading timer is refused', async () => {
+    const reading = {
+      running: false,
+      last: null,
+      start: jest.fn().mockReturnValue(false),
+      stop: jest.fn(),
+    }
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />)
+
+    fireEvent.press(
+      screen.getByRole('link', {
+        name: 'Reading, starts a reading timer and opens Apple Books',
+      }),
+    )
+    expect(reading.start).toHaveBeenCalledTimes(1)
+    expect(openURL).not.toHaveBeenCalled()
+    openURL.mockRestore()
+  })
+
   it('opens the Speaking drill without tracking it as a goal', () => {
     const push = jest.fn()
     jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })

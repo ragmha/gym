@@ -9,10 +9,12 @@ export function HealthReadState({
   loading = false,
   error,
   onRetry,
+  onStopReading,
 }: {
   loading?: boolean
   error?: string | null
   onRetry?: () => void
+  onStopReading?: () => void
 }) {
   const theme = useTheme()
   return (
@@ -33,6 +35,22 @@ export function HealthReadState({
           ? 'Loading health data...'
           : (error ?? 'Unable to load health data')}
       </Text>
+      {!loading && onStopReading ? (
+        <Pressable
+          onPress={onStopReading}
+          accessibilityRole="button"
+          accessibilityLabel="Stop reading timer"
+          accessibilityHint="Ends the active Reading Live Activity"
+          style={({ pressed }) => [
+            styles.button,
+            { backgroundColor: theme.accent, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={[Typography.labelLg, { color: theme.selectedText }]}>
+            Stop reading timer
+          </Text>
+        </Pressable>
+      ) : null}
       {!loading && onRetry ? (
         <Pressable
           onPress={onRetry}

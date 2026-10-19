@@ -36,6 +36,7 @@ import {
   useTileReorder,
 } from '@/components/dashboard/useTileReorder'
 import { Layout, Spacing } from '@/constants/DesignSystem'
+import type { ReadingTimer } from '@/hooks/useReadingTimer'
 import { useTheme } from '@/hooks/useThemeColor'
 import {
   CARDIO_MINUTES_GOAL,
@@ -68,6 +69,11 @@ interface Tile {
   route?: Route
   /** External app; its progress is never read or inferred. */
   url?: string
+  /** App name for link errors when the caption shows something else. */
+  app?: string
+  /** Runs before the url or route opens. */
+  onPress?: () => boolean | void
+  badge?: 'play' | 'stop'
 }
 
 function DotRing({
@@ -111,6 +117,7 @@ function buildTiles(
   snapshot: DailyHealthSnapshot | null,
   date: Date,
   liftLogged: boolean,
+  reading: ReadingTimer | null,
 ): Tile[] {
   const steps = presentSteps(snapshot)
   const stepCount = snapshot?.steps ?? null
@@ -191,20 +198,46 @@ function buildTiles(
       progress: null,
       route: '/water',
     },
-    {
-      label: 'Reading',
-      icon: 'reading',
-      caption: 'Apple Books',
-      accessibilityLabel: 'Reading, opens Apple Books',
-      hint: 'Reading progress is not shared with this app.',
-      done: null,
-      progress: null,
-      status: 'Not tracked',
-      url: Platform.select({
-        ios: 'ibooks://',
-        default: 'https://books.apple.com/',
-      }),
-    },
+    reading?.running
+      ? {
+          label: 'Reading',
+          icon: 'reading',
+          caption: 'Tap to stop',
+          accessibilityLabel: 'Reading, stops the reading timer',
+          hint: 'Ends the Live Activity. Reading minutes are not saved.',
+          done: null,
+          progress: null,
+          status: 'Timer running',
+          onPress: reading.stop,
+          badge: 'stop',
+        }
+      : {
+          label: 'Reading',
+          icon: 'reading',
+          caption:
+            reading?.last?.day === localDateKey(date)
+              ? `Read ${reading.last.minutes} min`
+              : 'Apple Books',
+          accessibilityLabel: reading
+            ? 'Reading, starts a reading timer and opens Apple Books'
+            : 'Reading, opens Apple Books',
+          hint: reading
+            ? 'Shows the timer in the Dynamic Island. Reading minutes are not saved.'
+            : 'Reading progress is not shared with this app.',
+          done: null,
+          progress: null,
+          status:
+            reading?.last?.day === localDateKey(date)
+              ? `Read ${reading.last.minutes} min`
+              : 'Not tracked',
+          url: Platform.select({
+            ios: 'ibooks://',
+            default: 'https://books.apple.com/',
+          }),
+          app: 'Apple Books',
+          onPress: reading?.start,
+          badge: reading ? 'play' : undefined,
+        },
     {
       label: 'Praying',
       icon: 'praying',
@@ -271,7 +304,7 @@ export function GoalSummary({
 }) {
   const theme = useTheme()
   const liftLogged = useLiftLogged(date)
-  const goals = buildTiles(snapshot, date, liftLogged).filter(
+  const goals = buildTiles(snapshot, date, liftLogged, null).filter(
     (tile) => tile.done !== null,
   )
   const doneCount = goals.filter((tile) => tile.done).length
@@ -358,12 +391,14 @@ export function GoalTileSurface({
   size,
   progress,
   done,
+  badge,
 }: {
   id: string
   icon: GoalMascotKind | 'trophy'
   size: number
   progress: number | null
   done: boolean | null
+  badge?: 'play' | 'stop'
 }) {
   const theme = useTheme()
   const reducedMotion = useReducedMotion()
@@ -427,6 +462,17 @@ export function GoalTileSurface({
           color={complete ? theme.goalOnComplete : theme.text}
         />
       )}
+      {badge && (
+        <Ionicons
+          testID={`goal-badge-${id}-${badge}`}
+          name={
+            badge === 'play' ? 'play-circle-outline' : 'stop-circle-outline'
+          }
+          size={size * 0.2}
+          color={theme.text}
+          style={[styles.badge, { top: size * 0.1, right: size * 0.1 }]}
+        />
+      )}
     </View>
   )
 }
@@ -438,6 +484,7 @@ export interface GoalGridHandle {
 export function GoalGrid({
   snapshot,
   date,
+  reading = null,
   ref,
   onPageChange,
   editing = false,
@@ -445,6 +492,7 @@ export function GoalGrid({
 }: {
   snapshot: DailyHealthSnapshot | null
   date: Date
+  reading?: ReadingTimer | null
   ref?: Ref<GoalGridHandle>
   onPageChange?: (pagination: { index: number; count: number }) => void
   /** iPhone-style edit mode: tiles wiggle and taps don't open them. */
@@ -458,7 +506,7 @@ export function GoalGrid({
   const tileOrder = useThemeStore((s) => s.tileOrder)
   const setTileOrder = useThemeStore((s) => s.setTileOrder)
   const tiles = sortByOrder(
-    buildTiles(snapshot, date, liftLogged),
+    buildTiles(snapshot, date, liftLogged, reading),
     tileOrder,
     (tile) => tile.label,
   )
@@ -639,20 +687,26 @@ export function GoalGrid({
                                 ? 'Goal progress unavailable'
                                 : `${tile.done ? 'Goal met' : 'Goal not met'} (${percent}%)`),
                         }}
-                        disabled={!tile.url && !tile.route}
+                        disabled={!tile.url && !tile.route && !tile.onPress}
                         tabIndex={pageIndex === page ? 0 : -1}
                         accessibilityState={{
-                          disabled: !tile.url && !tile.route,
+                          disabled: !tile.url && !tile.route && !tile.onPress,
                         }}
                         onPress={() => {
                           if (editing) return
-                          if (tile.url) {
+                          const startResult = tile.onPress?.()
+                          const openUrl = () => {
+                            if (!tile.url) return
                             Linking.openURL(tile.url).catch(() => {
                               Alert.alert(
-                                `Couldn't open ${tile.caption}`,
+                                `Couldn't open ${tile.app ?? tile.caption}`,
                                 'Check that the app is installed or the link is available, then try again.',
                               )
                             })
+                          }
+
+                          if (tile.url && startResult !== false) {
+                            openUrl()
                           } else if (tile.route) {
                             router.push({
                               pathname: tile.route,
@@ -668,6 +722,7 @@ export function GoalGrid({
                             size={tileSize}
                             progress={tile.progress}
                             done={tile.done}
+                            badge={tile.badge}
                           />
                         </Animated.View>
                         <Text
@@ -708,6 +763,7 @@ export function GoalGrid({
               size={tileSize}
               progress={tiles[drag.from].progress}
               done={tiles[drag.from].done}
+              badge={tiles[drag.from].badge}
             />
           </Animated.View>
         )}
@@ -793,6 +849,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  badge: {
+    position: 'absolute',
   },
   caption: {
     width: '100%',

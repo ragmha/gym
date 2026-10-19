@@ -47,6 +47,10 @@ and its actual measurement date/time directly to Apple Health.
   scheduled after the selected date stay disabled until that date arrives.
 - Morning weight comparisons show measured coverage, not diet advice.
 - The on-device coach reads the existing daily context only.
+- Apple Books shares no reading time. On native 1.0.13+ iOS builds, tapping
+  Reading starts a Dynamic Island timer and opens Apple Books; tapping it again
+  (or the island's Stop) ends it. The tile shows that day's last session in
+  whole minutes until the app closes. Minutes are never saved or sent to Health.
 - Theme selection, accessible controls, and light and dark appearances remain
   supported. The experimental Phone rest report retains its privacy and
   distribution restrictions.

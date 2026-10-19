@@ -5,6 +5,7 @@
     "": {
       "name": "gym",
       "dependencies": {
+        "@expo/ui": "~55.0.17",
         "@expo/vector-icons": "^15.0.3",
         "@kingstinct/react-native-healthkit": "^13.3.0",
         "@react-native-async-storage/async-storage": "2.2.0",
@@ -27,6 +28,7 @@
         "expo-status-bar": "~55.0.6",
         "expo-system-ui": "~55.0.22",
         "expo-updates": "~55.0.33",
+        "expo-widgets": "~55.0.20",
         "react": "19.2.0",
         "react-dom": "19.2.0",
         "react-native": "0.83.10",
@@ -74,6 +76,7 @@
   },
   "patchedDependencies": {
     "expo-speech-recognition@3.1.3": "patches/expo-speech-recognition@3.1.3.patch",
+    "expo-widgets@55.0.20": "patches/expo-widgets@55.0.20.patch",
   },
   "overrides": {
     "@expo/fingerprint": "0.16.8",
@@ -364,6 +367,8 @@
     "@expo/spawn-async": ["@expo/spawn-async@1.8.0", "", { "dependencies": { "cross-spawn": "^7.0.6" } }, "sha512-eb9xxd/LbuEGSdua4NumCu/McVB9EM+F/JxB9pWgnERw4HQ9XyTNH1KapG6oqLWR8TuRK2LQfzJlmNi94CVobw=="],
 
     "@expo/sudo-prompt": ["@expo/sudo-prompt@9.3.2", "", {}, "sha512-HHQigo3rQWKMDzYDLkubN5WQOYXJJE2eNqIQC2axC2iO3mHdwnIR7FgZVvHWtBwAdzBgAP0ECp8KqS8TiMKvgw=="],
+
+    "@expo/ui": ["@expo/ui@55.0.17", "", { "dependencies": { "sf-symbols-typescript": "^2.1.0" }, "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-NW/wFs+mhQeA/5W0yUNn6qKRNJBGiuF7NjCLZDFvg5Tyd+hDUEDEhBsLvI9MJ8B2aYuGcbuH9XZBIPF22LMrfQ=="],
 
     "@expo/vector-icons": ["@expo/vector-icons@15.1.1", "", { "peerDependencies": { "expo-font": ">=14.0.4", "react": "*", "react-native": "*" } }, "sha512-Iu2VkcoI5vygbtYngm7jb4ifxElNVXQYdDrYkT7UCEIiKLeWnQY0wf2ZhHZ+Wro6Sc5TaumpKUOqDRpLi5rkvw=="],
 
@@ -1228,6 +1233,8 @@
     "expo-updates": ["expo-updates@55.0.33", "", { "dependencies": { "@expo/code-signing-certificates": "^0.0.6", "@expo/plist": "^0.5.4", "@expo/spawn-async": "^1.7.2", "arg": "^4.1.0", "chalk": "^4.1.2", "debug": "^4.3.4", "expo-eas-client": "~55.0.5", "expo-manifests": "~55.0.21", "expo-structured-headers": "~55.0.2", "expo-updates-interface": "~55.1.6", "getenv": "^2.0.0", "glob": "^13.0.0", "ignore": "^5.3.1", "resolve-from": "^5.0.0" }, "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" }, "bin": { "expo-updates": "bin/cli.js" } }, "sha512-4KJF2o37o7LOaVtFFoIThR/j4vVsZfMjjT32yoWzMpgJ5zd0OXDjSyA8/dDLDfW6kqpJJR+3QfHYGoWgifswdg=="],
 
     "expo-updates-interface": ["expo-updates-interface@55.1.6", "", { "peerDependencies": { "expo": "*" } }, "sha512-evxNpagCkjT3lE6bGV570TFzRtKuIuLY8I37RYHoriXCJ+ZKCN1hbmklK29uAixya+BxGpeTI2K4FqYeJLvfrw=="],
+
+    "expo-widgets": ["expo-widgets@55.0.20", "", { "dependencies": { "@expo/plist": "^0.5.4", "@expo/ui": "~55.0.17" }, "peerDependencies": { "expo": "*", "react": "*" } }, "sha512-dcUH2Zm0A3sOlyQuBV9jh2zPes0JSqeCzNB69XXI/U2lmrAI1zQDDvQl8wvmxDtK3uUPj96NtXMVIdS/MGr2+g=="],
 
     "exponential-backoff": ["exponential-backoff@3.1.3", "", {}, "sha512-ZgEeZXj30q+I0EN+CbSSpIyPaJ5HVQD18Z1m+u1FXbAeT94mr1zw50q4q6jiiC447Nl/YTcIYSAftiGqetwXCA=="],
 

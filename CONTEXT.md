@@ -44,6 +44,10 @@ Post-workout AI-generated summary with headline, performance commentary, and nex
 
 Performance metrics for a completed session: total volume, set completion rate, session density (kg/min), top sets per exercise, and volume change vs prior session.
 
+### Reading Session
+
+A reading timer the user starts and stops from the Reading tile, shown as a Live Activity in the Dynamic Island. Apple Books shares no reading time, so this is the only measure; its whole minutes show on the tile for that day until the app closes and are never saved, written to Health, or used by the coach.
+
 ## Terminology stewardship
 
 Prefer these domain terms over implementation-only names. Update this context when app-facing code, documentation, or data models introduce or rename domain concepts.

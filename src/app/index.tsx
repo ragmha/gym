@@ -16,18 +16,26 @@ import { HealthReadState } from '@/components/health/HealthReadState'
 import { Layout, Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
+import { useReadingTimer, type ReadingTimer } from '@/hooks/useReadingTimer'
 import { useTheme } from '@/hooks/useThemeColor'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 
 export default function HomeScreen() {
+  const reading = useReadingTimer()
   return (
     <HealthDateRoute>
-      {(date) => <HomeForDate selectedDate={date} />}
+      {(date) => <HomeForDate selectedDate={date} reading={reading} />}
     </HealthDateRoute>
   )
 }
 
-function HomeForDate({ selectedDate }: { selectedDate: Date }) {
+function HomeForDate({
+  selectedDate,
+  reading,
+}: {
+  selectedDate: Date
+  reading: ReadingTimer | null
+}) {
   const router = useRouter()
   const theme = useTheme()
   const colorScheme = useColorScheme()
@@ -102,12 +110,17 @@ function HomeForDate({ selectedDate }: { selectedDate: Date }) {
         {status === 'loading' && !snapshot ? (
           <HealthReadState loading />
         ) : status === 'error' ? (
-          <HealthReadState error={error} onRetry={onRefresh} />
+          <HealthReadState
+            error={error}
+            onRetry={onRefresh}
+            onStopReading={reading?.running ? reading.stop : undefined}
+          />
         ) : (
           <GoalGrid
             key={localDateKey(selectedDate)}
             snapshot={snapshot}
             date={selectedDate}
+            reading={reading}
             ref={goalGrid}
             onPageChange={setPagination}
             editing={editing}

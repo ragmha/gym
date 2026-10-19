@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.12",
+    "version": "1.0.13",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "io.raghib.gym",
@@ -26,7 +26,7 @@
         "NSPrivacyAccessedAPITypes": [
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1", "1C8F.1"]
           }
         ]
       }
@@ -79,6 +79,13 @@
         {
           "microphonePermission": "Hear your practice talk so it can be transcribed on this device.",
           "speechRecognitionPermission": "Turn your practice talk into a transcript on this device."
+        }
+      ],
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "io.raghib.gym.ExpoWidgetsTarget",
+          "groupIdentifier": "group.io.raghib.gym"
         }
       ]
     ],

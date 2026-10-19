@@ -6,6 +6,7 @@ import {
   within,
 } from '@testing-library/react-native'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
+import { requireOptionalNativeModule } from 'expo'
 import { AppState, Platform, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -20,7 +21,17 @@ let mockState: ReturnType<typeof useHealthSnapshot>
 let mockInitialParams: Record<string, string> = {}
 const mockRefresh = jest.fn<Promise<void>, []>()
 const mockPush = jest.fn()
+const mockLive = {
+  isReading: jest.fn(() => false),
+  startReading: jest.fn(),
+  stopReading: jest.fn(async () => {}),
+  addStopListener: jest.fn((_listener: () => void) => ({ remove: jest.fn() })),
+}
 const originalPlatform = Platform.OS
+const originalPlatformVersion = Object.getOwnPropertyDescriptor(
+  Platform,
+  'Version',
+)
 const originalAppState = Object.getOwnPropertyDescriptor(
   AppState,
   'currentState',
@@ -37,6 +48,13 @@ function focusHome(): void {
 jest.mock('@/hooks/useHealthSnapshot', () => ({
   useHealthSnapshot: jest.fn(() => mockState),
 }))
+
+jest.mock('expo', () => ({
+  ...jest.requireActual('expo'),
+  requireOptionalNativeModule: jest.fn(),
+}))
+
+jest.mock('@/lib/readingActivity', () => mockLive)
 
 jest.mock('@/hooks/useThemeColor', () => {
   const { Colors } =
@@ -63,6 +81,13 @@ describe('HomeScreen', () => {
     mockTheme = 'light'
     mockInitialParams = {}
     focusCleanup = undefined
+    jest.mocked(requireOptionalNativeModule).mockReturnValue({})
+    mockLive.isReading.mockReturnValue(false)
+    mockLive.startReading.mockImplementation(() => {})
+    mockLive.stopReading.mockImplementation(async () => {})
+    mockLive.addStopListener.mockImplementation((_listener) => ({
+      remove: jest.fn(),
+    }))
     Object.defineProperty(AppState, 'currentState', {
       configurable: true,
       writable: true,
@@ -100,6 +125,9 @@ describe('HomeScreen', () => {
       configurable: true,
       value: originalPlatform,
     })
+    if (originalPlatformVersion) {
+      Object.defineProperty(Platform, 'Version', originalPlatformVersion)
+    }
   })
 
   it('shows the daily priorities and habit links, with other metrics behind their route', () => {
@@ -337,6 +365,80 @@ describe('HomeScreen', () => {
     expect(mockRefresh).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
+  })
+
+  it('keeps a stop action available for a running Live Activity on iOS 16.x after a Health error', async () => {
+    Object.defineProperty(Platform, 'OS', {
+      configurable: true,
+      value: 'ios',
+    })
+    Object.defineProperty(Platform, 'Version', {
+      configurable: true,
+      value: '16.6',
+    })
+    mockLive.isReading.mockReturnValue(true)
+    mockState = {
+      ...mockState,
+      status: 'error',
+      snapshot: null,
+      error: 'Unable to load health data',
+    }
+
+    render(<HomeScreen />)
+
+    expect(mockLive.addStopListener).toHaveBeenCalledTimes(1)
+    const stopListener = mockLive.addStopListener.mock.results[0].value
+    expect(stopListener.remove).not.toHaveBeenCalled()
+    await act(async () => {
+      fireEvent.press(
+        screen.getByRole('button', { name: 'Stop reading timer' }),
+      )
+      await Promise.resolve()
+    })
+    expect(mockLive.stopReading).toHaveBeenCalledTimes(1)
+    expect(stopListener.remove).not.toHaveBeenCalled()
+  })
+
+  it('reconciles a deferred stop after the selected date changes', async () => {
+    let finishStop: (() => void) | undefined
+    mockLive.isReading.mockReturnValue(true)
+    mockLive.stopReading.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishStop = resolve
+        }),
+    )
+    const { rerender } = render(<HomeScreen />)
+
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Reading, stops the reading timer' }),
+    )
+    mockInitialParams = { date: '2026-09-11' }
+    rerender(<HomeScreen />)
+
+    expect(
+      screen.getByRole('header', { name: 'Friday, September 11, 2026' }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Reading, stops the reading timer' }),
+    ).toBeTruthy()
+
+    mockLive.isReading.mockReturnValue(false)
+    await act(async () => {
+      finishStop?.()
+      await Promise.resolve()
+    })
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Reading, stops the reading timer',
+      }),
+    ).toBeNull()
+    expect(
+      screen.getByRole('link', {
+        name: 'Reading, starts a reading timer and opens Apple Books',
+      }),
+    ).toBeTruthy()
   })
 
   it('re-enables the header refresh button when the hook reports a read failure', async () => {
