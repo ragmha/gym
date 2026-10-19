@@ -24,7 +24,6 @@ import { useTheme } from '@/hooks/useThemeColor'
 import {
   exerciseHistory,
   findProgrammeDay,
-  PROGRAMME,
   programmeDayFor,
   type ExerciseSession,
   type ProgrammeDay,
@@ -46,7 +45,7 @@ const FAILURE_ROWS = 5
 type OnRest = (exercise: ProgrammeExercise, set: LoggedSet | null) => void
 const pad = (n: number) => String(n).padStart(2, '0')
 
-export default function LiftingScreen() {
+export default function LiftingWorkoutScreen() {
   return (
     <HealthDateRoute>
       {(date) => <LiftingForDate date={date} />}
@@ -60,7 +59,6 @@ function LiftingForDate({ date }: { date: Date }) {
   const dateKey = localDateKey(date)
   const programmeStart = useGymLogStore((s) => s.programmeStart)
   const log = useGymLogStore((s) => s.logs[dateKey])
-  const startProgramme = useGymLogStore((s) => s.startProgramme)
   const [focus, setFocus] = useState(false)
   const [rest, setRest] = useState<{
     exerciseId: string
@@ -101,19 +99,6 @@ function LiftingForDate({ date }: { date: Date }) {
     year: 'numeric',
   })
 
-  const confirmStart = () => {
-    const begin = () => startProgramme(dateKey)
-    if (!programmeStart) return begin()
-    Alert.alert(
-      'Restart programme?',
-      `${dateLabel} becomes day 1. Saved workouts keep their logged days.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Restart', style: 'destructive', onPress: begin },
-      ],
-    )
-  }
-
   return (
     <SafeAreaView
       testID="gym-lifting-screen"
@@ -125,7 +110,13 @@ function LiftingForDate({ date }: { date: Date }) {
       }
     >
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      {!fullScreen && <ScreenHeader title="Lifting" subtitle={dateLabel} />}
+      {!fullScreen && (
+        <ScreenHeader
+          title="Lifting"
+          subtitle={dateLabel}
+          backLabel="Back to programme overview"
+        />
+      )}
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -141,19 +132,7 @@ function LiftingForDate({ date }: { date: Date }) {
             }
           />
         )}
-        {!programmeStart && !log ? (
-          <View style={styles.block}>
-            <Text style={[Typography.bodyMd, { color: theme.text }]}>
-              {Math.ceil(PROGRAMME.length / 7)}-week programme ·{' '}
-              {PROGRAMME.length} days
-            </Text>
-            <ActionButton
-              testID="gym-start-programme"
-              label={`Start day 1 on ${dateLabel}`}
-              onPress={confirmStart}
-            />
-          </View>
-        ) : day ? (
+        {day ? (
           <LiftingDay
             key={dateKey}
             day={day}
@@ -166,22 +145,13 @@ function LiftingForDate({ date }: { date: Date }) {
         ) : (
           <View style={styles.block}>
             <Text style={[Typography.bodyMd, { color: theme.text }]}>
-              {outside === 'before-start'
-                ? 'Before your programme starts.'
-                : 'Programme complete.'}
+              {!programmeStart
+                ? 'Start the programme from the overview to open a workout.'
+                : outside === 'before-start'
+                  ? 'Before your programme starts.'
+                  : 'Programme complete.'}
             </Text>
           </View>
-        )}
-        {programmeStart && !log && !fullScreen && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={confirmStart}
-            style={styles.restart}
-          >
-            <Text style={[styles.mono, { color: theme.subtitleText }]}>
-              Restart programme on this day
-            </Text>
-          </Pressable>
         )}
       </ScrollView>
       {resting && (
@@ -1024,7 +994,6 @@ const styles = StyleSheet.create({
   },
   block: { gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  restart: { alignSelf: 'center', padding: Spacing.sm },
   card: { borderWidth: 2, borderRadius: Radii.md, overflow: 'hidden' },
   cardBand: {
     flexDirection: 'row',

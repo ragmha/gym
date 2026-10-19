@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { localDateKey } from '@/lib/healthSnapshot/dateKey'
+
 import rawProgramme from './programme.json'
 
 export const STAIRMASTER_MINUTES_GOAL = 30
@@ -51,6 +53,29 @@ export function programmeDayFor(
 
 export function findProgrammeDay(day: string): ProgrammeDay | null {
   return PROGRAMME.find((entry) => entry.day === day) ?? null
+}
+
+/** Saved workouts take precedence over the current schedule. */
+export function programmeWorkoutDates(
+  startKey: string | null,
+  logs: Record<string, { day: string }>,
+): Map<string, string> {
+  const dates = new Map<string, string>()
+  if (startKey) {
+    PROGRAMME.forEach((day, index) => {
+      const date = new Date(noon(startKey))
+      date.setDate(date.getDate() + index)
+      const key = localDateKey(date)
+      // A restart must not open a different workout pinned to this date.
+      if (!logs[key] || logs[key].day === day.day) dates.set(day.day, key)
+    })
+  }
+  for (const [key, log] of Object.entries(logs).sort(([a], [b]) =>
+    a.localeCompare(b),
+  )) {
+    if (findProgrammeDay(log.day)) dates.set(log.day, key)
+  }
+  return dates
 }
 
 type SetEntry = { reps: number; kilograms: number | null }
