@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs'
-import { dirname, join } from 'path'
 import { createContext, runInContext } from 'vm'
 
 import DailySummaryWidget from '@/lib/widgets/DailySummaryWidget'
@@ -13,7 +11,7 @@ jest.mock('expo-widgets', () => ({
 
 interface WidgetNode {
   type: string
-  props: { text?: string; children?: unknown }
+  props: { children?: unknown }
 }
 
 const isNode = (value: unknown): value is WidgetNode =>
@@ -29,29 +27,47 @@ function findAll(node: WidgetNode, type: string): WidgetNode[] {
   ]
 }
 
-// Mirrors expo-widgets' native WidgetContext: evaluate the shipped Expo UI
-// bundle, then the stringified layout, in an isolated JS context.
+const components = ['VStack', 'HStack', 'ZStack', 'Gauge', 'Text', 'Spacer']
+const modifiers = [
+  'accessibilityLabel',
+  'background',
+  'font',
+  'foregroundStyle',
+  'frame',
+  'gaugeStyle',
+  'lineLimit',
+  'padding',
+  'tint',
+  'widgetURL',
+]
+
+// expo-widgets serializes the layout and evaluates it natively against a
+// prebuilt Expo UI bundle that only exists after an iOS build. Evaluate the
+// same string in an isolated context with minimal element stubs instead.
 function renderWidget(props: Partial<DailySummaryProps>): WidgetNode {
   const { layout } = DailySummaryWidget as unknown as { layout: string }
-  const bundle = join(
-    dirname(require.resolve('expo-widgets/package.json')),
-    'bundle/build/ExpoWidgets.bundle',
-  )
-  const context = createContext({})
-  runInContext(readFileSync(bundle, 'utf8'), context)
-  context.__expoWidgetLayout = runInContext(`(${layout})`, context)
-  return context.__expoWidgetRender(props, {})
+  const element = (type: string, elementProps: WidgetNode['props']) => ({
+    type,
+    props: elementProps,
+  })
+  const context = createContext({
+    _jsx: element,
+    _jsxs: element,
+    ...Object.fromEntries(components.map((name) => [name, name])),
+    ...Object.fromEntries(modifiers.map((name) => [name, () => name])),
+  })
+  return runInContext(`(${layout})`, context)(props)
 }
 
 function ringCenters(tree: WidgetNode) {
-  return findAll(tree, 'ZStackView').map((stack) => {
+  return findAll(tree, 'ZStack').map((stack) => {
     const [gauge, label, ...rest] = childNodes(stack)
     expect(rest).toHaveLength(0)
-    expect(gauge.type).toBe('GaugeView')
+    expect(gauge.type).toBe('Gauge')
     // expo-widgets renders GaugeView without children, so slots never show.
     expect(childNodes(gauge)).toHaveLength(0)
-    expect(label.type).toBe('TextView')
-    return label.props.text
+    expect(label.type).toBe('Text')
+    return label.props.children
   })
 }
 
@@ -75,7 +91,7 @@ describe('DailySummaryWidget', () => {
       ],
     })
 
-    expect(findAll(tree, 'GaugeView')).toHaveLength(3)
+    expect(findAll(tree, 'Gauge')).toHaveLength(3)
     expect(ringCenters(tree)).toEqual(['0%', '45%', '--'])
   })
 
