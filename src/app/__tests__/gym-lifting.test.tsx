@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { useLocalSearchParams } from 'expo-router'
 
-import GymScreen from '@/app/gym/lifting'
+import GymScreen from '@/app/gym/lifting/workout'
 import { PROGRAMME } from '@/lib/gymProgramme'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import { useGymLogStore } from '@/stores/GymLogStore'
@@ -16,16 +16,15 @@ jest.mock('@/hooks/useThemeColor', () => {
 
 beforeEach(() => {
   jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-10-17' })
-  useGymLogStore.setState({ programmeStart: null, logs: {} })
+  useGymLogStore.setState({ programmeStart: '2026-10-17', logs: {} })
 })
 
 afterEach(() => jest.useRealTimers())
 
-describe('Lifting screen', () => {
-  it('starts the programme, logs a set and finishes the workout', () => {
+describe('Lifting workout', () => {
+  it('logs a set and finishes the workout', () => {
     render(<GymScreen />)
 
-    fireEvent.press(screen.getByTestId('gym-start-programme'))
     const first = PROGRAMME[0].exercises[0]
     expect(screen.getByText(PROGRAMME[0].title)).toBeTruthy()
     expect(screen.queryByTestId('gym-finish')).toBeNull()
@@ -200,6 +199,7 @@ describe('Lifting screen', () => {
     fireEvent.press(screen.getByLabelText('Full screen'))
     expect(screen.queryByText(PROGRAMME[0].title)).toBeNull()
     expect(screen.queryByText('Lifting')).toBeNull()
+    expect(screen.queryByLabelText('Back to programme overview')).toBeNull()
 
     fireEvent.press(screen.getByLabelText('Exit full screen'))
     expect(screen.getByText(PROGRAMME[0].title)).toBeTruthy()

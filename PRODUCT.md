@@ -36,8 +36,16 @@ and its actual measurement date/time directly to Apple Health.
 - Missing readings remain unavailable, not invented zeroes. Recorded zeroes
   remain visible. Workout duration and average heart rate do not prove time in
   a heart-rate zone.
-- The existing PPL program has not been supplied; no schedule or completion is
-  inferred. Morning weight comparisons show measured coverage, not diet advice.
+- Lifting opens on **Programme overview**, a week-grouped grid of workout and
+  rest days. Tap a day to open its saved workout or scheduled date; Back returns
+  to the overview. Starting or restarting the programme is an explicit action
+  on the overview, never a side effect of browsing.
+- The overview marks the selected day and shows saved finished workouts as
+  **Completed** across dates and restarts. Unfinished sets and elapsed days do
+  not imply completion. Days without an available workout date stay disabled
+  rather than opening or overwriting a different saved workout, and days
+  scheduled after the selected date stay disabled until that date arrives.
+- Morning weight comparisons show measured coverage, not diet advice.
 - The on-device coach reads the existing daily context only.
 - Theme selection, accessible controls, and light and dark appearances remain
   supported. The experimental Phone rest report retains its privacy and

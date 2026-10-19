@@ -11,6 +11,6 @@ test('agent reaches the lifting programme from home', async ({
   })
 
   await agent.act('Open the gym log, then open the lifting programme')
-  await expect(screen.getByTestId('gym-lifting-screen')).toBeVisible()
+  await expect(screen.getByTestId('gym-programme-overview')).toBeVisible()
   await agent.assert('A strength or lifting programme screen is shown')
 })
