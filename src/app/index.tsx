@@ -145,6 +145,7 @@ function HomeForDate({
             error={error}
             onRetry={onRefresh}
             onStopReading={reading?.running ? reading.stop : undefined}
+            onEndDeepWork={deepWork.session ? deepWork.end : undefined}
           />
         ) : (
           <GoalGrid

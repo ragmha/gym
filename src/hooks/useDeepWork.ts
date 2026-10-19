@@ -22,16 +22,17 @@ export interface DeepWork {
 
 // In memory for this app run only, so remounting Home keeps the session.
 let current: DeepWorkSession | null = null
+// Dismissal is async; queue so a quick restart never updates the dying activity.
+let mirrored: Promise<void> = Promise.resolve()
 
 function mirror(next: DeepWorkSession | null, now: number) {
   const live = loadDeepWorkActivity()
   if (!live) return
-  try {
-    if (next) live.showDeepWork(next, now)
-    else void live.endDeepWork()
-  } catch {
-    // ponytail: Live Activities are off in Settings; the in-app timer still runs.
-  }
+  mirrored = mirrored
+    .then(() => (next ? live.showDeepWork(next, now) : live.endDeepWork()))
+    .catch(() => {
+      // ponytail: Live Activities are off in Settings; the in-app timer still runs.
+    })
 }
 
 export function useDeepWork(): DeepWork {
