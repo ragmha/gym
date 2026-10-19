@@ -2,8 +2,8 @@ import { mobile } from '@e2e-dev/mobile'
 import type { E2EConfig } from 'e2e'
 import { copilot } from 'e2e/oauth/copilot'
 
-// ponytail: spike — iOS simulator + installed dev client only. Agent steps use
-// the local `bunx e2e login github-copilot` session, which is not for CI.
+// ponytail: iOS simulator + installed dev client only. Agent steps use the
+// local `bunx e2e login github-copilot` session, which is not for CI.
 export default {
   tests: 'e2e/**/*.e2e.ts',
   // Already gitignored; editing .gitignore would change the native fingerprint.
@@ -13,7 +13,8 @@ export default {
   targets: [
     {
       name: 'ios',
-      engine: mobile({ platform: 'ios' }),
+      // Pinned: never the paired iPhone, with real Health data and logs.
+      engine: mobile({ platform: 'ios', device: 'iPhone 17 Pro' }),
       app: {
         bundleId: 'io.raghib.gym',
         launchArguments: [

@@ -1,6 +1,5 @@
 import { expect, test } from 'e2e'
 
-// Port of .maestro/flows/ios/settings_healthkit_test.yaml.
 test('Settings shows Apple Health access and returns home', async ({
   app,
   screen,
