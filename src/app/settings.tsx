@@ -196,7 +196,7 @@ export default function SettingsScreen() {
             </Text>
             <Text style={[styles.rowSubtitle, { color: subtextColor }]}>
               {Platform.OS === 'ios'
-                ? 'On version 1.0.11 or later, touch and hold your Home Screen, choose Edit → Add Widget, and search for gym. Open today’s dashboard first to refresh the rings.'
+                ? 'On version 1.0.15 or later, touch and hold your Home Screen, choose Edit → Add Widget, and search for gym. Open today’s dashboard first to refresh the rings.'
                 : 'Daily rings requires a compatible iOS app. Widgets are not available in the web or Android preview.'}
             </Text>
             <Text style={[styles.rowSubtitle, { color: subtextColor }]}>

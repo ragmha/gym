@@ -34,7 +34,7 @@ bun run web   # browser, mock data
 
 ### Daily rings widget (iOS)
 
-Version 1.0.11 adds a medium Home Screen widget with three rings for Steps,
+Version 1.0.15 adds a medium Home Screen widget with three rings for Steps,
 Water, and Active calories. Its fixed display targets are 20,000 steps, 2.5 L,
 and 500 active kcal; these do not change the dashboard's goals or provide
 medical recommendations. Missing readings show `--`; recorded zeroes remain

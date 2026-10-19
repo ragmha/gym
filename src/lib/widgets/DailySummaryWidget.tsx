@@ -1,4 +1,4 @@
-import { Gauge, HStack, Spacer, Text, VStack } from '@expo/ui/swift-ui'
+import { Gauge, HStack, Spacer, Text, VStack, ZStack } from '@expo/ui/swift-ui'
 import {
   accessibilityLabel,
   background,
@@ -80,26 +80,25 @@ function DailySummaryLayout(props: Partial<DailySummaryProps>) {
                 ),
               ]}
             >
-              <Gauge
-                value={progress}
-                currentValueLabel={
-                  <Text
-                    modifiers={[
-                      font({ size: 17, weight: 'semibold', design: 'rounded' }),
-                      foregroundStyle('#F4F6FA'),
-                    ]}
-                  >
-                    {available ? `${Math.floor(progress * 100)}%` : '--'}
-                  </Text>
-                }
-                modifiers={[
-                  gaugeStyle('circularCapacity'),
-                  tint(available ? reading.color : '#394252'),
-                  frame({ height: 54 }),
-                ]}
-              >
-                <Text>{reading.label}</Text>
-              </Gauge>
+              {/* expo-widgets drops Gauge label slots; overlay the value instead. */}
+              <ZStack>
+                <Gauge
+                  value={progress}
+                  modifiers={[
+                    gaugeStyle('circularCapacity'),
+                    tint(available ? reading.color : '#394252'),
+                    frame({ height: 54 }),
+                  ]}
+                />
+                <Text
+                  modifiers={[
+                    font({ size: 17, weight: 'semibold', design: 'rounded' }),
+                    foregroundStyle('#F4F6FA'),
+                  ]}
+                >
+                  {available ? `${Math.floor(progress * 100)}%` : '--'}
+                </Text>
+              </ZStack>
               <Text
                 modifiers={[
                   font({ size: 10, weight: 'semibold' }),
