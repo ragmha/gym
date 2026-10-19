@@ -28,15 +28,10 @@ import {
 } from '@/components/dashboard/GoalGrid'
 import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot'
 import { Colors } from '@/constants/Colors'
-import { useReadingTimer } from '@/hooks/useReadingTimer'
 import { useTheme } from '@/hooks/useThemeColor'
 import type { HealthWorkout } from '@/lib/healthSnapshot/types'
 import { useGymLogStore } from '@/stores/GymLogStore'
 import { useThemeStore } from '@/stores/ThemeStore'
-
-jest.mock('@/hooks/useReadingTimer', () => ({
-  useReadingTimer: jest.fn(() => null),
-}))
 
 jest.mock('@/hooks/useThemeColor', () => {
   const { Colors } =
@@ -91,7 +86,6 @@ describe('GoalGrid', () => {
     jest.clearAllMocks()
     jest.mocked(useTheme).mockReturnValue(Colors.light)
     jest.mocked(useReducedMotion).mockReturnValue(false)
-    jest.mocked(useReadingTimer).mockReturnValue(null)
     useThemeStore.setState({ tileOrder: [] })
   })
 
@@ -665,9 +659,8 @@ describe('GoalGrid', () => {
       start: jest.fn(),
       stop: jest.fn(),
     }
-    jest.mocked(useReadingTimer).mockReturnValue(reading)
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
-    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />)
 
     const tile = screen.getByRole('link', {
       name: 'Reading, starts a reading timer and opens Apple Books',
@@ -695,9 +688,8 @@ describe('GoalGrid', () => {
       start: jest.fn(),
       stop: jest.fn(),
     }
-    jest.mocked(useReadingTimer).mockReturnValue(reading)
     const openURL = jest.spyOn(Linking, 'openURL')
-    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />)
 
     const tile = screen.getByRole('button', {
       name: 'Reading, stops the reading timer',
@@ -718,18 +710,18 @@ describe('GoalGrid', () => {
   })
 
   it('shows the last reading session only on the day it happened', async () => {
-    jest.mocked(useReadingTimer).mockReturnValue({
+    const reading = {
       running: false,
       last: { minutes: 12, day: '2026-09-12' },
       start: jest.fn(),
       stop: jest.fn(),
-    })
+    }
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {})
     const openURL = jest
       .spyOn(Linking, 'openURL')
       .mockRejectedValue(new Error('app missing'))
     const { rerender } = render(
-      <GoalGrid snapshot={makeSnapshot()} date={date} />,
+      <GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />,
     )
 
     expect(screen.getByText('Read 12 min')).toBeTruthy()
@@ -750,7 +742,11 @@ describe('GoalGrid', () => {
     )
 
     rerender(
-      <GoalGrid snapshot={makeSnapshot()} date={new Date(2026, 8, 11, 12)} />,
+      <GoalGrid
+        snapshot={makeSnapshot()}
+        date={new Date(2026, 8, 11, 12)}
+        reading={reading}
+      />,
     )
     expect(screen.queryByText('Read 12 min')).toBeNull()
     expect(
@@ -769,9 +765,8 @@ describe('GoalGrid', () => {
       start: jest.fn().mockReturnValue(false),
       stop: jest.fn(),
     }
-    jest.mocked(useReadingTimer).mockReturnValue(reading)
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
-    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />)
 
     fireEvent.press(
       screen.getByRole('link', {

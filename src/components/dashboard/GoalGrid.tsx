@@ -36,7 +36,7 @@ import {
   useTileReorder,
 } from '@/components/dashboard/useTileReorder'
 import { Layout, Spacing } from '@/constants/DesignSystem'
-import { useReadingTimer, type ReadingTimer } from '@/hooks/useReadingTimer'
+import type { ReadingTimer } from '@/hooks/useReadingTimer'
 import { useTheme } from '@/hooks/useThemeColor'
 import {
   CARDIO_MINUTES_GOAL,
@@ -484,6 +484,7 @@ export interface GoalGridHandle {
 export function GoalGrid({
   snapshot,
   date,
+  reading = null,
   ref,
   onPageChange,
   editing = false,
@@ -491,6 +492,7 @@ export function GoalGrid({
 }: {
   snapshot: DailyHealthSnapshot | null
   date: Date
+  reading?: ReadingTimer | null
   ref?: Ref<GoalGridHandle>
   onPageChange?: (pagination: { index: number; count: number }) => void
   /** iPhone-style edit mode: tiles wiggle and taps don't open them. */
@@ -501,7 +503,6 @@ export function GoalGrid({
   const router = useRouter()
   const reducedMotion = useReducedMotion()
   const liftLogged = useLiftLogged(date)
-  const reading = useReadingTimer()
   const tileOrder = useThemeStore((s) => s.tileOrder)
   const setTileOrder = useThemeStore((s) => s.setTileOrder)
   const tiles = sortByOrder(
