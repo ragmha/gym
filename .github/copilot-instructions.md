@@ -20,9 +20,11 @@ profile, or backend. Water and food writes add new samples only; never edit or
 delete existing Health samples.
 The user also approved an on-device lifting log (`GymLogStore`, `/gym`): sets,
 reps, optional kilograms, and a workout rating for the bundled programme in
-`src/lib/gymProgramme/programme.json`, because HealthKit cannot store sets or
-reps. It stays on the device, never writes to Health, never caches Health
-readings, and is not coach input. Cardio on `/gym` is read from HealthKit.
+`src/lib/gymProgramme/programme.json`, or for StrongLifts 5×5 A/B on short days
+(`FIVE_BY_FIVE`, with a rule-based next-weight hint), because HealthKit cannot
+store sets or reps. It stays on the device, never writes to Health, never
+caches Health readings, and is not coach input. Cardio on `/gym` is read from
+HealthKit.
 Each lifting exercise's info sheet fetches a reference demo (animation, muscles,
 steps) from ExerciseDB only on tap, using a curated ID in `exerciseMedia.json`.
 That read-only lookup sends only the ID, stores nothing, and is not coach input;

@@ -39,7 +39,7 @@ function CardioForDate({ date }: { date: Date }) {
       icon="cardio"
       summary={cardioSummary(snapshot)}
       detail={
-        day
+        day && 'cardio' in day
           ? `Plan ${day.cardio.morning} AM · ${day.cardio.evening} PM`
           : `Goal ${CARDIO_MINUTES_GOAL} min run · Apple Health`
       }

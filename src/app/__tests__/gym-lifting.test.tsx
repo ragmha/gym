@@ -282,4 +282,47 @@ describe('Lifting workout', () => {
     expect(screen.queryByTestId('gym-exercise-info-sheet')).toBeNull()
     fetchMock.mockRestore()
   })
+
+  it('runs a 5×5 short day without starting the programme', () => {
+    render(<GymScreen />)
+    fireEvent.press(screen.getByLabelText('StrongLifts 5 by 5'))
+
+    expect(screen.getByText('StrongLifts 5×5')).toBeTruthy()
+    expect(screen.getByText('Workout A')).toBeTruthy()
+    expect(screen.queryByTestId('gym-start-programme')).toBeNull()
+    expect(screen.getByTestId('gym-next-weight')).toHaveTextContent(
+      /First 5×5 · start light/,
+    )
+    fireEvent.changeText(screen.getByTestId('gym-kg-squat'), '60')
+    fireEvent.press(screen.getByTestId('gym-save-set-squat'))
+
+    expect(screen.queryByLabelText('StrongLifts 5 by 5')).toBeNull()
+    expect(useGymLogStore.getState().logs['2026-10-17']).toMatchObject({
+      day: '5x5-A',
+      sets: { squat: [{ reps: 5, kilograms: 60 }] },
+    })
+  })
+
+  it('alternates to Workout B and suggests the next weight', () => {
+    const full = Array.from({ length: 5 }, () => ({ reps: 5, kilograms: 60 }))
+    useGymLogStore.setState({
+      logs: {
+        '2026-10-15': {
+          day: '5x5-A',
+          sets: { squat: full },
+          finishedAt: null,
+          rating: null,
+        },
+      },
+    })
+    render(<GymScreen />)
+    expect(screen.getByLabelText('StrongLifts 5 by 5')).toBeTruthy()
+    fireEvent.press(screen.getByLabelText('StrongLifts 5 by 5'))
+
+    expect(screen.getByText('Workout B')).toBeTruthy()
+    expect(screen.getByTestId('gym-next-weight')).toHaveTextContent(
+      /Next 62\.5 kg · \+2\.5 kg after a full 5×5/,
+    )
+    expect(screen.getByTestId('gym-kg-squat')).toHaveProp('value', '62.5')
+  })
 })

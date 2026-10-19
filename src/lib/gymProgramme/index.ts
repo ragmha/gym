@@ -51,8 +51,72 @@ export function programmeDayFor(
   return day ? { day } : { reason: 'finished' }
 }
 
-export function findProgrammeDay(day: string): ProgrammeDay | null {
-  return PROGRAMME.find((entry) => entry.day === day) ?? null
+export type FiveByFiveExercise = ProgrammeExercise & {
+  sets: number
+  /** Kilograms added after a session that hits every planned rep. */
+  increment: number
+}
+export interface FiveByFiveWorkout {
+  day: string
+  title: string
+  exercises: FiveByFiveExercise[]
+}
+export type LiftingWorkout = ProgrammeDay | FiveByFiveWorkout
+
+const lift = (
+  id: string,
+  title: string,
+  sets = 5,
+  increment = 2.5,
+): FiveByFiveExercise => ({
+  id,
+  title,
+  sets,
+  reps: 5,
+  variation: null,
+  increment,
+})
+
+/** StrongLifts 5×5, alternated A/B on short days instead of the programme day. */
+export const FIVE_BY_FIVE: readonly FiveByFiveWorkout[] = [
+  {
+    day: '5x5-A',
+    title: 'Workout A',
+    exercises: [
+      lift('squat', 'Squat'),
+      lift('bench-press', 'Bench Press'),
+      lift('barbell-row', 'Barbell Row'),
+    ],
+  },
+  {
+    day: '5x5-B',
+    title: 'Workout B',
+    exercises: [
+      lift('squat', 'Squat'),
+      lift('overhead-press', 'Overhead Press'),
+      lift('deadlift', 'Deadlift', 1, 5),
+    ],
+  },
+]
+
+export function findProgrammeDay(day: string): LiftingWorkout | null {
+  return (
+    PROGRAMME.find((entry) => entry.day === day) ??
+    FIVE_BY_FIVE.find((entry) => entry.day === day) ??
+    null
+  )
+}
+
+/** The 5×5 workout not done in the latest earlier 5×5 session (A first). */
+export function nextFiveByFive(
+  logs: Record<string, { day: string }>,
+  dateKey: string,
+): FiveByFiveWorkout {
+  const last = Object.keys(logs)
+    .filter((key) => key < dateKey && logs[key].day.startsWith('5x5-'))
+    .sort()
+    .at(-1)
+  return FIVE_BY_FIVE[last && logs[last].day === '5x5-A' ? 1 : 0]
 }
 
 /** Saved workouts take precedence over the current schedule. */
@@ -118,4 +182,39 @@ export function exerciseHistory(
         : null
       return [{ dateKey, sets, oneRepMax }]
     })
+}
+
+export interface NextWeight {
+  kilograms: number
+  reason: 'up' | 'repeat' | 'deload'
+}
+
+/**
+ * StrongLifts progression from earlier sessions of a 5×5 lift: add the
+ * increment after hitting every rep, repeat after a miss, and drop 10% after
+ * three misses in a row at the same weight.
+ */
+export function nextWeight(
+  earlier: ExerciseSession[],
+  exercise: FiveByFiveExercise,
+): NextWeight | null {
+  const working = (s: ExerciseSession) =>
+    Math.max(0, ...s.sets.map((set) => set.kilograms ?? 0))
+  const complete = (s: ExerciseSession) =>
+    s.sets.filter(
+      (set) => set.kilograms === working(s) && set.reps >= exercise.reps,
+    ).length >= exercise.sets
+  const last = earlier.at(-1)
+  const kilograms = last ? working(last) : 0
+  if (!last || kilograms === 0) return null
+  if (complete(last))
+    return { kilograms: kilograms + exercise.increment, reason: 'up' }
+  let misses = 0
+  for (const session of [...earlier].reverse()) {
+    if (working(session) !== kilograms || complete(session)) break
+    misses++
+  }
+  return misses >= 3
+    ? { kilograms: Math.round((kilograms * 0.9) / 2.5) * 2.5, reason: 'deload' }
+    : { kilograms, reason: 'repeat' }
 }
