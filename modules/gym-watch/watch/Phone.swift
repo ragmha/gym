@@ -2,33 +2,6 @@ import Foundation
 import Observation
 import WatchConnectivity
 
-// Mirrors `WatchState` in src/lib/watch/index.ts.
-struct LoggedSet: Codable, Hashable {
-  let reps: Int
-  let kilograms: Double?
-}
-
-struct Exercise: Codable, Identifiable, Hashable {
-  let id: String
-  let title: String
-  /// Nil for "To Failure" exercises.
-  let sets: Int?
-  let reps: Int
-  /// Load to start from; nil is body weight.
-  let kilograms: Double?
-  var logged: [LoggedSet]
-}
-
-struct WorkoutState: Codable {
-  let dateKey: String
-  let day: String?
-  let title: String
-  let subtitle: String?
-  let note: String?
-  let locked: Bool
-  var exercises: [Exercise]
-}
-
 /// The iPhone owns the lifting log. The watch shows its latest copy and sends taps back.
 @MainActor @Observable
 final class Phone: NSObject, WCSessionDelegate {

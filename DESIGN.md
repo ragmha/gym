@@ -314,6 +314,19 @@ and visible selected states; do not introduce a tab bar.
 - **Rest timer:** Pill track using goal-track and completion colors.
 - **Achievement medal:** Original enamel illustration with distinct silhouettes and medal-specific colors.
 
+### Apple Watch
+
+The watch logger follows the approved red-on-black reference rather than the
+phone's blue action palette. A rounded, segmented system-red ring surrounds
+large white sets/reps and kilograms; each completed set lights one segment.
+Only sets/reps and load sit inside the circle. The centre is the log button.
+A second native page holds status, reps, load and Undo.
+Open-ended exercises show a neutral red track and the actual set count, not
+invented percentage completion. Keep the native clock and back navigation,
+accessible button labels, and scrollable editing controls. Accessibility text
+sizes use a scrollable layout instead of squeezing values into the ring. No
+heart rate, timer or per-side plate estimate is implied by the reference.
+
 ## Do's and Don'ts
 
 ### Do:
