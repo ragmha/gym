@@ -40,7 +40,7 @@ rule-based `postMortem` (fillers, pace, solo opening promise and close) and
 deletable from `/speaking-history`. Nothing is written to Health or given to
 the coach.
 The Reading timer is ephemeral too. Apple Books and HealthKit expose no reading
-time, so on native 1.0.12+ iOS builds tapping the Reading tile starts a
+time, so on native 1.0.13+ iOS builds tapping the Reading tile starts a
 `ReadingActivity` Live Activity (`expo-widgets` + `@expo/ui`,
 `src/lib/readingActivity.tsx`) that counts up in the Dynamic Island, then opens
 Apple Books. Tapping the tile again ends it on any supported iOS version; the

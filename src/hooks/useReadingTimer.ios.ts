@@ -8,7 +8,7 @@ import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 type ReadingActivity = typeof import('@/lib/readingActivity')
 
 function loadReadingActivity(): ReadingActivity | null {
-  // Builds before 1.0.12 lack the widget extension; never load it there.
+  // Builds before 1.0.13 lack the widget extension; never load it there.
   if (!requireOptionalNativeModule('ExpoWidgets')) return null
   // Live Activities start only on iOS 16.2 and later.
   if (Number.parseFloat(String(Platform.Version)) < 16.2) return null
