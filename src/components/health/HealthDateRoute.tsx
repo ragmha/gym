@@ -1,6 +1,6 @@
 import { Link, useLocalSearchParams } from 'expo-router'
-import { useMemo, type ReactNode } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
@@ -17,8 +17,49 @@ export function HealthDateRoute({
     date?: string | string[]
   }>()
   const theme = useTheme()
+  const [today, setToday] = useState(() => new Date())
+  useEffect(() => {
+    if (dateParam !== undefined) return
+
+    const updateToday = () => {
+      const now = new Date()
+      setToday((current) =>
+        localDateKey(current) === localDateKey(now) ? current : now,
+      )
+    }
+    let rolloverTimer: ReturnType<typeof setTimeout> | undefined
+    const scheduleRollover = () => {
+      const now = new Date()
+      const nextMidnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+      )
+      rolloverTimer = setTimeout(
+        () => {
+          updateToday()
+          scheduleRollover()
+        },
+        Math.max(1, nextMidnight.getTime() - now.getTime() + 1),
+      )
+    }
+    const foreground = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return
+      clearTimeout(rolloverTimer)
+      updateToday()
+      scheduleRollover()
+    })
+
+    updateToday()
+    scheduleRollover()
+    return () => {
+      clearTimeout(rolloverTimer)
+      foreground.remove()
+    }
+  }, [dateParam])
+
   const date = useMemo(() => {
-    if (dateParam === undefined) return new Date()
+    if (dateParam === undefined) return today
     if (
       typeof dateParam !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)
@@ -31,7 +72,7 @@ export function HealthDateRoute({
       localDateKey(parsed) === dateParam
       ? parsed
       : null
-  }, [dateParam])
+  }, [dateParam, today])
 
   if (date === null) {
     return (

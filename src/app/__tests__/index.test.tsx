@@ -182,6 +182,40 @@ describe('HomeScreen', () => {
     expect(publishDailySummary).not.toHaveBeenCalled()
   })
 
+  it('advances the implicit dashboard date after an overnight foreground resume', () => {
+    const listen = jest.spyOn(AppState, 'addEventListener')
+    render(<HomeScreen />)
+    jest.mocked(publishDailySummary).mockClear()
+
+    jest.setSystemTime(new Date(2026, 8, 13, 0, 15))
+    const onStateChange = listen.mock.calls.find(
+      ([event]) => event === 'change',
+    )?.[1]
+    expect(onStateChange).toBeDefined()
+    act(() => onStateChange?.('active'))
+
+    expect(jest.mocked(useHealthSnapshot).mock.lastCall?.[0]).toEqual(
+      new Date(2026, 8, 13, 0, 15),
+    )
+    expect(publishDailySummary).toHaveBeenCalledWith(mockState.snapshot)
+  })
+
+  it('does not advance an explicitly selected historical date', () => {
+    const listen = jest.spyOn(AppState, 'addEventListener')
+    mockInitialParams = { date: '2026-09-11' }
+    const view = render(<HomeScreen />)
+    jest.mocked(publishDailySummary).mockClear()
+
+    jest.setSystemTime(new Date(2026, 8, 13, 0, 15))
+    view.rerender(<HomeScreen />)
+
+    expect(jest.mocked(useHealthSnapshot).mock.lastCall?.[0]).toEqual(
+      new Date('2026-09-11T12:00:00'),
+    )
+    expect(listen).not.toHaveBeenCalled()
+    expect(publishDailySummary).not.toHaveBeenCalled()
+  })
+
   it('clears widget readings when the current-day Health read fails', () => {
     mockState = {
       ...mockState,
