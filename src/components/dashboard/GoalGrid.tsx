@@ -36,6 +36,7 @@ import {
   useTileReorder,
 } from '@/components/dashboard/useTileReorder'
 import { Layout, Spacing } from '@/constants/DesignSystem'
+import type { DeepWork } from '@/hooks/useDeepWork'
 import type { ReadingTimer } from '@/hooks/useReadingTimer'
 import { useTheme } from '@/hooks/useThemeColor'
 import {
@@ -44,6 +45,7 @@ import {
   longestWorkout,
   summarizeMorningWeights,
 } from '@/lib/dailyGoals'
+import { formatRemaining } from '@/lib/deepWork'
 import { presentSteps } from '@/lib/fitnessMetrics/presenter'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
@@ -73,7 +75,79 @@ interface Tile {
   app?: string
   /** Runs before the url or route opens. */
   onPress?: () => boolean | void
-  badge?: 'play' | 'stop'
+  badge?: Badge
+}
+
+type Badge = 'play' | 'pause' | 'stop'
+
+const BADGE_ICONS = {
+  play: 'play-circle-outline',
+  pause: 'pause-circle-outline',
+  stop: 'stop-circle-outline',
+} as const
+
+function deepWorkTile({
+  session,
+  island,
+  start,
+  pause,
+  resume,
+  end,
+}: DeepWork): Tile {
+  const tile = {
+    label: 'Deep Work',
+    icon: 'focus',
+    done: null,
+    progress: null,
+  } as const
+  if (!session) {
+    return {
+      ...tile,
+      caption: '25 / 5 min',
+      accessibilityLabel: 'Deep work, starts a 25 minute focus block',
+      hint: `Then alternates 5 minute breaks with 25 minute focus blocks${island ? ', shown in the Dynamic Island' : ''}. Sessions are not saved.`,
+      status: 'Not started',
+      onPress: start,
+      badge: 'play',
+    }
+  }
+  const block = session.phase === 'focus' ? 'Focus' : 'Break'
+  if (session.endsAt === null) {
+    const left = formatRemaining(session.remainingMs)
+    const ask = () =>
+      // react-native-web's Alert has no buttons.
+      Platform.OS === 'web'
+        ? window.confirm('End this deep work session? Cancel resumes it.')
+          ? end()
+          : resume()
+        : Alert.alert('Deep work paused', `${block}, ${left} left.`, [
+            { text: 'End session', style: 'destructive', onPress: end },
+            { text: 'Resume', style: 'cancel', onPress: resume },
+          ])
+    return {
+      ...tile,
+      caption: `${left} paused`,
+      accessibilityLabel: `Deep work, ${block.toLowerCase()} paused, ${left} left`,
+      hint: 'Resumes or ends the session.',
+      status: 'Paused',
+      onPress: ask,
+      badge: 'play',
+    }
+  }
+  const until = new Date(session.endsAt).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+  return {
+    ...tile,
+    // ponytail: block end time, not a ticking clock; the island counts down.
+    caption: `${block} until ${until}`,
+    accessibilityLabel: `Deep work, ${block.toLowerCase()} until ${until}`,
+    hint: 'Pauses the timer.',
+    status: session.phase === 'focus' ? 'Focusing' : 'On break',
+    onPress: pause,
+    badge: 'pause',
+  }
 }
 
 function DotRing({
@@ -118,6 +192,7 @@ function buildTiles(
   date: Date,
   liftLogged: boolean,
   reading: ReadingTimer | null,
+  deepWork: DeepWork | null = null,
 ): Tile[] {
   const steps = presentSteps(snapshot)
   const stepCount = snapshot?.steps ?? null
@@ -282,6 +357,7 @@ function buildTiles(
       status: 'Badges & records',
       route: '/achievements',
     },
+    ...(deepWork ? [deepWorkTile(deepWork)] : []),
   ]
 }
 
@@ -398,7 +474,7 @@ export function GoalTileSurface({
   size: number
   progress: number | null
   done: boolean | null
-  badge?: 'play' | 'stop'
+  badge?: Badge
 }) {
   const theme = useTheme()
   const reducedMotion = useReducedMotion()
@@ -465,9 +541,7 @@ export function GoalTileSurface({
       {badge && (
         <Ionicons
           testID={`goal-badge-${id}-${badge}`}
-          name={
-            badge === 'play' ? 'play-circle-outline' : 'stop-circle-outline'
-          }
+          name={BADGE_ICONS[badge]}
           size={size * 0.2}
           color={theme.text}
           style={[styles.badge, { top: size * 0.1, right: size * 0.1 }]}
@@ -485,6 +559,7 @@ export function GoalGrid({
   snapshot,
   date,
   reading = null,
+  deepWork = null,
   ref,
   onPageChange,
   editing = false,
@@ -493,6 +568,7 @@ export function GoalGrid({
   snapshot: DailyHealthSnapshot | null
   date: Date
   reading?: ReadingTimer | null
+  deepWork?: DeepWork | null
   ref?: Ref<GoalGridHandle>
   onPageChange?: (pagination: { index: number; count: number }) => void
   /** iPhone-style edit mode: tiles wiggle and taps don't open them. */
@@ -506,7 +582,7 @@ export function GoalGrid({
   const tileOrder = useThemeStore((s) => s.tileOrder)
   const setTileOrder = useThemeStore((s) => s.setTileOrder)
   const tiles = sortByOrder(
-    buildTiles(snapshot, date, liftLogged, reading),
+    buildTiles(snapshot, date, liftLogged, reading, deepWork),
     tileOrder,
     (tile) => tile.label,
   )

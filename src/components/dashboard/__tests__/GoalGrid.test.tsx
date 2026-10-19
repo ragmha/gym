@@ -709,6 +709,69 @@ describe('GoalGrid', () => {
     openURL.mockRestore()
   })
 
+  it('starts, pauses, then resumes or ends a deep work session', () => {
+    const deepWork = {
+      session: null,
+      island: false,
+      start: jest.fn(),
+      pause: jest.fn(),
+      resume: jest.fn(),
+      end: jest.fn(),
+    }
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {})
+    const { rerender } = render(
+      <GoalGrid snapshot={makeSnapshot()} date={date} deepWork={deepWork} />,
+    )
+    swipeToPage(1)
+    const idle = screen.getByRole('button', {
+      name: 'Deep work, starts a 25 minute focus block',
+    })
+    expect(idle.props.accessibilityHint).toBe(
+      'Then alternates 5 minute breaks with 25 minute focus blocks. Sessions are not saved.',
+    )
+    fireEvent.press(idle)
+    expect(deepWork.start).toHaveBeenCalledTimes(1)
+
+    const endsAt = new Date(2026, 8, 12, 12, 25).getTime()
+    rerender(
+      <GoalGrid
+        snapshot={makeSnapshot()}
+        date={date}
+        deepWork={{
+          ...deepWork,
+          session: { phase: 'focus', endsAt, remainingMs: 0 },
+        }}
+      />,
+    )
+    const running = screen.getByRole('button', { name: /^Deep work, focus/ })
+    expect(running.props.accessibilityValue.text).toBe('Focusing')
+    fireEvent.press(running)
+    expect(deepWork.pause).toHaveBeenCalledTimes(1)
+
+    rerender(
+      <GoalGrid
+        snapshot={makeSnapshot()}
+        date={date}
+        deepWork={{
+          ...deepWork,
+          session: { phase: 'focus', endsAt: null, remainingMs: 967_000 },
+        }}
+      />,
+    )
+    expect(screen.getByText('16:07 paused')).toBeTruthy()
+    fireEvent.press(
+      screen.getByRole('button', {
+        name: 'Deep work, focus paused, 16:07 left',
+      }),
+    )
+    const buttons = alert.mock.calls[0][2]!
+    buttons.find((b) => b.text === 'Resume')!.onPress!()
+    buttons.find((b) => b.text === 'End session')!.onPress!()
+    expect(deepWork.resume).toHaveBeenCalledTimes(1)
+    expect(deepWork.end).toHaveBeenCalledTimes(1)
+    alert.mockRestore()
+  })
+
   it('shows the last reading session only on the day it happened', async () => {
     const reading = {
       running: false,
