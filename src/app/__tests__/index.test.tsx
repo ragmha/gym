@@ -207,12 +207,16 @@ describe('HomeScreen', () => {
     jest.mocked(publishDailySummary).mockClear()
 
     jest.setSystemTime(new Date(2026, 8, 13, 0, 15))
+    act(() => {
+      for (const [event, onChange] of listen.mock.calls) {
+        if (event === 'change') onChange('active')
+      }
+    })
     view.rerender(<HomeScreen />)
 
     expect(jest.mocked(useHealthSnapshot).mock.lastCall?.[0]).toEqual(
       new Date('2026-09-11T12:00:00'),
     )
-    expect(listen).not.toHaveBeenCalled()
     expect(publishDailySummary).not.toHaveBeenCalled()
   })
 

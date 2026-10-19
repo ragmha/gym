@@ -46,8 +46,8 @@ and search for **gym → Daily rings**. The widget follows the supplied dark
 three-ring reference in both system appearances.
 
 The widget shares only today's formatted steps, water, active calories, ring
-progress, and update/expiry times through the `group.io.raghib.gym.widgets` App
-Group. Historical and demo readings are never published. Readings are hidden
+progress, and update/expiry times through the `group.io.raghib.gym` App Group,
+which only the app and its widget extension use. Historical and demo readings are never published. Readings are hidden
 after one hour or local midnight, whichever comes first; this is display expiry,
 not guaranteed storage deletion. The app does not fetch Health data in the
 background.
