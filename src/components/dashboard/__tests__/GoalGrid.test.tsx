@@ -733,6 +733,11 @@ describe('GoalGrid', () => {
     )
 
     expect(screen.getByText('Read 12 min')).toBeTruthy()
+    expect(
+      screen.getByRole('link', {
+        name: 'Reading, starts a reading timer and opens Apple Books',
+      }).props.accessibilityValue.text,
+    ).toBe('Read 12 min')
     fireEvent.press(
       screen.getByRole('link', {
         name: 'Reading, starts a reading timer and opens Apple Books',
@@ -748,7 +753,33 @@ describe('GoalGrid', () => {
       <GoalGrid snapshot={makeSnapshot()} date={new Date(2026, 8, 11, 12)} />,
     )
     expect(screen.queryByText('Read 12 min')).toBeNull()
+    expect(
+      screen.getByRole('link', {
+        name: 'Reading, starts a reading timer and opens Apple Books',
+      }).props.accessibilityValue.text,
+    ).toBe('Not tracked')
     alert.mockRestore()
+    openURL.mockRestore()
+  })
+
+  it('does not open Apple Books when starting the reading timer is refused', async () => {
+    const reading = {
+      running: false,
+      last: null,
+      start: jest.fn().mockReturnValue(false),
+      stop: jest.fn(),
+    }
+    jest.mocked(useReadingTimer).mockReturnValue(reading)
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
+
+    fireEvent.press(
+      screen.getByRole('link', {
+        name: 'Reading, starts a reading timer and opens Apple Books',
+      }),
+    )
+    expect(reading.start).toHaveBeenCalledTimes(1)
+    expect(openURL).not.toHaveBeenCalled()
     openURL.mockRestore()
   })
 

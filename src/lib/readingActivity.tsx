@@ -7,13 +7,15 @@ import {
   padding,
 } from '@expo/ui/swift-ui/modifiers'
 import { addUserInteractionListener, createLiveActivity } from 'expo-widgets'
+import { Platform } from 'react-native'
 
 interface ReadingProps {
   startedAt: number
+  supportsInteractiveStop: boolean
 }
 
 // Compiled to a string for the widget extension: use only @expo/ui globals.
-function ReadingLayout({ startedAt }: ReadingProps) {
+function ReadingLayout({ startedAt, supportsInteractiveStop }: ReadingProps) {
   'widget'
   const since = new Date(startedAt)
   const book = <Image systemName="book.fill" color="#FF9500" />
@@ -34,7 +36,13 @@ function ReadingLayout({ startedAt }: ReadingProps) {
         />
       </VStack>
       <Spacer />
-      <Button label="Stop" systemImage="stop.fill" target="stop" />
+      {supportsInteractiveStop ? (
+        <Button label="Stop" systemImage="stop.fill" target="stop" />
+      ) : (
+        <Text modifiers={[font({ size: 13 })]}>
+          Return to gym and tap Reading to stop
+        </Text>
+      )}
     </HStack>
   )
   return {
@@ -71,7 +79,10 @@ export function isReading(): boolean {
 
 /** Throws when Live Activities are off or unsupported on this device. */
 export function startReading(startedAt: number): void {
-  reading.start({ startedAt })
+  reading.start({
+    startedAt,
+    supportsInteractiveStop: Number.parseFloat(String(Platform.Version)) >= 17,
+  })
 }
 
 export async function stopReading(): Promise<void> {

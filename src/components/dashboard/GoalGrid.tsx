@@ -72,7 +72,7 @@ interface Tile {
   /** App name for link errors when the caption shows something else. */
   app?: string
   /** Runs before the url or route opens. */
-  onPress?: () => void
+  onPress?: () => boolean | void
   badge?: 'play' | 'stop'
 }
 
@@ -226,7 +226,10 @@ function buildTiles(
             : 'Reading progress is not shared with this app.',
           done: null,
           progress: null,
-          status: 'Not tracked',
+          status:
+            reading?.last?.day === localDateKey(date)
+              ? `Read ${reading.last.minutes} min`
+              : 'Not tracked',
           url: Platform.select({
             ios: 'ibooks://',
             default: 'https://books.apple.com/',
@@ -690,14 +693,19 @@ export function GoalGrid({
                         }}
                         onPress={() => {
                           if (editing) return
-                          tile.onPress?.()
-                          if (tile.url) {
+                          const startResult = tile.onPress?.()
+                          const openUrl = () => {
+                            if (!tile.url) return
                             Linking.openURL(tile.url).catch(() => {
                               Alert.alert(
                                 `Couldn't open ${tile.app ?? tile.caption}`,
                                 'Check that the app is installed or the link is available, then try again.',
                               )
                             })
+                          }
+
+                          if (tile.url && startResult !== false) {
+                            openUrl()
                           } else if (tile.route) {
                             router.push({
                               pathname: tile.route,

@@ -1,5 +1,5 @@
 import { requireOptionalNativeModule } from 'expo'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, AppState, Platform } from 'react-native'
 
 import type { ReadingTimer } from '@/hooks/useReadingTimer'
@@ -28,11 +28,12 @@ export function useReadingTimer(): ReadingTimer | null {
   const live = loadReadingActivity()
   const [running, setRunning] = useState(false)
   const [last, setLast] = useState<ReadingTimer['last']>(lastSession)
+  const pendingStop = useRef(false)
 
   const stop = useCallback(() => {
+    if (!live || pendingStop.current) return
+    pendingStop.current = true
     const began = startedAt.current
-    startedAt.current = null
-    setRunning(false)
     if (began !== null) {
       lastSession = {
         minutes: Math.floor((Date.now() - began) / 60_000),
@@ -40,12 +41,29 @@ export function useReadingTimer(): ReadingTimer | null {
       }
       setLast(lastSession)
     }
-    void live?.stopReading()
+
+    const reconcile = () => {
+      pendingStop.current = false
+      const active = live.isReading()
+      setRunning(active)
+      if (active) {
+        if (began !== null) startedAt.current = began
+      } else {
+        startedAt.current = null
+      }
+    }
+
+    try {
+      void live.stopReading().then(reconcile, reconcile)
+    } catch {
+      reconcile()
+    }
   }, [live])
 
   useEffect(() => {
     if (!live) return
     const refresh = () => {
+      if (pendingStop.current) return
       const active = live.isReading()
       setRunning(active)
       if (!active) startedAt.current = null
@@ -66,6 +84,7 @@ export function useReadingTimer(): ReadingTimer | null {
     running,
     last,
     start: () => {
+      if (pendingStop.current) return false
       const now = Date.now()
       try {
         live.startReading(now)
@@ -74,10 +93,11 @@ export function useReadingTimer(): ReadingTimer | null {
           "Couldn't start the reading timer",
           'Turn on Live Activities for gym in Settings, then try again.',
         )
-        return
+        return false
       }
       startedAt.current = now
       setRunning(true)
+      return true
     },
     stop,
   }

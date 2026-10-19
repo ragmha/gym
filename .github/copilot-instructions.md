@@ -43,12 +43,14 @@ The Reading timer is ephemeral too. Apple Books and HealthKit expose no reading
 time, so on native 1.0.12+ iOS builds tapping the Reading tile starts a
 `ReadingActivity` Live Activity (`expo-widgets` + `@expo/ui`,
 `src/lib/readingActivity.tsx`) that counts up in the Dynamic Island, then opens
-Apple Books. Tapping the tile again, or the island's Stop while the app is in
-memory, ends it. Only the last session's whole minutes stay in memory for that
-day's tile caption. The `group.io.raghib.gym` App Group holds only the compiled
-layout for the widget extension; minutes are never persisted, written to
-Health, or used as coach input. Older builds, web, and Android keep the plain
-Apple Books link.
+Apple Books. Tapping the tile again ends it on any supported iOS version; the
+island's Stop button is interactive only on iOS 17+ and works while the app is
+in memory. On iOS 16.2–16.x, the Live Activity instructs users to return to
+gym and stop from the Reading tile. Only the last session's whole minutes stay
+in memory for that day's tile caption. The
+`group.io.raghib.gym` App Group holds only the compiled layout for the widget
+extension; minutes are never persisted, written to Health, or used as coach
+input. Older builds, web, and Android keep the plain Apple Books link.
 No other manual-entry feature is approved.
 
 Before adding a feature, check whether the data already exists in HealthKit. If

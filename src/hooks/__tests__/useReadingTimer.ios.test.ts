@@ -37,16 +37,21 @@ it('is unavailable without the widget extension and never loads it', () => {
   expect(mockLive.addStopListener).not.toHaveBeenCalled()
 })
 
-it('starts a Live Activity and reports whole minutes for today when stopped', () => {
+it('starts a Live Activity and reports whole minutes for today when stopped', async () => {
   const { result } = renderHook(() => useReadingTimer())
   expect(result.current).toMatchObject({ running: false, last: null })
 
-  act(() => result.current?.start())
+  act(() => {
+    expect(result.current?.start()).toBe(true)
+  })
   expect(mockLive.startReading).toHaveBeenCalledWith(Date.now())
   expect(result.current?.running).toBe(true)
 
   act(() => jest.advanceTimersByTime(12 * 60_000 + 59_000))
-  act(() => result.current?.stop())
+  await act(async () => {
+    result.current?.stop()
+    await Promise.resolve()
+  })
 
   expect(mockLive.stopReading).toHaveBeenCalledTimes(1)
   expect(result.current).toMatchObject({
@@ -62,7 +67,9 @@ it('explains a refused start instead of claiming the timer runs', () => {
   })
   const { result } = renderHook(() => useReadingTimer())
 
-  act(() => result.current?.start())
+  act(() => {
+    expect(result.current?.start()).toBe(false)
+  })
 
   expect(alert).toHaveBeenCalledWith(
     "Couldn't start the reading timer",
@@ -72,13 +79,16 @@ it('explains a refused start instead of claiming the timer runs', () => {
   alert.mockRestore()
 })
 
-it('stops from the Dynamic Island button and unsubscribes on unmount', () => {
+it('stops from the Dynamic Island button and unsubscribes on unmount', async () => {
   const { result, unmount } = renderHook(() => useReadingTimer())
   act(() => result.current?.start())
   act(() => jest.advanceTimersByTime(5 * 60_000))
 
   const islandStop = mockLive.addStopListener.mock.calls.at(-1)![0]
-  act(() => islandStop())
+  await act(async () => {
+    islandStop()
+    await Promise.resolve()
+  })
 
   expect(mockLive.stopReading).toHaveBeenCalledTimes(1)
   expect(result.current).toMatchObject({
@@ -91,7 +101,7 @@ it('stops from the Dynamic Island button and unsubscribes on unmount', () => {
   expect(subscription.remove).toHaveBeenCalled()
 })
 
-it('resyncs with running activities on mount and on returning to the app', () => {
+it('resyncs with running activities on mount and on returning to the app', async () => {
   const remove = jest.fn()
   const listen = jest
     .spyOn(AppState, 'addEventListener')
@@ -110,7 +120,11 @@ it('resyncs with running activities on mount and on returning to the app', () =>
 
   mockLive.isReading.mockReturnValue(true)
   act(() => onChange('active'))
-  act(() => result.current?.stop())
+  mockLive.isReading.mockReturnValue(false)
+  await act(async () => {
+    result.current?.stop()
+    await Promise.resolve()
+  })
   // Started before this app run: end it without inventing minutes.
   expect(mockLive.stopReading).toHaveBeenCalledTimes(1)
   expect(result.current?.running).toBe(false)
@@ -118,6 +132,46 @@ it('resyncs with running activities on mount and on returning to the app', () =>
 
   unmount()
   expect(remove).toHaveBeenCalled()
+  listen.mockRestore()
+})
+
+it('keeps refresh and start from racing a pending stop, then reconciles dismissal', async () => {
+  const listen = jest
+    .spyOn(AppState, 'addEventListener')
+    .mockReturnValue({ remove: jest.fn() })
+  let resolveStop: () => void = () => {}
+  mockLive.stopReading.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        resolveStop = resolve
+      }),
+  )
+
+  const { result } = renderHook(() => useReadingTimer())
+  act(() => result.current?.start())
+  expect(result.current?.running).toBe(true)
+
+  act(() => result.current?.stop())
+  expect(result.current?.running).toBe(true)
+  expect(mockLive.stopReading).toHaveBeenCalledTimes(1)
+
+  mockLive.isReading.mockReturnValue(true)
+  const onChange = listen.mock.calls[0][1]
+  act(() => onChange('active'))
+  act(() => {
+    expect(result.current?.start()).toBe(false)
+  })
+  expect(result.current?.running).toBe(true)
+  expect(mockLive.startReading).toHaveBeenCalledTimes(1)
+
+  mockLive.isReading.mockReturnValue(false)
+  await act(async () => {
+    resolveStop()
+    await Promise.resolve()
+  })
+
+  expect(result.current?.running).toBe(false)
+  expect(mockLive.isReading).toHaveBeenCalledTimes(2)
   listen.mockRestore()
 })
 

@@ -1,4 +1,5 @@
 import { addUserInteractionListener, createLiveActivity } from 'expo-widgets'
+import { Platform } from 'react-native'
 
 import {
   addStopListener,
@@ -24,7 +25,10 @@ const reading = jest.mocked(createLiveActivity).mock.results[0].value as {
 }
 
 // The widget extension evaluates the layout with only @expo/ui globals.
-function renderLayout(props: { startedAt: number }) {
+function renderLayout(props: {
+  startedAt: number
+  supportsInteractiveStop: boolean
+}) {
   const components = ['Button', 'HStack', 'Image', 'Spacer', 'Text', 'VStack']
   const modifiers = [
     'font',
@@ -71,7 +75,10 @@ it('compiles a self-contained timer layout for the Dynamic Island', () => {
   expect(typeof layout).toBe('string')
 
   const startedAt = new Date(2026, 8, 12, 21).getTime()
-  const regions = renderLayout({ startedAt })
+  const regions = renderLayout({
+    startedAt,
+    supportsInteractiveStop: true,
+  })
 
   expect(Object.keys(regions)).toEqual([
     'banner',
@@ -90,9 +97,32 @@ it('compiles a self-contained timer layout for the Dynamic Island', () => {
   })
 })
 
+it('instructs users on older iOS versions to stop from the Reading tile', () => {
+  const regions = renderLayout({
+    startedAt: new Date(2026, 8, 12, 21).getTime(),
+    supportsInteractiveStop: false,
+  })
+  const children = regions.expandedBottom.props.children
+
+  expect(children).not.toContainEqual(
+    expect.objectContaining({ type: 'Button' }),
+  )
+  expect(children).toContainEqual(
+    expect.objectContaining({
+      type: 'Text',
+      props: expect.objectContaining({
+        children: 'Return to gym and tap Reading to stop',
+      }),
+    }),
+  )
+})
+
 it('starts with the session start time and reports running activities', () => {
   startReading(1234)
-  expect(reading.start).toHaveBeenCalledWith({ startedAt: 1234 })
+  expect(reading.start).toHaveBeenCalledWith({
+    startedAt: 1234,
+    supportsInteractiveStop: Number.parseFloat(String(Platform.Version)) >= 17,
+  })
 
   reading.getInstances.mockReturnValue([{}])
   expect(isReading()).toBe(true)
@@ -102,6 +132,36 @@ it('starts with the session start time and reports running activities', () => {
     throw new Error('iOS 16.1 required')
   })
   expect(isReading()).toBe(false)
+})
+
+it('enables the interactive Stop button only on iOS 17 and later', () => {
+  const originalVersion = Platform.Version
+  try {
+    Object.defineProperty(Platform, 'Version', {
+      value: '16.2',
+      configurable: true,
+    })
+    startReading(1234)
+    expect(reading.start).toHaveBeenLastCalledWith({
+      startedAt: 1234,
+      supportsInteractiveStop: false,
+    })
+
+    Object.defineProperty(Platform, 'Version', {
+      value: '17.0',
+      configurable: true,
+    })
+    startReading(5678)
+    expect(reading.start).toHaveBeenLastCalledWith({
+      startedAt: 5678,
+      supportsInteractiveStop: true,
+    })
+  } finally {
+    Object.defineProperty(Platform, 'Version', {
+      value: originalVersion,
+      configurable: true,
+    })
+  }
 })
 
 it('dismisses every reading activity even if one already ended', async () => {
