@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { useLocalSearchParams } from 'expo-router'
 
+import FiveByFiveScreen from '@/app/gym/lifting/five-by-five'
 import GymScreen from '@/app/gym/lifting/workout'
 import { PROGRAMME } from '@/lib/gymProgramme'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
@@ -281,5 +282,68 @@ describe('Lifting workout', () => {
     fireEvent.press(screen.getByLabelText('Close'))
     expect(screen.queryByTestId('gym-exercise-info-sheet')).toBeNull()
     fetchMock.mockRestore()
+  })
+
+  it('runs a 5×5 short day without starting the programme', () => {
+    render(<FiveByFiveScreen />)
+
+    expect(screen.getByText('StrongLifts 5×5')).toBeTruthy()
+    expect(screen.getByText('Workout A')).toBeTruthy()
+    expect(screen.queryByTestId('gym-start-programme')).toBeNull()
+    expect(screen.queryByTestId('gym-short-day')).toBeNull()
+    expect(screen.getByTestId('gym-next-weight')).toHaveTextContent(
+      /First 5×5 · start light/,
+    )
+    fireEvent.changeText(screen.getByTestId('gym-kg-squat'), '60')
+    fireEvent.press(screen.getByTestId('gym-save-set-squat'))
+
+    expect(useGymLogStore.getState().logs['2026-10-17']).toMatchObject({
+      day: '5x5-A',
+      sets: { squat: [{ reps: 5, kilograms: 60 }] },
+    })
+  })
+
+  it('alternates to Workout B and suggests the next weight', () => {
+    const full = Array.from({ length: 5 }, () => ({ reps: 5, kilograms: 60 }))
+    useGymLogStore.setState({
+      logs: {
+        '2026-10-15': {
+          day: '5x5-A',
+          sets: { squat: full },
+          finishedAt: null,
+          rating: null,
+        },
+      },
+    })
+    render(<FiveByFiveScreen />)
+
+    expect(screen.getByText('Workout B')).toBeTruthy()
+    expect(screen.getByTestId('gym-next-weight')).toHaveTextContent(
+      /Next 62\.5 kg · \+2\.5 kg after a full 5×5/,
+    )
+    expect(screen.getByTestId('gym-kg-squat')).toHaveProp('value', '62.5')
+  })
+
+  it('keeps a logged body-weight set instead of the suggested load', () => {
+    const full = Array.from({ length: 5 }, () => ({ reps: 5, kilograms: 60 }))
+    useGymLogStore.setState({
+      logs: {
+        '2026-10-15': {
+          day: '5x5-A',
+          sets: { squat: full },
+          finishedAt: null,
+          rating: null,
+        },
+        '2026-10-17': {
+          day: '5x5-B',
+          sets: { squat: [{ reps: 5, kilograms: null }] },
+          finishedAt: null,
+          rating: null,
+        },
+      },
+    })
+    render(<FiveByFiveScreen />)
+
+    expect(screen.getByTestId('gym-kg-squat')).toHaveProp('value', '')
   })
 })

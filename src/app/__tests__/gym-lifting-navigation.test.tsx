@@ -8,6 +8,7 @@ import LiftingOverview from '@/app/gym/lifting'
 import LiftingLayout, {
   unstable_settings as liftingSettings,
 } from '@/app/gym/lifting/_layout'
+import FiveByFive from '@/app/gym/lifting/five-by-five'
 import LiftingWorkout from '@/app/gym/lifting/workout'
 import { PROGRAMME } from '@/lib/gymProgramme'
 import { useGymLogStore } from '@/stores/GymLogStore'
@@ -35,6 +36,7 @@ function renderLifting(initialUrl = '/gym/lifting?date=2026-10-19') {
       },
       'gym/lifting/index': LiftingOverview,
       'gym/lifting/workout': LiftingWorkout,
+      'gym/lifting/five-by-five': FiveByFive,
     },
     { initialUrl },
   )
@@ -187,4 +189,24 @@ it('returns direct workout links to the overview', () => {
   fireEvent.press(screen.getByLabelText('Back to programme overview'))
   expect(router.getPathname()).toBe('/gym/lifting')
   expect(screen.getByTestId('gym-programme-overview')).toBeTruthy()
+})
+
+it('opens the 5×5 short day from the overview and returns', () => {
+  const router = renderLifting()
+  fireEvent.press(screen.getByTestId('gym-short-day'))
+  expect(router.getPathname()).toBe('/gym/lifting/five-by-five')
+  expect(screen.getByText('StrongLifts 5×5')).toBeTruthy()
+  expect(screen.getByText('Workout A')).toBeTruthy()
+
+  fireEvent.press(screen.getByLabelText('Back to programme overview'))
+  expect(router.getPathname()).toBe('/gym/lifting')
+  expect(useGymLogStore.getState().logs).toEqual({})
+})
+
+it('hides the short day once a programme workout is logged', () => {
+  useGymLogStore
+    .getState()
+    .logSet('2026-10-19', '3', 'exercise-1', { reps: 12, kilograms: null })
+  renderLifting()
+  expect(screen.queryByTestId('gym-short-day')).toBeNull()
 })

@@ -24,9 +24,13 @@ import { useTheme } from '@/hooks/useThemeColor'
 import {
   exerciseHistory,
   findProgrammeDay,
+  nextFiveByFive,
+  nextWeight,
   programmeDayFor,
   type ExerciseSession,
-  type ProgrammeDay,
+  type FiveByFiveExercise,
+  type LiftingWorkout,
+  type NextWeight,
   type ProgrammeExercise,
 } from '@/lib/gymProgramme'
 import { clampRest, restSeconds } from '@/lib/gymProgramme/rest'
@@ -53,12 +57,20 @@ export default function LiftingWorkoutScreen() {
   )
 }
 
-function LiftingForDate({ date }: { date: Date }) {
+// `quick` is the StrongLifts 5×5 short-day screen; a saved log pins its workout.
+export function LiftingForDate({
+  date,
+  quick = false,
+}: {
+  date: Date
+  quick?: boolean
+}) {
   const theme = useTheme()
   const colorScheme = useColorScheme()
   const dateKey = localDateKey(date)
   const programmeStart = useGymLogStore((s) => s.programmeStart)
   const log = useGymLogStore((s) => s.logs[dateKey])
+  const fiveByFive = useGymLogStore((s) => nextFiveByFive(s.logs, dateKey))
   const [focus, setFocus] = useState(false)
   const [rest, setRest] = useState<{
     exerciseId: string
@@ -84,11 +96,13 @@ function LiftingForDate({ date }: { date: Date }) {
   // A saved log keeps its programme day even if the start date changes later.
   const scheduled =
     !log && programmeStart ? programmeDayFor(programmeStart, dateKey) : null
-  const day: ProgrammeDay | null = log
+  const day: LiftingWorkout | null = log
     ? findProgrammeDay(log.day)
-    : scheduled && 'day' in scheduled
-      ? scheduled.day
-      : null
+    : quick
+      ? fiveByFive
+      : scheduled && 'day' in scheduled
+        ? scheduled.day
+        : null
   const outside = scheduled && 'reason' in scheduled ? scheduled.reason : null
   // Full screen only applies while an exercise card (with its exit button) shows.
   const fullScreen = focus && Boolean(day?.exercises.length)
@@ -112,7 +126,7 @@ function LiftingForDate({ date }: { date: Date }) {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       {!fullScreen && (
         <ScreenHeader
-          title="Lifting"
+          title={quick ? 'Short day' : 'Lifting'}
           subtitle={dateLabel}
           backLabel="Back to programme overview"
         />
@@ -128,13 +142,17 @@ function LiftingForDate({ date }: { date: Date }) {
         {!fullScreen && (
           <Band
             title={
-              day ? `Week ${day.week} · Day ${pad(Number(day.day))}` : 'Lifting'
+              !day
+                ? 'Lifting'
+                : 'week' in day
+                  ? `Week ${day.week} · Day ${pad(Number(day.day))}`
+                  : 'StrongLifts 5×5'
             }
           />
         )}
         {day ? (
           <LiftingDay
-            key={dateKey}
+            key={`${dateKey}-${day.day}`}
             day={day}
             dateKey={dateKey}
             log={log}
@@ -188,7 +206,7 @@ function LiftingDay({
   onToggleFocus,
   onRest,
 }: {
-  day: ProgrammeDay
+  day: LiftingWorkout
   dateKey: string
   log: GymDayLog | undefined
   focus: boolean
@@ -223,22 +241,24 @@ function LiftingDay({
           >
             {day.title}
           </Text>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={`Watch ${day.title} video`}
-            onPress={() => {
-              Linking.openURL(day.videoURL).catch(() =>
-                Alert.alert("Couldn't open the video"),
-              )
-            }}
-            hitSlop={8}
-          >
-            <Ionicons
-              name="play-circle-outline"
-              size={32}
-              color={theme.goalComplete}
-            />
-          </Pressable>
+          {'videoURL' in day && (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={`Watch ${day.title} video`}
+              onPress={() => {
+                Linking.openURL(day.videoURL).catch(() =>
+                  Alert.alert("Couldn't open the video"),
+                )
+              }}
+              hitSlop={8}
+            >
+              <Ionicons
+                name="play-circle-outline"
+                size={32}
+                color={theme.goalComplete}
+              />
+            </Pressable>
+          )}
         </View>
       )}
       {count === 0 ? (
@@ -296,7 +316,7 @@ function ExerciseFocus({
   index: number
   total: number
   hasNext: boolean
-  exercise: ProgrammeExercise
+  exercise: ProgrammeExercise | FiveByFiveExercise
   dateKey: string
   day: string
   logged: LoggedSet[]
@@ -312,14 +332,22 @@ function ExerciseFocus({
   const logs = useGymLogStore((s) => s.logs)
   const [panel, setPanel] = useState<'previous' | 'max' | null>(null)
   const [reps, setReps] = useState(String(exercise.reps))
-  const [kg, setKg] = useState(() => {
-    const last = logged.at(-1)?.kilograms
-    return last == null ? '' : String(last)
-  })
   const history = useMemo(
     () => exerciseHistory(logs, exercise.title, dateKey),
     [logs, exercise.title, dateKey],
   )
+  const next =
+    'increment' in exercise
+      ? nextWeight(
+          history.filter((session) => session.dateKey < dateKey),
+          exercise,
+        )
+      : null
+  const [kg, setKg] = useState(() => {
+    // A saved null is body weight; only suggest a load before the first set.
+    const last = logged.length ? logged.at(-1)?.kilograms : next?.kilograms
+    return last == null ? '' : String(last)
+  })
 
   const entry = {
     reps: reps.trim() === '' ? Number.NaN : Number(reps),
@@ -385,6 +413,9 @@ function ExerciseFocus({
       </View>
 
       <View style={[styles.cardBody, styles.grow]}>
+        {!locked && 'increment' in exercise && (
+          <NextWeightInsight next={next} exercise={exercise} />
+        )}
         {!locked && (
           <View style={styles.entryRow}>
             <View style={[styles.flex, styles.entryTarget]}>
@@ -871,6 +902,41 @@ function FinishCard({
   )
 }
 
+function NextWeightInsight({
+  next,
+  exercise,
+}: {
+  next: NextWeight | null
+  exercise: FiveByFiveExercise
+}) {
+  const theme = useTheme()
+  const scheme = `${exercise.sets}×${exercise.reps}`
+  const [icon, text] = !next
+    ? (['barbell-outline', `First ${scheme} · start light`] as const)
+    : next.reason === 'up'
+      ? ([
+          'trending-up-outline',
+          `Next ${formatKg(next.kilograms)} kg · +${formatKg(exercise.increment)} kg after a full ${scheme}`,
+        ] as const)
+      : next.reason === 'repeat'
+        ? ([
+            'repeat-outline',
+            `Repeat ${formatKg(next.kilograms)} kg after missed reps`,
+          ] as const)
+        : ([
+            'trending-down-outline',
+            `Deload to ${formatKg(next.kilograms)} kg after 3 misses`,
+          ] as const)
+  return (
+    <View testID="gym-next-weight" accessible style={styles.insight}>
+      <Ionicons name={icon} size={18} color={theme.goalComplete} />
+      <Text style={[styles.mono, styles.flex, { color: theme.text }]}>
+        {text}
+      </Text>
+    </View>
+  )
+}
+
 function Band({ title }: { title: string }) {
   const theme = useTheme()
   return (
@@ -994,6 +1060,7 @@ const styles = StyleSheet.create({
   },
   block: { gap: Spacing.xs, padding: Spacing.sm, borderRadius: Radii.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  insight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   card: { borderWidth: 2, borderRadius: Radii.md, overflow: 'hidden' },
   cardBand: {
     flexDirection: 'row',

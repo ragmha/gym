@@ -3,7 +3,7 @@ import {
   fetchExerciseInfo,
 } from '@/lib/gymProgramme/exerciseInfo'
 import exerciseMedia from '@/lib/gymProgramme/exerciseMedia.json'
-import { PROGRAMME } from '@/lib/gymProgramme'
+import { FIVE_BY_FIVE, PROGRAMME } from '@/lib/gymProgramme'
 
 const reply = (body: unknown, ok = true) =>
   jest.spyOn(global, 'fetch').mockResolvedValue({
@@ -17,7 +17,7 @@ afterEach(() => jest.restoreAllMocks())
 describe('exercise info', () => {
   it('only maps titles that exist in the programme', () => {
     const titles = new Set(
-      PROGRAMME.flatMap((d) =>
+      [...PROGRAMME, ...FIVE_BY_FIVE].flatMap((d) =>
         d.exercises.map((e) => e.title.trim().toLowerCase()),
       ),
     )

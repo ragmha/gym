@@ -102,6 +102,24 @@ function ProgrammeForDate({ date }: { date: Date }) {
             </Text>
           </Pressable>
         )}
+        {(!log || log.day.startsWith('5x5-')) && (
+          <Pressable
+            testID="gym-short-day"
+            accessibilityRole="button"
+            accessibilityLabel="Running out of time: StrongLifts 5 by 5"
+            onPress={() =>
+              router.push({
+                pathname: '/gym/lifting/five-by-five',
+                params: { date: dateKey },
+              })
+            }
+            style={[styles.start, { backgroundColor: theme.goalTrack }]}
+          >
+            <Text style={[Typography.labelLg, { color: theme.text }]}>
+              Running out of time? 5×5 →
+            </Text>
+          </Pressable>
+        )}
         <ProgrammeOverview
           selectedDay={selectedDay}
           workoutDates={workoutDates}

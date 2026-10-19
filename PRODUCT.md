@@ -40,6 +40,10 @@ and its actual measurement date/time directly to Apple Health.
   rest days. Tap a day to open its saved workout or scheduled date; Back returns
   to the overview. Starting or restarting the programme is an explicit action
   on the overview, never a side effect of browsing.
+- **Running out of time? 5×5** on the overview opens a StrongLifts 5×5 short
+  day for the same date, alternating Workout A and B with a next-weight hint.
+  It needs no programme start and is hidden once a programme workout is logged
+  for that date.
 - The overview marks the selected day and shows saved finished workouts as
   **Completed** across dates and restarts. Unfinished sets and elapsed days do
   not imply completion. Days without an available workout date stay disabled

@@ -3,7 +3,10 @@ import {
   longestWorkout,
   summarizeMorningWeights,
 } from '@/lib/dailyGoals'
-import { STAIRMASTER_MINUTES_GOAL, type ProgrammeDay } from '@/lib/gymProgramme'
+import {
+  STAIRMASTER_MINUTES_GOAL,
+  type LiftingWorkout,
+} from '@/lib/gymProgramme'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type {
   DailyHealthSnapshot,
@@ -204,7 +207,7 @@ export function weightSummary(
 
 /** To-failure exercises count as one target set. */
 export function liftingSummary(
-  day: ProgrammeDay | null,
+  day: LiftingWorkout | null,
   log: GymDayLog | undefined,
   snapshot: DailyHealthSnapshot | null,
 ): ActivitySummary {

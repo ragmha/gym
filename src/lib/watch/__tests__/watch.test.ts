@@ -87,6 +87,28 @@ describe('watchState', () => {
     expect(state).toMatchObject({ day: '1', locked: true, note: null })
     expect(state.exercises[0].logged).toEqual([{ reps: 15, kilograms: 40 }])
   })
+
+  it('titles a pinned 5×5 log without programme week and day', () => {
+    store().logSet(today, '5x5-A', 'squat', { reps: 5, kilograms: 60 })
+
+    const state = watchState(
+      { programmeStart: null, logs: store().logs },
+      today,
+    )
+
+    expect(state).toMatchObject({
+      day: '5x5-A',
+      title: 'StrongLifts 5×5',
+      subtitle: 'Workout A',
+      note: null,
+    })
+    expect(state.exercises[0]).toMatchObject({
+      id: 'squat',
+      sets: 5,
+      reps: 5,
+      kilograms: 60,
+    })
+  })
 })
 
 describe('applyWatchMessage', () => {
