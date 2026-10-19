@@ -12,6 +12,8 @@ ignore:
   - '.github/skills/**'
   # ws shim is wired through metro.config.js resolveRequest hook (knip can't see it).
   - 'src/shims/ws.js'
+  # Loaded by the @bacons/apple-targets plugin glob in app.json.
+  - 'modules/*/*/expo-target.config.js'
 
 ignoreDependencies:
   # Required at runtime by the Expo plugin system / app.json, not imported in JS:

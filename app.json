@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "io.raghib.gym",
@@ -86,6 +86,12 @@
         {
           "bundleIdentifier": "io.raghib.gym.ExpoWidgetsTarget",
           "groupIdentifier": "group.io.raghib.gym"
+        }
+      ],
+      [
+        "@bacons/apple-targets",
+        {
+          "root": "./modules/gym-watch"
         }
       ]
     ],
