@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.16",
+    "version": "1.0.17",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "io.raghib.gym",
@@ -62,8 +62,7 @@
         "expo-image-picker",
         {
           "cameraPermission": "Take a meal photo so this device can estimate its calories. The photo is not saved.",
-          "photosPermission": "Choose a meal photo so this device can estimate its calories. The photo is not saved.",
-          "microphonePermission": false
+          "photosPermission": "Choose a meal photo so this device can estimate its calories. The photo is not saved."
         }
       ],
       [
