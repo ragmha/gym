@@ -21,6 +21,3 @@ ignoreDependencies:
   - expo-system-ui        # required for userInterfaceStyle: 'automatic' on iOS
   - expo-updates          # implied by runtimeVersion in app.json (re-evaluate)
   - babel-preset-expo     # used in babel.config.js, ships with `expo`
-
-ignoreBinaries:
-  - maestro               # installed separately on dev machines + native runners

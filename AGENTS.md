@@ -31,7 +31,7 @@ bun run quality:pr
 ```
 
 Other useful checks: `bun run build:web`, `bun run validate:ai-artifacts`,
-`bun run check:dead-code`, and `bun run test:e2e:maestro:ios`.
+`bun run check:dead-code`, and `bunx e2e run` (iOS simulator E2E).
 
 ## Working rules
 

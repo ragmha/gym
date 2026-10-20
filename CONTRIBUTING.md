@@ -165,8 +165,7 @@ Native dependency added (e.g. `expo-camera`, `expo-image-picker`)? **Re-run a de
 | Architecture decisions (ADRs)                         | `docs/adr/` (if present)                                         |
 | Skills (project conventions encoded as agent recipes) | `.github/skills/`                                                |
 | Workflow definitions                                  | `.github/workflows/`                                             |
-| Maestro flows (native E2E)                            | `.maestro/flows/`                                                |
-| Playwright tests (web visual)                         | `e2e/`                                                           |
+| Native E2E tests (tester-army/e2e)                    | `e2e/`, `e2e.config.ts`                                          |
 | Supabase schema                                       | `supabase/migrations/`, `supabase/seed.sql`                      |
 | Generated types                                       | `src/lib/database.types.ts` (regen via `bun run generate-types`) |
 

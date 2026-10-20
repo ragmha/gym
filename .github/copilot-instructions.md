@@ -310,10 +310,10 @@ This project targets **iOS as the primary platform**.
   - Expo compatibility: `bun run expo:check` and `bun run expo:doctor`
   - Unit/component Implementation: `bun run test:unit`
   - Web compatibility check: `bun run build:web` (the static export itself is the smoke test)
-  - Native smoke Adapter (iOS only): `bun run test:e2e:maestro:ios`
+  - Native smoke Adapter (iOS only): `bunx e2e run` (tester-army/e2e)
 - Keep PR CI focused on high-Leverage, high-Locality checks: Expo compatibility, lint, typecheck, and unit/component tests.
 - Browser-level E2E tests (Playwright, Cypress, etc.) and visual-regression screenshot tests are intentionally not part of the stack — they were dropped as high-noise, low-signal for an iOS-first solo project. If web ever becomes load-bearing, add browser tests that exercise behaviour, not existence.
-- Keep Maestro as an iOS-only native simulator/device Adapter for local, release, or dedicated native CI. Android Maestro flows are not maintained (Android is best-effort).
+- Keep tester-army/e2e (`e2e/`) as the only native E2E Adapter: the pinned iPhone 17 Pro simulator with a dev client built for the current app version, run locally or before a release, not in PR CI. Release checks use deterministic `expect` steps. Agent steps need `bunx e2e login github-copilot` and send the screen to the model provider, so never run them where real Health data is visible or target a physical iPhone. Android flows are not maintained (Android is best-effort).
 - Pre-commit hooks (Husky + lint-staged) auto-run ESLint `--fix` on staged `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs` files.
 
 ## Issue and Debugging Hygiene
