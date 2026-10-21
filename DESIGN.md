@@ -35,7 +35,19 @@ colors:
   goal-progress-text-dark: '#EF7171'
   progress: '#3478F6'
   progress-dark: '#8AB4FF'
+  weight-bar-start: '#C98500'
+  weight-bar-start-dark: '#FFC400'
+  weight-bar-end: '#D9461F'
+  weight-bar-end-dark: '#FF4D1A'
+  weight-goal-text: '#9A5B00'
+  weight-goal-text-dark: '#FFC400'
 typography:
+  display-xl:
+    fontSize: 88px
+    fontWeight: 800
+    lineHeight: 96px
+    letterSpacing: -3px
+    fontFeature: '"tnum"'
   display-lg:
     fontSize: 64px
     fontWeight: 300
@@ -231,7 +243,7 @@ use the same theme-aware surfaces, readable type, and rounded controls.
 
 ## Typography
 
-- **Display:** Platform system sans-serif; light 64px and 48px styles for exceptional readings.
+- **Display:** Platform system sans-serif; light 64px and 48px styles for exceptional readings. The heavy 88px `display-xl` belongs to the Weight screen exception only.
 - **Headings:** 32px page title, 24px section title, 20px subsection, and 17px compact heading.
 - **Body:** 17px standard copy; 18px spacious copy; 14px supporting copy.
 - **Labels:** 14px, 12px, and 11px semibold styles for actions and compact metadata.
@@ -326,6 +338,16 @@ invented percentage completion. Keep the native clock and back navigation,
 accessible button labels, and scrollable editing controls. Accessibility text
 sizes use a scrollable layout instead of squeezing values into the ring. No
 heart rate, timer or per-side plate estimate is implied by the reference.
+
+### Weight screen exception
+
+`/gym/weight` and its add-weight form follow the approved black-and-yellow
+reference rather than the quiet palette. A heavy `display-xl` reading sits over
+yellow goal text (`weight-goal-text`). Trend bars use a warm yellow-to-red
+gradient (`weight-bar-start` to `weight-bar-end`), with the latest bar in
+primary text, a dashed goal line and a circular add control. The warm colours
+mark the user's own trend and goal, not health status, so the BMI gauge stays
+neutral and gives no verdict. Use these tokens nowhere else.
 
 ## Do's and Don'ts
 

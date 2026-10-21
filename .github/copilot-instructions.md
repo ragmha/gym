@@ -235,8 +235,8 @@ This project targets **iOS as the primary platform**.
 ## State Management
 
 - `ThemeStore` persists user-approved preferences through AsyncStorage: the
-  theme, the Home and Gym tile order (tile labels or ids only), and the daily
-  food calorie goal (`foodGoalKcal`).
+  theme, the Home and Gym tile order (tile labels or ids only), the daily
+  food calorie goal (`foodGoalKcal`), and the Weight goal (`weightGoalKg`).
 - `GymLogStore` is the approved on-device lifting log: programme start date and
   per-day sets, rating, and notes. Do not add Health readings to it.
 - `SpeakingLogStore` is the approved speaking post-mortem log: raw session
@@ -257,6 +257,10 @@ This project targets **iOS as the primary platform**.
   platform with deterministic seeded values.
 - New metrics are added in three places: `types.ts`, `iosAdapter.ts`, and
   `mockAdapter.ts` — plus a matching read permission in `READ_PERMISSIONS`.
+- Gym Weight also reads body-mass history and the latest height through
+  `getBodyMassHistory` and `getHeightMeters`. Height stays out of
+  `DailyHealthSnapshot` and coach context. Add weight reads recent body mass
+  only to position its ruler; it never prefills or saves that reading.
 - Dashboard reads and Settings **Connect / Review Health access** request read
   permissions only. Fetch readiness and authorization-request completion do not
   prove read permission; HealthKit keeps read grants private.

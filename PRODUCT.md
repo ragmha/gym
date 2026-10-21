@@ -24,6 +24,8 @@ and its actual measurement date/time directly to Apple Health.
   form on compatible iOS builds. Only an explicit **Save to Apple Health**
   requests body-mass write access and saves. It does not authorize other
   manual-entry features, local persistence, or editing/deleting Health samples.
+  Its ruler starts at the latest recent Health weigh-in only to position
+  itself; that reading is never prefilled or saved.
 - Native permission-request completion is not success. A native saved sample
   is required, errors preserve the form, and Home rereads Health on return.
   Saving can succeed without read-back access; unavailable readings stay honest.
@@ -58,6 +60,11 @@ and its actual measurement date/time directly to Apple Health.
   rather than opening or overwriting a different saved workout, and days
   scheduled after the selected date stay disabled until that date arrives.
 - Morning weight comparisons show measured coverage, not diet advice.
+- Gym **Weight** shows the latest morning weigh-in and its distance to an
+  optional goal weight, 2W daily or 3M/6M weekly-average morning bars,
+  start/now/goal progress, BMI and recent changes, all read from Apple Health.
+  The goal is set with − and + and kept on the device; it is not coach input.
+  BMI uses the latest Apple Health height and gives no verdict.
 - The on-device coach reads the existing daily context only.
 - Apple Books shares no reading time. On native 1.0.13+ iOS builds, tapping
   Reading starts a Dynamic Island timer and opens Apple Books; tapping it again
