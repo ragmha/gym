@@ -1,6 +1,7 @@
 {
   "platforms": ["apple"],
   "apple": {
-    "modules": ["GymWatchModule"]
+    "modules": ["GymWatchModule"],
+    "podspecPath": "GymWatchBridge.podspec"
   }
 }

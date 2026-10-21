@@ -21,3 +21,33 @@ assert(openEnded.progress == "1 set · to failure")
 let decoded = try JSONDecoder().decode(Exercise.self, from: JSONEncoder().encode(openEnded))
 assert(decoded == openEnded)
 print("Watch set progress checks passed")
+
+func countReps(_ samples: [Double]) -> Int {
+  var detector = RepDetector()
+  for sample in samples { _ = detector.add(sample) }
+  return detector.reps
+}
+
+/// 50 Hz vertical acceleration for reps that start at rest, pausing mid-rep and between reps.
+func lift(reps: Int, seconds: Double, peak: Double, pause: Double = 0) -> [Double] {
+  let length = Int(seconds * 50)
+  let wave = (0..<length).map { peak * cos(2 * .pi * Double($0) / Double(length)) }
+  let still = [Double](repeating: 0, count: Int(pause * 50))
+  let rep = Array(wave[..<(length / 2)]) + still + Array(wave[(length / 2)...]) + still
+  return Array([[Double]](repeating: rep, count: reps).joined()) + [Double](repeating: 0, count: 100)
+}
+
+assert(countReps(lift(reps: 5, seconds: 2, peak: 0.25)) == 5)  // curl: up first
+assert(countReps(lift(reps: 5, seconds: 2, peak: -0.25)) == 5)  // squat: down first
+assert(countReps(lift(reps: 5, seconds: 3, peak: 0.09, pause: 1.5)) == 5)  // slow, paused
+assert(countReps((0..<500).map { 0.15 * sin(0.4 * .pi * Double($0)) }) == 0)  // 10 Hz tremor
+assert(countReps([Double](repeating: 0.01, count: 500)) == 0)  // sensor bias
+// A one-way movement accelerates then brakes, but is not a complete rep.
+let loweredWrist = (0..<50).map { -0.18 * cos(.pi * Double($0) / 50) }
+assert(countReps(loweredWrist + [Double](repeating: 0, count: 100)) == 0)
+var interrupted = RepDetector()
+for sample in loweredWrist { _ = interrupted.add(sample) }
+_ = interrupted.add(.nan)
+for sample in lift(reps: 2, seconds: 2, peak: 0.25) { _ = interrupted.add(sample) }
+assert(interrupted.reps == 2)
+print("Watch rep detector checks passed")
