@@ -31,19 +31,10 @@ export function longestWorkout(
   return longest
 }
 
-export function summarizeMorningWeights(
+/** Each local day's earliest valid weigh-in before noon, keyed by local date. */
+export function morningWeighIns(
   samples: HealthBodyMassSample[] | null,
-  date: Date,
-) {
-  const currentStart = new Date(date)
-  currentStart.setHours(0, 0, 0, 0)
-  currentStart.setDate(currentStart.getDate() - 6)
-  const previousStart = new Date(currentStart)
-  previousStart.setDate(previousStart.getDate() - 7)
-  const end = new Date(date)
-  end.setHours(0, 0, 0, 0)
-  end.setDate(end.getDate() + 1)
-
+): Map<string, HealthBodyMassSample> {
   const mornings = new Map<string, HealthBodyMassSample>()
   for (const sample of samples ?? []) {
     const measuredAt = new Date(sample.startISO)
@@ -51,8 +42,6 @@ export function summarizeMorningWeights(
       !Number.isFinite(measuredAt.getTime()) ||
       !Number.isFinite(sample.kilograms) ||
       sample.kilograms < 0 ||
-      measuredAt < previousStart ||
-      measuredAt >= end ||
       measuredAt.getHours() >= 12
     ) {
       continue
@@ -63,11 +52,28 @@ export function summarizeMorningWeights(
       mornings.set(key, sample)
     }
   }
+  return mornings
+}
 
+export function summarizeMorningWeights(
+  samples: HealthBodyMassSample[] | null,
+  date: Date,
+) {
+  const currentStart = new Date(date)
+  currentStart.setHours(0, 0, 0, 0)
+  currentStart.setDate(currentStart.getDate() - 6)
+  const previousStart = new Date(currentStart)
+  previousStart.setDate(previousStart.getDate() - 7)
+  const currentKey = localDateKey(currentStart)
+  const previousKey = localDateKey(previousStart)
+  const endKey = localDateKey(date)
+
+  const mornings = morningWeighIns(samples)
   const current: number[] = []
   const previous: number[] = []
   for (const [day, sample] of mornings) {
-    const values = day >= localDateKey(currentStart) ? current : previous
+    if (day < previousKey || day > endKey) continue
+    const values = day >= currentKey ? current : previous
     values.push(sample.kilograms)
   }
   const average = (values: number[]) =>
@@ -76,7 +82,7 @@ export function summarizeMorningWeights(
       : null
 
   return {
-    morning: mornings.get(localDateKey(date)) ?? null,
+    morning: mornings.get(endKey) ?? null,
     currentAverageKg: average(current),
     previousAverageKg: average(previous),
     currentDays: current.length,

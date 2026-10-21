@@ -19,6 +19,9 @@ interface ThemeState {
   /** Daily food goal in kcal, before workout calories are added back. */
   foodGoalKcal: number
   setFoodGoalKcal: (foodGoalKcal: number) => void
+  /** Goal body weight in kg for the Weight screen; never coach input. */
+  weightGoalKg: number | null
+  setWeightGoalKg: (weightGoalKg: number | null) => void
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -32,6 +35,8 @@ export const useThemeStore = create<ThemeState>()(
       setGymTileOrder: (gymTileOrder) => set({ gymTileOrder }),
       foodGoalKcal: DASHBOARD_GOALS.dietaryCaloriesGoal,
       setFoodGoalKcal: (foodGoalKcal) => set({ foodGoalKcal }),
+      weightGoalKg: null,
+      setWeightGoalKg: (weightGoalKg) => set({ weightGoalKg }),
     }),
     {
       name: 'theme-preference',

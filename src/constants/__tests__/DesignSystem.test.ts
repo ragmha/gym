@@ -56,6 +56,19 @@ describe.each(['light', 'dark'] as const)('%s visual system', (mode) => {
       contrast(theme.goalOnComplete, theme.goalComplete),
     ).toBeGreaterThanOrEqual(4.5)
   })
+
+  it('keeps the weight goal text readable and the trend bars visible', () => {
+    for (const surface of ['homeBackground', 'cardBackground'] as const) {
+      expect(
+        contrast(theme.weightGoalText, theme[surface]),
+      ).toBeGreaterThanOrEqual(4.5)
+    }
+    for (const bar of ['weightBarStart', 'weightBarEnd'] as const) {
+      expect(contrast(theme[bar], theme.homeBackground)).toBeGreaterThanOrEqual(
+        3,
+      )
+    }
+  })
 })
 
 describe('Shared visual tokens', () => {

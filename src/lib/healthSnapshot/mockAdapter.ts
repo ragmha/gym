@@ -82,8 +82,11 @@ function mockWaterLiters(date: Date): number {
   return decimalFromSeed(seedForDate(date) + 7, 0.5, 3)
 }
 
-function createMockBodyMassHistory(date: Date): HealthBodyMassSample[] {
-  return Array.from({ length: 14 }, (_, index) => {
+function createMockBodyMassHistory(
+  date: Date,
+  days = 14,
+): HealthBodyMassSample[] {
+  return Array.from({ length: days }, (_, index) => {
     const morning = new Date(date)
     morning.setDate(morning.getDate() - index)
     morning.setHours(7, 0, 0, 0)
@@ -190,6 +193,17 @@ export const deterministicMockAdapter: HealthSnapshotSource = {
       date: localDateKey(day),
       liters: mockWaterLiters(day),
     }))
+  },
+
+  async getBodyMassHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<HealthBodyMassSample[]> {
+    return createMockBodyMassHistory(endDate, days).reverse()
+  },
+
+  async getHeightMeters(): Promise<number | null> {
+    return 1.78
   },
 
   async getWorkoutHistory(

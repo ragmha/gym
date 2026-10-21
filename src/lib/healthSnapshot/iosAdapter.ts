@@ -43,6 +43,7 @@ const READ_PERMISSIONS = [
   'HKQuantityTypeIdentifierDietaryWater',
   'HKQuantityTypeIdentifierFlightsClimbed',
   'HKQuantityTypeIdentifierBodyMass',
+  'HKQuantityTypeIdentifierHeight',
   'HKQuantityTypeIdentifierDietaryEnergyConsumed',
   'HKQuantityTypeIdentifierDietaryProtein',
   'HKQuantityTypeIdentifierDietaryCarbohydrates',
@@ -326,8 +327,16 @@ async function readBodyMassKg(): Promise<number | null> {
 async function readBodyMassHistory(
   date: Date,
 ): Promise<HealthBodyMassSample[] | null> {
+  const readings = await readBodyMassSamples(date, 14)
+  return readings.length > 0 ? readings : null
+}
+
+async function readBodyMassSamples(
+  date: Date,
+  days: number,
+): Promise<HealthBodyMassSample[]> {
   const { startDate, endDate } = dayWindow(date)
-  startDate.setDate(startDate.getDate() - 13)
+  startDate.setDate(startDate.getDate() - (days - 1))
   const samples = await queryQuantitySamples(
     'HKQuantityTypeIdentifierBodyMass',
     {
@@ -337,7 +346,7 @@ async function readBodyMassHistory(
       filter: { date: { startDate, endDate, strictStartDate: true } },
     },
   )
-  const readings = samples
+  return samples
     .filter((sample) => sample.quantity != null)
     .map((sample) => {
       const start = toDate(sample.startDate)
@@ -350,7 +359,6 @@ async function readBodyMassHistory(
       }
       return { kilograms: sample.quantity, startISO: start.toISOString() }
     })
-  return readings.length > 0 ? readings : null
 }
 
 async function readWorkouts(date: Date): Promise<HealthWorkout[]> {
@@ -633,6 +641,25 @@ export const iosHealthKitAdapter: HealthSnapshotSource = {
       const liters = totals.get(date)
       return { date, liters: liters === undefined ? null : roundTenths(liters) }
     })
+  },
+
+  async getBodyMassHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<HealthBodyMassSample[]> {
+    return this.isAvailable() ? readBodyMassSamples(endDate, days) : []
+  },
+
+  async getHeightMeters(): Promise<number | null> {
+    if (!this.isAvailable()) return null
+    const sample = await getMostRecentQuantitySample(
+      'HKQuantityTypeIdentifierHeight',
+      'm',
+    )
+    const meters = sample?.quantity
+    return meters != null && Number.isFinite(meters) && meters > 0
+      ? meters
+      : null
   },
 
   async getWorkoutHistory(
