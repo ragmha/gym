@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-  <dict/>
+  <dict>
+    <key>NSMotionUsageDescription</key>
+    <string>Count lifting reps from wrist motion. Motion samples are not saved or shared.</string>
+    <key>WKBackgroundModes</key>
+    <array>
+      <string>physical-therapy</string>
+    </array>
+  </dict>
 </plist>

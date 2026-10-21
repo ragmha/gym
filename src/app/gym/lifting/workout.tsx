@@ -16,6 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { ScreenHeader } from '@/components/common/ScreenHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { ExerciseInfoButton } from '@/components/gym/ExerciseInfoSheet'
+import {
+  RepCameraCounter,
+  repCameraAvailable,
+} from '@/components/gym/RepCameraCounter'
 import { RestTimer } from '@/components/gym/RestTimer'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
@@ -332,6 +336,7 @@ function ExerciseFocus({
   const logs = useGymLogStore((s) => s.logs)
   const [panel, setPanel] = useState<'previous' | 'max' | null>(null)
   const [reps, setReps] = useState(String(exercise.reps))
+  const [counting, setCounting] = useState(false)
   const history = useMemo(
     () => exerciseHistory(logs, exercise.title, dateKey),
     [logs, exercise.title, dateKey],
@@ -562,6 +567,14 @@ function ExerciseFocus({
           active={panel === 'max'}
           onPress={() => togglePanel('max')}
         />
+        {repCameraAvailable && !locked && (
+          <ToolButton
+            icon="body-outline"
+            label="Count"
+            accessibilityLabel="Count reps with the camera"
+            onPress={() => setCounting(true)}
+          />
+        )}
         <ToolButton
           icon="chevron-forward"
           label={`${index + 1}/${total}`}
@@ -570,6 +583,16 @@ function ExerciseFocus({
           onPress={() => onMove(1)}
         />
       </View>
+      {counting && (
+        <RepCameraCounter
+          title={exercise.title}
+          onCount={(n) => {
+            setReps(String(n))
+            setCounting(false)
+          }}
+          onClose={() => setCounting(false)}
+        />
+      )}
     </View>
   )
 }

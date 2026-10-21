@@ -67,6 +67,7 @@ struct SetLogger: View {
   @State private var kilograms: Double
   @State private var page = 0
   @State private var showError = false
+  @State private var showCounter = false
 
   // Target reps and the load the iPhone suggests.
   init(_ exercise: Exercise) {
@@ -81,8 +82,7 @@ struct SetLogger: View {
         GeometryReader { geometry in
           let size = min(geometry.size.width, geometry.size.height)
           let button = Button {
-            phone.log(exercise, reps: reps, kilograms: kilograms == 0 ? nil : kilograms)
-            WKInterfaceDevice.current().play(.click)
+            log(exercise)
           } label: {
             ZStack {
               if !dynamicTypeSize.isAccessibilitySize {
@@ -194,6 +194,22 @@ struct SetLogger: View {
           .buttonStyle(.plain)
           .accessibilityLabel("Back to exercises")
         }
+        if !state.locked {
+          ToolbarItem(placement: .topBarTrailing) {
+            Button { showCounter = true } label: {
+              Image(systemName: "figure.strengthtraining.traditional")
+            }
+            .accessibilityLabel("Count reps")
+            .accessibilityIdentifier("count-reps")
+          }
+        }
+      }
+      .fullScreenCover(isPresented: $showCounter) {
+        RepCountView { counted in
+          reps = counted
+          log(exercise, reps: counted)
+          page = 0
+        }
       }
       .onChange(of: phone.error) { _, error in
         if error != nil { showError = true }
@@ -207,4 +223,107 @@ struct SetLogger: View {
   }
 
   private var load: String { kilograms == 0 ? "BW" : "\(kilograms.formatted()) kg" }
+
+  private func log(_ exercise: Exercise, reps: Int? = nil) {
+    phone.log(exercise, reps: reps ?? self.reps, kilograms: kilograms == 0 ? nil : kilograms)
+    WKInterfaceDevice.current().play(.click)
+  }
+}
+
+/// Counts a set from wrist motion, then lets the crown correct it before logging.
+struct RepCountView: View {
+  let onLog: (Int) -> Void
+  @Environment(\.dismiss) private var dismiss
+  @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+  @State private var counter = RepCounter()
+  @State private var crown = 0.0
+  @State private var started = false
+  @State private var logged = false
+  @State private var threshold = 0.07
+
+  private var counted: Int { Int(crown.rounded()) }
+
+  var body: some View {
+    ScrollView {
+      VStack(spacing: 8) {
+        if !started {
+          Text("Count wrist motion").font(.headline)
+          Text("Only for lifts where this wrist moves with each rep. Get into position, hold still for the start tap, then lift.")
+            .font(.footnote)
+          Stepper(value: $threshold, in: 0.03...0.15, step: 0.02) {
+            Text("Motion threshold \(threshold.formatted(.number.precision(.fractionLength(2)))) g")
+          }
+          .accessibilityHint("Lower the threshold if slow reps are missed. Raise it if extra reps are counted.")
+          Button("Start") {
+            started = true
+            counter.start(threshold: threshold)
+          }
+          .frame(minHeight: 48)
+          .accessibilityIdentifier("start-rep-count")
+          Button("Cancel", role: .cancel) { dismiss() }
+            .frame(minHeight: 48)
+        } else if counter.counting {
+          Text("\(counter.reps)")
+            .font(.system(size: 64, weight: .semibold))
+            .accessibilityLabel("\(counter.reps) reps counted")
+          Text(counter.ready ? "Counting wrist motion." : "Get into position. Hold still until the start tap.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+          Button("Done") { counter.stop() }
+            .frame(minHeight: 48)
+          Text("Stay still for 8 seconds to finish. Waking the screen also stops counting.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        } else {
+          Text("\(counted)")
+            .font(.system(size: 64, weight: .semibold))
+            .focusable()
+            .digitalCrownRotation(
+              $crown, from: 0, through: 500, by: 1, sensitivity: .low,
+              isContinuous: false, isHapticFeedbackEnabled: true
+            )
+            .accessibilityLabel("\(counted) reps")
+            .accessibilityHint("Turn the Digital Crown to correct the count.")
+            .accessibilityAdjustableAction { direction in
+              crown = min(500, max(0, crown + (direction == .increment ? 1 : -1)))
+            }
+          Text("Turn the crown to correct.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+          Button("Log \(counted) reps") {
+            guard !logged else { return }
+            logged = true
+            onLog(counted)
+            dismiss()
+          }
+          .frame(minHeight: 48)
+          .disabled(counted < 1 || logged)
+          .accessibilityIdentifier("log-counted-reps")
+          Button("Cancel", role: .cancel) { dismiss() }
+            .frame(minHeight: 48)
+        }
+        if let error = counter.error {
+          Text(error).font(.footnote).foregroundStyle(.red)
+        }
+      }
+      .monospacedDigit()
+      .frame(maxWidth: .infinity)
+    }
+    .onDisappear { counter.stop() }
+    .onChange(of: scenePhase) { previous, next in
+      if previous != .active && next == .active { stopOnWake() }
+    }
+    .onChange(of: isLuminanceReduced) { previous, next in
+      if previous && !next { stopOnWake() }
+    }
+    .onChange(of: counter.counting) { _, counting in
+      if !counting { crown = Double(counter.reps) }
+    }
+  }
+
+  private func stopOnWake() {
+    // Stop on a wrist raise before the motion used to check the watch becomes another rep.
+    if counter.ready { counter.stop() }
+  }
 }

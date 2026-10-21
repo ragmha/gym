@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "io.raghib.gym",
@@ -61,14 +61,14 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Take a meal photo so this device can estimate its calories. The photo is not saved.",
+          "cameraPermission": "Take meal photos, record practice talks to review, and count your reps. Meal photos and rep-counting video stay on this device and are not saved.",
           "photosPermission": "Choose a meal photo so this device can estimate its calories. The photo is not saved."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Record your practice talk so you can review it and choose whether to share it.",
+          "cameraPermission": "Take meal photos, record practice talks to review, and count your reps. Meal photos and rep-counting video stay on this device and are not saved.",
           "microphonePermission": "Hear your practice talk so it can be transcribed on this device.",
           "recordAudioAndroid": true
         }

@@ -10,10 +10,16 @@ Speaking practice lets you shadow a topic script or speak solo for 5 or 15 minut
 
 On a paired Apple Watch, **Gym** shows today's lifting day. Pick an exercise and tap the centre of its red set-progress ring to log. Swipe left to adjust reps and kg (they start at the target and your last load; BW is body weight) or **Undo** the last set. Taps go over WatchConnectivity into the iPhone's on-device lifting log, so the iPhone must be reachable. The watch saves nothing itself and writes nothing to Health.
 
-The watch's native progress check runs without a simulator:
+To estimate reps, tap the watch's figure icon (**Count reps**), adjust the motion threshold if needed, and tap **Start**. Get into position within 3 seconds, then hold still for the start tap. It counts vertical wrist-motion cycles and stops about 8 seconds after the last rep; waking the screen also stops the set for review. Stationary-wrist exercises need manual entry or the camera; turn the Digital Crown to correct the estimate before **Log**.
+
+On iOS 17+, **Count** in a Lifting exercise uses the front camera instead: prop the phone with only you in frame, your side visible, and choose Knees, Hips, or Elbows. Adjust the bend threshold to your movement, then **Start counting**. Start straight, bend, and straighten; missing joints or a second person reset the unfinished rep rather than guessing. **Done counting** stops the camera; **Use** fills the editable reps field without logging a set.
+
+Both counters need native build 1.0.18 or later. Frames and motion samples stay in memory, are never saved, and are not Health or coach input. Counts are estimates, not form or safety assessments. The watch uses a `physical-therapy` extended runtime session without Health access; if watchOS rejects or interrupts it, counting stops with an error. Wrist-down behaviour, coexistence with Apple's Workout app, sensor thresholds, and App Review suitability still require real-device/release qualification. Simulators cover builds, UI/error paths, and synthetic detector checks, not live motion/camera accuracy.
+
+The watch's native progress and rep-detector checks run without a simulator:
 
 ```bash
-swiftc modules/gym-watch/watch/WorkoutState.swift modules/gym-watch/Tests/main.swift -o /tmp/gym-watch-check && /tmp/gym-watch-check
+swiftc modules/gym-watch/watch/WorkoutState.swift modules/gym-watch/watch/RepDetector.swift modules/gym-watch/Tests/main.swift -o /tmp/gym-watch-check && /tmp/gym-watch-check
 ```
 
 ## Quick start

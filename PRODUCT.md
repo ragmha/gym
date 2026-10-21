@@ -58,6 +58,15 @@ and its actual measurement date/time directly to Apple Health.
 - **Apple Watch** shows today's lifting day and logs or undoes sets in the
   iPhone's on-device lifting log. It needs the iPhone reachable and saves
   nothing on the watch or to Health.
+- Rep counting (native 1.0.18+): **Count reps** on the watch estimates vertical
+  wrist-motion cycles after **Start** and a stillness check. Adjust the motion
+  threshold, correct with the Digital Crown, then log. Wrist-down counting uses
+  an extended runtime session; if unavailable or interrupted, stop with an error.
+  On iOS 17+, **Count** in Lifting uses the front camera for knee, hip, or elbow
+  cycles, with an adjustable bend threshold and explicit Start/Done/Use controls.
+  Tracking gaps never count as reps. Use fills the editable reps field; you still
+  tap the set to log. Motion and video are never saved or sent to Health/the coach.
+  Both are estimates requiring physical-device calibration, not form assessments.
 - Deep Work runs 25-minute focus blocks alternating with 5-minute breaks until
   ended. Tapping the tile starts or pauses it; tapping it while paused offers
   Resume or End. On native 1.0.13+ iOS builds a silent Dynamic Island countdown

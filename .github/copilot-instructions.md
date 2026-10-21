@@ -38,6 +38,18 @@ over WatchConnectivity, where `src/lib/watch` validates them into
 `GymLogStore`. The watch keeps only the last state the iPhone sent, writes
 nothing to Health, and is not coach input. Logging needs the iPhone reachable;
 there is no offline queue.
+The user also approved on-device rep counting for that log, from native 1.0.18.
+On the watch, **Count reps** runs a `physical-therapy` extended runtime session
+and counts wrist motion (`RepDetector`); the user corrects the count with the
+Digital Crown and taps to log it as a normal set. On the iPhone, the Lifting
+**Count** button (iOS 17+) opens `modules/rep-camera`: front-camera Vision body pose turns
+each frame into one knee, hip, or elbow angle, and `src/lib/repCount.ts` counts
+bend-and-straighten cycles into the reps field. Frames are analysed in memory
+and never saved; counts are never persisted on their own, written to Health, or
+used as coach input. Start counting explicitly, discard unfinished cycles when
+tracking is lost, and stop with a visible error on camera/motion/runtime failure.
+Motion and bend thresholds are ephemeral calibration controls. Neither counter
+is a form or safety assessment; physical-device qualification is still required.
 The user also approved `/speaking`, a practice tool based on Patrick Winston's
 "How to Speak". It offers shadow scripts or solo points, 5 or 15 minutes, and
 on-device speech recognition. An optional front-camera video stays in the app
@@ -165,6 +177,7 @@ src/
   assets/               # fonts, images
 modules/
   gym-watch/            # iPhone WatchConnectivity module; watch/ is the SwiftUI app
+  rep-camera/           # front-camera Vision body pose -> joint angle for rep counting
 ```
 
 ### Import alias
