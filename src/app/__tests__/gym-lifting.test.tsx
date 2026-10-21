@@ -41,7 +41,10 @@ jest.mock('expo-file-system', () => ({
 }))
 
 jest.mock('@wwdrew/expo-spotify-sdk', () => ({
-  AppRemote: { connect: jest.fn(() => Promise.resolve()) },
+  AppRemote: {
+    connect: jest.fn(() => Promise.resolve()),
+    disconnect: jest.fn(() => Promise.resolve()),
+  },
   Auth: {
     isAvailable: jest.fn(() => true),
     cancelPending: jest.fn(() => Promise.resolve()),
@@ -180,7 +183,11 @@ describe('Lifting workout', () => {
     await waitFor(() => expect(Auth.authenticate).toHaveBeenCalledTimes(1))
     fireEvent.press(screen.getByLabelText('Close Spotify controls'))
     expect(Auth.cancelPending).toHaveBeenCalledTimes(2)
+    expect(AppRemote.disconnect).not.toHaveBeenCalled()
     fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    await waitFor(() =>
+      expect(screen.getByText('Connect Spotify')).toBeEnabled(),
+    )
     fireEvent.press(screen.getByText('Connect Spotify'))
     await waitFor(() => expect(Auth.authenticate).toHaveBeenCalledTimes(2))
 
@@ -200,6 +207,44 @@ describe('Lifting workout', () => {
     })
     expect(AppRemote.connect).toHaveBeenCalledTimes(1)
     expect(AppRemote.connect).toHaveBeenCalledWith('retry-token')
+    expect(screen.getByText('Connect Spotify')).toBeEnabled()
+  })
+
+  it('disconnects an abandoned App Remote connection before allowing a retry', async () => {
+    let failFirst!: (error: Error) => void
+    let finishDisconnect!: () => void
+    jest.mocked(AppRemote.connect).mockReturnValueOnce(
+      new Promise((_, reject) => {
+        failFirst = reject
+      }),
+    )
+    jest.mocked(AppRemote.disconnect).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishDisconnect = resolve
+      }),
+    )
+    render(<GymScreen />)
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    fireEvent.press(screen.getByText('Connect Spotify'))
+    await waitFor(() => expect(AppRemote.connect).toHaveBeenCalledTimes(1))
+
+    fireEvent.press(screen.getByLabelText('Close Spotify controls'))
+    expect(AppRemote.disconnect).toHaveBeenCalledTimes(1)
+    expect(Auth.cancelPending).toHaveBeenCalledTimes(1)
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    await act(async () => {
+      failFirst(new Error('Disconnected before connection completed'))
+    })
+    expect(screen.queryByText(/Could not connect/)).toBeNull()
+    fireEvent.press(screen.getByText('Connecting…'))
+    expect(screen.getByText('Connecting…')).toBeDisabled()
+    expect(Auth.authenticate).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      finishDisconnect()
+    })
+    fireEvent.press(screen.getByText('Connect Spotify'))
+    await waitFor(() => expect(AppRemote.connect).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Connect Spotify')).toBeEnabled()
   })
 

@@ -233,7 +233,9 @@ function SpotifyPlayer() {
   const [visible, setVisible] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const pending = useRef<{ kind: 'auth' | 'playback' } | null>(null)
+  const pending = useRef<{
+    kind: 'auth' | 'connect' | 'cancel' | 'playback'
+  } | null>(null)
   const [path, setPath] = useState<ContentItem[]>([])
   const [attempt, setAttempt] = useState(0)
   const [content, setContent] = useState<{
@@ -278,16 +280,26 @@ function SpotifyPlayer() {
   const close = () => {
     setVisible(false)
     setError(null)
-    if (pending.current?.kind === 'auth') {
-      pending.current = null
-      setBusy(false)
-      void Auth.cancelPending().catch(() =>
+    const kind = pending.current?.kind
+    if (kind !== 'auth' && kind !== 'connect') return
+    // Retries stay blocked until the abandoned phase is cancelled.
+    const cancel = { kind: 'cancel' } as const
+    pending.current = cancel
+    const cancelling =
+      kind === 'auth' ? Auth.cancelPending() : AppRemote.disconnect()
+    void cancelling
+      .catch(() =>
         Alert.alert(
           'Could not cancel the Spotify connection',
           'Try connecting again.',
         ),
       )
-    }
+      .finally(() => {
+        if (pending.current === cancel) {
+          pending.current = null
+          setBusy(false)
+        }
+      })
   }
 
   const openSpotify = async () => {
@@ -306,7 +318,7 @@ function SpotifyPlayer() {
 
   const connect = async () => {
     if (pending.current) return
-    const request = { kind: 'auth' } as const
+    const request: { kind: 'auth' | 'connect' } = { kind: 'auth' }
     pending.current = request
     setBusy(true)
     setError(null)
@@ -324,6 +336,7 @@ function SpotifyPlayer() {
         })
       }
       if (pending.current !== request) return
+      request.kind = 'connect'
       await AppRemote.connect(activeSession.accessToken)
     } catch {
       if (pending.current === request) {
