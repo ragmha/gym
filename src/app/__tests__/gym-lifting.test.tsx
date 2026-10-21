@@ -1,11 +1,69 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react-native'
+import { File } from 'expo-file-system'
 import { useLocalSearchParams } from 'expo-router'
+import { Linking, Platform } from 'react-native'
+import {
+  AppRemote,
+  Auth,
+  Content,
+  Images,
+  Player,
+  SpotifyURI,
+  useConnectionState,
+  usePlayerState,
+  useSession,
+  type ContentItem,
+  type PlayerState,
+  type SpotifySession,
+} from '@wwdrew/expo-spotify-sdk'
 
 import FiveByFiveScreen from '@/app/gym/lifting/five-by-five'
 import GymScreen from '@/app/gym/lifting/workout'
 import { PROGRAMME } from '@/lib/gymProgramme'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import { useGymLogStore } from '@/stores/GymLogStore'
+
+const mockReadArtwork = jest.fn<Promise<string>, [string]>()
+const mockDeleteArtwork = jest.fn<void, [string]>()
+
+jest.mock('expo-file-system', () => ({
+  File: jest.fn((uri: string) => ({
+    base64: () => mockReadArtwork(uri),
+    delete: () => mockDeleteArtwork(uri),
+  })),
+}))
+
+jest.mock('@wwdrew/expo-spotify-sdk', () => ({
+  AppRemote: { connect: jest.fn(() => Promise.resolve()) },
+  Auth: {
+    isAvailable: jest.fn(() => true),
+    cancelPending: jest.fn(() => Promise.resolve()),
+    authenticate: jest.fn(() => Promise.resolve({ accessToken: 'token' })),
+  },
+  Content: {
+    getRecommendedContentItems: jest.fn(),
+    getChildren: jest.fn(),
+  },
+  Images: { load: jest.fn() },
+  Player: {
+    play: jest.fn(),
+    pause: jest.fn(() => Promise.resolve()),
+    resume: jest.fn(() => Promise.resolve()),
+    skipNext: jest.fn(() => Promise.resolve()),
+    skipPrevious: jest.fn(() => Promise.resolve()),
+  },
+  SpotifyURI: { unsafe: jest.fn((uri: string) => uri) },
+  useConnectionState: jest.fn(() => 'disconnected'),
+  usePlayerState: jest.fn(() => null),
+  useSession: jest.fn(() => null),
+}))
 
 jest.mock('@/hooks/useThemeColor', () => {
   const { Colors } =
@@ -15,14 +73,350 @@ jest.mock('@/hooks/useThemeColor', () => {
   return { useTheme: jest.fn(() => Colors.dark) }
 })
 
+const playback: PlayerState = {
+  track: {
+    uri: 'spotify:track:lift',
+    name: 'Lift',
+    duration: 180_000,
+    artist: { name: 'Zedd', uri: 'spotify:artist:zedd' },
+    album: { name: 'Album', uri: 'spotify:album:album' },
+    isSaved: false,
+    isEpisode: false,
+    isPodcast: false,
+    isAdvertisement: false,
+  },
+  playbackPosition: 0,
+  playbackSpeed: 1,
+  isPaused: false,
+  playbackOptions: { isShuffling: false, repeatMode: 0 },
+  playbackRestrictions: {
+    canSkipNext: true,
+    canSkipPrevious: true,
+    canRepeatTrack: true,
+    canRepeatContext: true,
+    canToggleShuffle: true,
+    canSeek: true,
+  },
+  contextTitle: 'Playlist',
+  contextUri: 'spotify:playlist:lift',
+}
+const recent: ContentItem = {
+  identifier: 'recent',
+  uri: 'spotify:app:recent',
+  title: 'Recently played',
+  subtitle: null,
+  contentDescription: null,
+  imageIdentifier: null,
+  isAvailableOffline: false,
+  isPlayable: false,
+  isContainer: true,
+  isPinned: false,
+}
+const playlist: ContentItem = {
+  ...recent,
+  identifier: 'lifting-mix',
+  uri: 'spotify:user:listener:playlist:0123456789ABCDEFGHIJKL',
+  title: 'Lifting mix',
+  imageIdentifier: 'playlist-cover',
+  isPlayable: true,
+}
+const artworkFile = 'file:///tmp/expo-spotify-image-test.png'
+
 beforeEach(() => {
+  jest.clearAllMocks()
+  jest.mocked(useConnectionState).mockReturnValue('disconnected')
+  jest.mocked(usePlayerState).mockReturnValue(null)
+  jest.mocked(useSession).mockReturnValue(null)
+  jest
+    .mocked(Content.getRecommendedContentItems)
+    .mockReset()
+    .mockResolvedValue([])
+  jest.mocked(Content.getChildren).mockReset().mockResolvedValue([])
+  jest.mocked(Images.load).mockReset().mockResolvedValue({ uri: artworkFile })
+  jest.mocked(Player.play).mockReset().mockResolvedValue()
+  mockReadArtwork.mockReset().mockResolvedValue('image-data')
+  mockDeleteArtwork.mockReset()
   jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-10-17' })
   useGymLogStore.setState({ programmeStart: '2026-10-17', logs: {} })
 })
 
-afterEach(() => jest.useRealTimers())
+afterEach(() => {
+  jest.useRealTimers()
+  jest.restoreAllMocks()
+})
 
 describe('Lifting workout', () => {
+  it('connects to Spotify only after an explicit tap', async () => {
+    render(<GymScreen />)
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    fireEvent.press(screen.getByText('Connect Spotify'))
+
+    await waitFor(() => {
+      expect(Auth.authenticate).toHaveBeenCalledWith({
+        scopes: ['app-remote-control'],
+      })
+      expect(AppRemote.connect).toHaveBeenCalledWith('token')
+    })
+  })
+
+  it('cancels abandoned authorization and ignores its late result during a retry', async () => {
+    let finishFirst!: (session: SpotifySession) => void
+    let finishRetry!: (session: SpotifySession) => void
+    jest
+      .mocked(Auth.authenticate)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishFirst = resolve
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishRetry = resolve
+        }),
+      )
+    render(<GymScreen />)
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    fireEvent.press(screen.getByText('Connect Spotify'))
+    await waitFor(() => expect(Auth.authenticate).toHaveBeenCalledTimes(1))
+    fireEvent.press(screen.getByLabelText('Close Spotify controls'))
+    expect(Auth.cancelPending).toHaveBeenCalledTimes(2)
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    fireEvent.press(screen.getByText('Connect Spotify'))
+    await waitFor(() => expect(Auth.authenticate).toHaveBeenCalledTimes(2))
+
+    const session: SpotifySession = {
+      accessToken: 'cancelled-token',
+      refreshToken: null,
+      expirationDate: Date.now() + 60_000,
+      scopes: ['app-remote-control'],
+    }
+    await act(async () => {
+      finishFirst(session)
+    })
+    expect(AppRemote.connect).not.toHaveBeenCalled()
+    expect(screen.getByText('Connecting…')).toBeDisabled()
+    await act(async () => {
+      finishRetry({ ...session, accessToken: 'retry-token' })
+    })
+    expect(AppRemote.connect).toHaveBeenCalledTimes(1)
+    expect(AppRemote.connect).toHaveBeenCalledWith('retry-token')
+    expect(screen.getByText('Connect Spotify')).toBeEnabled()
+  })
+
+  it('shows Spotify playback and controls from the lifting screen', async () => {
+    jest.mocked(useConnectionState).mockReturnValue('connected')
+    jest.mocked(usePlayerState).mockReturnValue(playback)
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
+
+    render(<GymScreen />)
+    expect(screen.getByText('Lift')).toBeTruthy()
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    expect(
+      within(screen.getByTestId('gym-spotify-sheet')).getByText('Zedd'),
+    ).toBeTruthy()
+    await screen.findByText('No recent or recommended playlists available.')
+    fireEvent.press(screen.getByLabelText('Next track'))
+    expect(Player.skipNext).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(screen.getByLabelText('Pause')).toBeEnabled())
+    fireEvent.press(screen.getByLabelText('Pause'))
+    expect(Player.pause).toHaveBeenCalledTimes(1)
+    fireEvent.press(screen.getByRole('link', { name: 'Open Spotify' }))
+    await waitFor(() => expect(open).toHaveBeenCalledWith('spotify://'))
+    expect(AppRemote.connect).not.toHaveBeenCalled()
+  })
+
+  it('loads album art into memory and deletes the SDK temporary file', async () => {
+    jest.mocked(useConnectionState).mockReturnValue('connected')
+    jest.mocked(usePlayerState).mockReturnValue({
+      ...playback,
+      track: { ...playback.track, imageIdentifier: 'album-cover' },
+    })
+    render(<GymScreen />)
+
+    const image = await screen.findByLabelText('Album art for Lift')
+    expect(image.props.source).toEqual({
+      uri: 'data:image/png;base64,image-data',
+    })
+    expect(Images.load).toHaveBeenCalledWith(
+      { imageIdentifier: 'album-cover' },
+      'medium',
+    )
+    expect(File).toHaveBeenCalledWith(artworkFile)
+    expect(mockDeleteArtwork).toHaveBeenCalledWith(artworkFile)
+    expect(Content.getRecommendedContentItems).not.toHaveBeenCalled()
+  })
+
+  it('discards a late cover after the track changes but still deletes its file', async () => {
+    let finishOld!: (value: { uri: string }) => void
+    jest.mocked(Images.load).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishOld = resolve
+      }),
+    )
+    jest.mocked(useConnectionState).mockReturnValue('connected')
+    jest.mocked(usePlayerState).mockReturnValue({
+      ...playback,
+      track: { ...playback.track, imageIdentifier: 'old-cover' },
+    })
+    const view = render(<GymScreen />)
+    jest.mocked(usePlayerState).mockReturnValue({
+      ...playback,
+      track: {
+        ...playback.track,
+        name: 'Next song',
+        imageIdentifier: 'new-cover',
+      },
+    })
+    view.rerender(<GymScreen />)
+    await screen.findByLabelText('Album art for Next song')
+    const oldFile = 'file:///tmp/expo-spotify-image-old.png'
+    await act(async () => {
+      finishOld({ uri: oldFile })
+    })
+
+    expect(screen.queryByLabelText('Album art for Lift')).toBeNull()
+    expect(
+      screen.getByLabelText('Album art for Next song').props.source,
+    ).toEqual({
+      uri: 'data:image/png;base64,image-data',
+    })
+    expect(mockDeleteArtwork).toHaveBeenCalledWith(oldFile)
+    expect(mockReadArtwork).not.toHaveBeenCalledWith(oldFile)
+  })
+
+  it('shows unavailable art and removes its file when decoding fails', async () => {
+    mockReadArtwork.mockRejectedValueOnce(new Error('native read error'))
+    jest.mocked(useConnectionState).mockReturnValue('connected')
+    jest.mocked(usePlayerState).mockReturnValue({
+      ...playback,
+      track: { ...playback.track, imageIdentifier: 'broken-cover' },
+    })
+    render(<GymScreen />)
+    await screen.findByLabelText('Album art for Lift, unavailable')
+    expect(screen.getByText('No art')).toBeTruthy()
+    expect(mockDeleteArtwork).toHaveBeenCalledWith(artworkFile)
+    expect(screen.queryByText('native read error')).toBeNull()
+  })
+
+  it('browses recent playlists and their contents, plays a selection, and goes back', async () => {
+    jest.useFakeTimers()
+    const song: ContentItem = {
+      ...playlist,
+      identifier: 'song',
+      uri: playback.track.uri,
+      title: 'Lift',
+      imageIdentifier: null,
+      isContainer: false,
+    }
+    jest.mocked(useConnectionState).mockReturnValue('connected')
+    jest.mocked(Content.getRecommendedContentItems).mockResolvedValue([recent])
+    jest
+      .mocked(Content.getChildren)
+      .mockImplementation(async (item) =>
+        item.uri === recent.uri ? [playlist] : [song],
+      )
+    render(<GymScreen />)
+    expect(Content.getRecommendedContentItems).not.toHaveBeenCalled()
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    fireEvent.press(await screen.findByLabelText('Browse Recently played'))
+    await screen.findByLabelText('Browse Lifting mix')
+    await screen.findByLabelText('Cover art for Lifting mix')
+    expect(Content.getRecommendedContentItems).toHaveBeenCalledWith('default')
+    expect(Content.getChildren).toHaveBeenCalledWith(recent)
+
+    jest
+      .mocked(Player.play)
+      .mockRejectedValueOnce(new Error('native playback error'))
+    fireEvent.press(screen.getByLabelText('Play Lifting mix'))
+    await screen.findByText(
+      'Could not change playback. Try again or open Spotify.',
+    )
+    expect(SpotifyURI.unsafe).toHaveBeenCalledWith(playlist.uri)
+    expect(Player.play).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('native playback error')).toBeNull()
+    await waitFor(() =>
+      expect(screen.getByLabelText('Play Lifting mix')).toBeEnabled(),
+    )
+    fireEvent.press(screen.getByLabelText('Play Lifting mix'))
+    await waitFor(() => expect(Player.play).toHaveBeenCalledTimes(2))
+    await waitFor(() =>
+      expect(
+        screen.queryByText(
+          'Could not change playback. Try again or open Spotify.',
+        ),
+      ).toBeNull(),
+    )
+    expect(Player.play).toHaveBeenCalledWith(playlist.uri)
+
+    fireEvent.press(screen.getByLabelText('Browse Lifting mix'))
+    await screen.findByLabelText('Play Lift')
+    expect(Content.getChildren).toHaveBeenCalledWith(playlist)
+    fireEvent.press(screen.getByLabelText('Back to Spotify playlists'))
+    await screen.findByLabelText('Browse Lifting mix')
+    fireEvent.press(screen.getByLabelText('Back to Spotify playlists'))
+    await screen.findByLabelText('Browse Recently played')
+  })
+
+  it('reports a playlist error, retries, and shows an honest empty state', async () => {
+    jest.mocked(useConnectionState).mockReturnValue('connected')
+    jest
+      .mocked(Content.getRecommendedContentItems)
+      .mockRejectedValueOnce(new Error('offline'))
+    render(<GymScreen />)
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    await screen.findByText('Could not load Spotify content.')
+    fireEvent.press(screen.getByText('Retry playlists'))
+    await screen.findByText('No recent or recommended playlists available.')
+    expect(Content.getRecommendedContentItems).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('Could not load Spotify content.')).toBeNull()
+  })
+
+  it('ignores a late playlist response after disconnecting', async () => {
+    let finish!: (items: ContentItem[]) => void
+    jest.mocked(Content.getRecommendedContentItems).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+    )
+    jest.mocked(useConnectionState).mockReturnValue('connected')
+    const view = render(<GymScreen />)
+    fireEvent.press(screen.getByTestId('gym-spotify-player'))
+    expect(screen.getByLabelText('Loading Spotify playlists')).toBeTruthy()
+    jest.mocked(useConnectionState).mockReturnValue('disconnected')
+    view.rerender(<GymScreen />)
+    await act(async () => {
+      finish([playlist])
+    })
+    expect(screen.queryByLabelText('Browse Lifting mix')).toBeNull()
+    expect(Images.load).not.toHaveBeenCalled()
+    expect(screen.getByText('Connect Spotify')).toBeTruthy()
+  })
+
+  it.each(['web', 'android'] as const)(
+    'opens Spotify without native browsing on %s',
+    async (platform) => {
+      jest.replaceProperty(Platform, 'OS', platform)
+      jest.mocked(useConnectionState).mockReturnValue('connected')
+      jest.mocked(usePlayerState).mockReturnValue({
+        ...playback,
+        track: { ...playback.track, imageIdentifier: 'album-cover' },
+      })
+      const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
+      render(<GymScreen />)
+      fireEvent.press(screen.getByTestId('gym-spotify-player'))
+      fireEvent.press(screen.getByRole('link', { name: 'Open Spotify' }))
+      await waitFor(() =>
+        expect(open).toHaveBeenCalledWith(
+          platform === 'web' ? 'https://open.spotify.com' : 'spotify://',
+        ),
+      )
+      expect(Content.getRecommendedContentItems).not.toHaveBeenCalled()
+      expect(Images.load).not.toHaveBeenCalled()
+      expect(Auth.authenticate).not.toHaveBeenCalled()
+      expect(screen.queryByText('Recent & recommended')).toBeNull()
+    },
+  )
+
   it('logs a set and finishes the workout', () => {
     render(<GymScreen />)
 

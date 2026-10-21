@@ -11,7 +11,8 @@ ios
 An iOS-first daily health dashboard. Its home screen helps the user
 review steps, recorded cardio and lifting, water, and morning weight at a glance.
 Apple HealthKit is the only source of real health data. Web and Android are
-explicitly labelled, deterministic design previews.
+explicitly labelled, deterministic design previews. There is no Gym account or
+backend.
 The user approved one manual-entry exception: saving a confirmed body weight
 and its actual measurement date/time directly to Apple Health.
 
@@ -44,6 +45,13 @@ and its actual measurement date/time directly to Apple Health.
   day for the same date, alternating Workout A and B with a next-weight hint.
   It needs no programme start and is hidden once a programme workout is logged
   for that date.
+- The lifting workout screen can optionally connect to Spotify on iOS to show
+  the current track and album art, control previous, play/pause, and next, and
+  browse and play Spotify's recent and recommended playlists and their contents.
+  This is not the full playlist library; **Open Spotify** remains available.
+  Spotify handles authorization and playback. Artwork stays in memory after
+  the SDK's temporary image files are deleted; Gym does not save music data or
+  send it to Health or the coach. Web and Android only offer **Open Spotify**.
 - The overview marks the selected day and shows saved finished workouts as
   **Completed** across dates and restarts. Unfinished sets and elapsed days do
   not imply completion. Days without an available workout date stay disabled

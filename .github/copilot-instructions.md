@@ -28,7 +28,16 @@ HealthKit.
 Each lifting exercise's info sheet fetches a reference demo (animation, muscles,
 steps) from ExerciseDB only on tap, using a curated ID in `exerciseMedia.json`.
 That read-only lookup sends only the ID, stores nothing, and is not coach input;
-it is the app's only in-app data fetch, and media must not be bundled.
+it is the app's only in-app network lookup, and media must not be bundled.
+The lifting workout screen also has an optional iOS Spotify App Remote: only
+after the user connects, it displays the current track and album art and offers
+playback controls. Opening the music sheet loads Spotify's recent/recommended
+playlists; the user can browse their contents and explicitly play a selection.
+This is not full-library access and must not silently add Web API calls/scopes.
+Spotify handles authorization and playback. Artwork is held in memory and the
+SDK's temporary image files are deleted after loading, including stale requests.
+Do not persist Spotify track/session data, write it to Health, or give it to the
+coach. Web and Android only open Spotify.
 The Lifting rest timer between sets is ephemeral screen state: a rule-based
 target (`restSeconds` in `rest.ts`, 2:00 default) adjustable by ±15 s. It is
 never persisted, written to Health, or used as coach input.

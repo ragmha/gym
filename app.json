@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.18",
+    "version": "1.0.19",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "io.raghib.gym",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "io.raghib.gym",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -50,6 +50,14 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      [
+        "@wwdrew/expo-spotify-sdk",
+        {
+          "clientID": "3d45054c33804e7c924f1a6402bfe56e",
+          "scheme": "io.raghib.gym",
+          "host": "spotify-callback"
+        }
+      ],
       [
         "@kingstinct/react-native-healthkit",
         {
