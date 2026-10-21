@@ -16,7 +16,7 @@ final class RepCounter: NSObject, WKExtendedRuntimeSessionDelegate {
   private var detector = RepDetector()
   private var lastRep = Date()
   private var stillSamples = 0
-  private var prepareUntil = 0.0
+  private var setupStart: TimeInterval?
 
   // ponytail: fixed idle cut-off; a long rest-pause between reps ends the set early.
   private static let idleSeconds = 8.0
@@ -33,7 +33,7 @@ final class RepCounter: NSObject, WKExtendedRuntimeSessionDelegate {
     detector.threshold = min(0.15, max(0.03, threshold))
     stillSamples = 0
     ready = false
-    prepareUntil = ProcessInfo.processInfo.systemUptime + 3
+    setupStart = nil
     counting = true
     let session = WKExtendedRuntimeSession()
     session.delegate = self
@@ -66,7 +66,10 @@ final class RepCounter: NSObject, WKExtendedRuntimeSessionDelegate {
     let a = data.userAcceleration, g = data.gravity
     let vertical = -(a.x * g.x + a.y * g.y + a.z * g.z)
     if !ready {
-      guard data.timestamp >= prepareUntil else { return }
+      // Time the setup delay from motion samples; systemUptime needs a privacy-manifest reason.
+      let start = setupStart ?? data.timestamp
+      setupStart = start
+      guard data.timestamp - start >= 3 else { return }
       // Discard setup motion. Arm only after a full second at rest.
       stillSamples = sqrt(a.x * a.x + a.y * a.y + a.z * a.z) < 0.03 ? stillSamples + 1 : 0
       if stillSamples >= 50 {
