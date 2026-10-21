@@ -1,16 +1,35 @@
 import { Ionicons } from '@expo/vector-icons'
+import {
+  AppRemote,
+  Auth,
+  Content,
+  Images,
+  Player,
+  SpotifyURI,
+  useConnectionState,
+  usePlayerState,
+  useSession,
+  type ContentItem,
+} from '@wwdrew/expo-spotify-sdk'
+import { File } from 'expo-file-system'
 import { StatusBar } from 'expo-status-bar'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AccessibilityInfo,
+  ActivityIndicator,
   Alert,
+  FlatList,
+  Image,
   Linking,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native'
+import { useReducedMotion } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ScreenHeader } from '@/components/common/ScreenHeader'
@@ -135,6 +154,9 @@ export function LiftingForDate({
           backLabel="Back to programme overview"
         />
       )}
+      <View style={styles.spotifyDock}>
+        <SpotifyPlayer />
+      </View>
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -199,6 +221,596 @@ export function LiftingForDate({
         />
       )}
     </SafeAreaView>
+  )
+}
+
+function SpotifyPlayer() {
+  const theme = useTheme()
+  const reduceMotion = useReducedMotion()
+  const session = useSession()
+  const connection = useConnectionState()
+  const player = usePlayerState()
+  const [visible, setVisible] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const pending = useRef<{
+    kind: 'auth' | 'connect' | 'cancel' | 'playback'
+  } | null>(null)
+  const [path, setPath] = useState<ContentItem[]>([])
+  const [attempt, setAttempt] = useState(0)
+  const [content, setContent] = useState<{
+    node: ContentItem | undefined
+    items: ContentItem[] | null
+  } | null>(null)
+  const ios = Platform.OS === 'ios'
+  const connected = ios && connection === 'connected'
+  const track = connected ? player?.track : undefined
+  const canControl = connected && Boolean(track) && !busy
+  const canSkipPrevious =
+    canControl && Boolean(player?.playbackRestrictions.canSkipPrevious)
+  const canSkipNext =
+    canControl && Boolean(player?.playbackRestrictions.canSkipNext)
+  const browsing = visible && connected
+  const current = path.at(-1)
+  const page = content?.node === current ? content : null
+
+  useEffect(() => {
+    setContent(null)
+    if (!browsing) {
+      if (current) setPath([])
+      return
+    }
+    let active = true
+    const request = current
+      ? Content.getChildren(current)
+      : Content.getRecommendedContentItems('default')
+    request.then(
+      (items) => {
+        if (active) setContent({ node: current, items })
+      },
+      () => {
+        if (active) setContent({ node: current, items: null })
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [browsing, current, attempt])
+
+  const close = () => {
+    setVisible(false)
+    setError(null)
+    const kind = pending.current?.kind
+    if (kind !== 'auth' && kind !== 'connect') return
+    // Retries stay blocked until the abandoned phase is cancelled.
+    const cancel = { kind: 'cancel' } as const
+    pending.current = cancel
+    const cancelling =
+      kind === 'auth' ? Auth.cancelPending() : AppRemote.disconnect()
+    void cancelling
+      .catch(() =>
+        Alert.alert(
+          'Could not cancel the Spotify connection',
+          'Try connecting again.',
+        ),
+      )
+      .finally(() => {
+        if (pending.current === cancel) {
+          pending.current = null
+          setBusy(false)
+        }
+      })
+  }
+
+  const openSpotify = async () => {
+    try {
+      await Linking.openURL(
+        Platform.OS === 'web' ? 'https://open.spotify.com' : 'spotify://',
+      )
+    } catch {
+      try {
+        await Linking.openURL('https://open.spotify.com')
+      } catch {
+        Alert.alert('Spotify could not be opened')
+      }
+    }
+  }
+
+  const connect = async () => {
+    if (pending.current) return
+    const request: { kind: 'auth' | 'connect' } = { kind: 'auth' }
+    pending.current = request
+    setBusy(true)
+    setError(null)
+    try {
+      if (!Auth.isAvailable()) {
+        setError('Install Spotify on this iPhone, then try again.')
+        return
+      }
+      let activeSession = session
+      if (!activeSession || activeSession.expirationDate <= Date.now()) {
+        await Auth.cancelPending()
+        if (pending.current !== request) return
+        activeSession = await Auth.authenticate({
+          scopes: ['app-remote-control'],
+        })
+      }
+      if (pending.current !== request) return
+      request.kind = 'connect'
+      await AppRemote.connect(activeSession.accessToken)
+    } catch {
+      if (pending.current === request) {
+        setError('Could not connect. Open Spotify and try connecting again.')
+      }
+    } finally {
+      if (pending.current === request) {
+        pending.current = null
+        setBusy(false)
+      }
+    }
+  }
+
+  const control = async (action: () => Promise<void>) => {
+    if (pending.current) return
+    pending.current = { kind: 'playback' }
+    setBusy(true)
+    try {
+      await action()
+      setError(null)
+    } catch {
+      setError('Could not change playback. Try again or open Spotify.')
+    } finally {
+      pending.current = null
+      setBusy(false)
+    }
+  }
+  // The native SDK also returns playable user-scoped and collection URIs.
+  const playItem = (item: ContentItem) =>
+    control(() => Player.play(SpotifyURI.unsafe(item.uri)))
+  const controls = [
+    {
+      label: 'Previous track',
+      icon: 'play-skip-back',
+      enabled: canSkipPrevious,
+      action: Player.skipPrevious,
+    },
+    {
+      label: player?.isPaused ? 'Play' : 'Pause',
+      icon: player?.isPaused ? 'play' : 'pause',
+      enabled: canControl,
+      action: player?.isPaused ? Player.resume : Player.pause,
+    },
+    {
+      label: 'Next track',
+      icon: 'play-skip-forward',
+      enabled: canSkipNext,
+      action: Player.skipNext,
+    },
+  ] as const
+
+  return (
+    <>
+      <Pressable
+        testID="gym-spotify-player"
+        accessibilityRole="button"
+        accessibilityLabel={
+          track
+            ? `Spotify, ${track.name} by ${track.artist.name}`
+            : 'Open Spotify music controls'
+        }
+        onPress={() => setVisible(true)}
+        style={[
+          styles.spotifyBar,
+          { backgroundColor: theme.homeSurface, borderColor: theme.goalTrack },
+        ]}
+      >
+        <SpotifyArtwork
+          imageIdentifier={track?.imageIdentifier}
+          label={`Album art for ${track?.name ?? 'current track'}`}
+          size={48}
+        />
+        <View style={styles.flex}>
+          <Text
+            numberOfLines={1}
+            style={[Typography.labelLg, { color: theme.text }]}
+          >
+            {track?.name ?? 'Spotify'}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={[Typography.bodySm, { color: theme.subtitleText }]}
+          >
+            {track
+              ? track.artist.name
+              : ios
+                ? 'Connect to see what’s playing'
+                : 'Open Spotify'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={theme.subtitleText} />
+      </Pressable>
+      <Modal
+        visible={visible}
+        transparent
+        animationType={reduceMotion ? 'none' : 'slide'}
+        onRequestClose={close}
+      >
+        <View style={styles.spotifyOverlay}>
+          <Pressable
+            accessible={false}
+            onPress={close}
+            style={StyleSheet.absoluteFill}
+          />
+          <SafeAreaView
+            testID="gym-spotify-sheet"
+            accessibilityViewIsModal
+            edges={['bottom', 'left', 'right']}
+            style={[
+              styles.spotifySheet,
+              { backgroundColor: theme.cardBackground },
+            ]}
+          >
+            <View style={styles.spotifySheetHeader}>
+              <Text style={[Typography.headingMd, { color: theme.text }]}>
+                Spotify
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close Spotify controls"
+                onPress={close}
+                style={styles.spotifyClose}
+              >
+                <Ionicons name="close" size={24} color={theme.text} />
+              </Pressable>
+            </View>
+            <FlatList
+              key={current?.uri ?? 'recommendations'}
+              data={browsing ? (page?.items ?? []) : []}
+              keyExtractor={(item) => item.identifier || item.uri}
+              initialNumToRender={6}
+              windowSize={3}
+              style={styles.spotifyList}
+              contentContainerStyle={styles.spotifyListContent}
+              ListHeaderComponent={
+                <View style={styles.spotifyListHeader}>
+                  <View style={styles.spotifyTrack}>
+                    <SpotifyArtwork
+                      imageIdentifier={track?.imageIdentifier}
+                      label={`Album art for ${track?.name ?? 'current track'}`}
+                      size={64}
+                    />
+                    <View style={styles.flex}>
+                      <Text
+                        numberOfLines={2}
+                        style={[Typography.headingSm, { color: theme.text }]}
+                      >
+                        {track?.name ??
+                          (connected ? 'Nothing playing' : 'Spotify')}
+                      </Text>
+                      <Text
+                        style={[
+                          Typography.bodySm,
+                          { color: theme.subtitleText },
+                        ]}
+                      >
+                        {track?.artist.name ??
+                          (connected
+                            ? 'Start music in Spotify to see it here'
+                            : ios
+                              ? 'Connect to see what’s playing'
+                              : 'Playback and playlists are available in the iPhone app.')}
+                      </Text>
+                    </View>
+                  </View>
+                  {ios && (
+                    <View style={styles.spotifyControls}>
+                      {controls.map((button, index) => (
+                        <Pressable
+                          key={index}
+                          accessibilityRole="button"
+                          accessibilityLabel={button.label}
+                          accessibilityState={{ disabled: !button.enabled }}
+                          disabled={!button.enabled}
+                          onPress={() => void control(button.action)}
+                          style={[
+                            index === 1
+                              ? styles.spotifyPlay
+                              : styles.spotifyControl,
+                            {
+                              backgroundColor:
+                                index === 1 ? theme.accent : theme.homeSurface,
+                              opacity: button.enabled ? 1 : 0.45,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name={button.icon}
+                            size={index === 1 ? 28 : 24}
+                            color={
+                              index === 1 ? theme.selectedText : theme.text
+                            }
+                          />
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                  {error && (
+                    <Text
+                      accessibilityRole="alert"
+                      style={[Typography.bodySm, { color: theme.danger }]}
+                    >
+                      {error}
+                    </Text>
+                  )}
+                  {ios && !connected && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: busy }}
+                      disabled={busy}
+                      onPress={() => void connect()}
+                      style={[
+                        styles.spotifyConnect,
+                        { backgroundColor: theme.homeSurface },
+                      ]}
+                    >
+                      <Text style={[Typography.labelLg, { color: theme.text }]}>
+                        {busy
+                          ? 'Connecting…'
+                          : session
+                            ? 'Reconnect Spotify'
+                            : 'Connect Spotify'}
+                      </Text>
+                    </Pressable>
+                  )}
+                  {browsing && (
+                    <View style={styles.spotifyBrowseHeader}>
+                      {current && (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Back to Spotify playlists"
+                          onPress={() => setPath(path.slice(0, -1))}
+                          style={styles.spotifyClose}
+                        >
+                          <Ionicons
+                            name="chevron-back"
+                            size={24}
+                            color={theme.text}
+                          />
+                        </Pressable>
+                      )}
+                      <Text
+                        accessibilityRole="header"
+                        style={[
+                          Typography.headingSm,
+                          styles.flex,
+                          { color: theme.text },
+                        ]}
+                      >
+                        {current?.title || 'Recent & recommended'}
+                      </Text>
+                      {current?.isPlayable && (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Play ${current.title || 'selection'}`}
+                          accessibilityState={{ disabled: busy }}
+                          disabled={busy}
+                          onPress={() => void playItem(current)}
+                          style={styles.spotifyClose}
+                        >
+                          <Ionicons
+                            name="play-outline"
+                            size={24}
+                            color={theme.text}
+                          />
+                        </Pressable>
+                      )}
+                    </View>
+                  )}
+                </View>
+              }
+              ListEmptyComponent={
+                !browsing ? null : !page ? (
+                  <ActivityIndicator
+                    accessibilityLabel="Loading Spotify playlists"
+                    color={theme.accent}
+                  />
+                ) : page.items === null ? (
+                  <View style={styles.spotifyListHeader}>
+                    <Text
+                      accessibilityRole="alert"
+                      style={[Typography.bodySm, { color: theme.danger }]}
+                    >
+                      Could not load Spotify content.
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setAttempt((n) => n + 1)}
+                      style={[
+                        styles.spotifyConnect,
+                        { backgroundColor: theme.homeSurface },
+                      ]}
+                    >
+                      <Text style={[Typography.labelLg, { color: theme.text }]}>
+                        Retry playlists
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Text
+                    style={[Typography.bodySm, { color: theme.subtitleText }]}
+                  >
+                    {current
+                      ? 'No items available here.'
+                      : 'No recent or recommended playlists available.'}
+                  </Text>
+                )
+              }
+              renderItem={({ item }) => {
+                const title = item.title || 'Untitled item'
+                const disabled = !item.isContainer && (!item.isPlayable || busy)
+                return (
+                  <View style={styles.spotifyContentRow}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${item.isContainer ? 'Browse' : 'Play'} ${title}`}
+                      accessibilityState={{ disabled }}
+                      disabled={disabled}
+                      onPress={() =>
+                        item.isContainer
+                          ? setPath([...path, item])
+                          : void playItem(item)
+                      }
+                      style={[
+                        styles.spotifyContentItem,
+                        { opacity: disabled ? 0.45 : 1 },
+                      ]}
+                    >
+                      <SpotifyArtwork
+                        imageIdentifier={item.imageIdentifier}
+                        label={`Cover art for ${title}`}
+                        size={48}
+                      />
+                      <View style={styles.flex}>
+                        <Text
+                          numberOfLines={2}
+                          style={[Typography.labelLg, { color: theme.text }]}
+                        >
+                          {title}
+                        </Text>
+                        {!!item.subtitle && (
+                          <Text
+                            numberOfLines={2}
+                            style={[
+                              Typography.bodySm,
+                              { color: theme.subtitleText },
+                            ]}
+                          >
+                            {item.subtitle}
+                          </Text>
+                        )}
+                      </View>
+                      <Ionicons
+                        name={
+                          item.isContainer ? 'chevron-forward' : 'play-outline'
+                        }
+                        size={20}
+                        color={theme.text}
+                      />
+                    </Pressable>
+                    {item.isContainer && item.isPlayable && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Play ${title}`}
+                        accessibilityState={{ disabled: busy }}
+                        disabled={busy}
+                        onPress={() => void playItem(item)}
+                        style={styles.spotifyClose}
+                      >
+                        <Ionicons
+                          name="play-outline"
+                          size={24}
+                          color={theme.text}
+                        />
+                      </Pressable>
+                    )}
+                  </View>
+                )
+              }}
+            />
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => void openSpotify()}
+              style={[
+                styles.spotifyConnect,
+                { backgroundColor: theme.homeSurface },
+              ]}
+            >
+              <Text style={[Typography.labelLg, { color: theme.text }]}>
+                Open Spotify
+              </Text>
+            </Pressable>
+          </SafeAreaView>
+        </View>
+      </Modal>
+    </>
+  )
+}
+
+function SpotifyArtwork({
+  imageIdentifier,
+  label,
+  size,
+}: {
+  imageIdentifier: string | null | undefined
+  label: string
+  size: number
+}) {
+  const theme = useTheme()
+  const [art, setArt] = useState<{ id: string; data: string | null } | null>(
+    null,
+  )
+  useEffect(() => {
+    setArt(null)
+    if (Platform.OS !== 'ios' || !imageIdentifier?.trim()) return
+    let active = true
+    const load = async () => {
+      const { uri } = await Images.load({ imageIdentifier }, 'medium')
+      const file = new File(uri)
+      let data = ''
+      // ponytail: keep artwork in memory; discard the SDK's temporary file.
+      try {
+        if (active) data = await file.base64()
+      } finally {
+        file.delete()
+      }
+      if (active) setArt({ id: imageIdentifier, data })
+    }
+    void load().catch(() => {
+      if (active) setArt({ id: imageIdentifier, data: null })
+    })
+    return () => {
+      active = false
+    }
+  }, [imageIdentifier])
+  const result = art?.id === imageIdentifier ? art : null
+  const style = [styles.spotifyArtwork, { width: size, height: size }]
+  if (result?.data) {
+    return (
+      <Image
+        accessibilityLabel={label}
+        source={{ uri: `data:image/png;base64,${result.data}` }}
+        resizeMode="contain"
+        style={style}
+        onError={() =>
+          setArt((value) =>
+            value && value.id === imageIdentifier
+              ? { ...value, data: null }
+              : value,
+          )
+        }
+      />
+    )
+  }
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}, ${result ? 'unavailable' : imageIdentifier ? 'loading' : 'not provided'}`}
+      style={[...style, { backgroundColor: theme.homeSurface }]}
+    >
+      {imageIdentifier && !result ? (
+        <ActivityIndicator color={theme.subtitleText} />
+      ) : result ? (
+        <Text style={[Typography.labelSm, { color: theme.subtitleText }]}>
+          No art
+        </Text>
+      ) : (
+        <Ionicons
+          name="musical-notes-outline"
+          size={24}
+          color={theme.subtitleText}
+        />
+      )}
+    </View>
   )
 }
 
@@ -1094,6 +1706,107 @@ const styles = StyleSheet.create({
   cardBody: { padding: Spacing.sm, gap: Spacing.xs },
   finishBody: { justifyContent: 'center', gap: Spacing.md },
   row: { flexDirection: 'row' },
+  spotifyDock: {
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Layout.gutter,
+    paddingBottom: Spacing.sm,
+  },
+  spotifyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    minHeight: 72,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Radii.panel,
+  },
+  spotifyOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  spotifySheet: {
+    width: '100%',
+    maxWidth: Layout.contentMaxWidth,
+    maxHeight: '90%',
+    alignSelf: 'center',
+    borderTopLeftRadius: Radii.panel,
+    borderTopRightRadius: Radii.panel,
+    padding: Spacing.xl,
+    gap: Spacing.md,
+  },
+  spotifyList: { flexGrow: 0, flexShrink: 1 },
+  spotifyListContent: { gap: Spacing.xs, paddingBottom: Spacing.xs },
+  spotifyListHeader: { gap: Spacing.md },
+  spotifyBrowseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingTop: Spacing.sm,
+  },
+  spotifyContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
+  spotifyContentItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: Layout.controlSize,
+    paddingVertical: Spacing.xs,
+  },
+  spotifySheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  spotifyClose: {
+    width: Layout.controlSize,
+    height: Layout.controlSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spotifyTrack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    minHeight: 72,
+  },
+  spotifyArtwork: {
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spotifyControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+  },
+  spotifyControl: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spotifyPlay: {
+    width: 72,
+    height: 72,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  spotifyConnect: {
+    minHeight: Layout.controlSize,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+  },
   // The circles take the card's spare height so the sets sit mid-screen.
   circles: {
     flexGrow: 1,

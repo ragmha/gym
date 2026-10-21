@@ -15,6 +15,37 @@ import { useGymLogStore } from '@/stores/GymLogStore'
 
 jest.unmock('expo-router')
 
+// Expo Router's test helper replaces the shared Reanimated mock with this one.
+jest.mock('react-native-reanimated/mock', () => ({
+  default: {},
+  useReducedMotion: () => false,
+}))
+
+jest.mock('@wwdrew/expo-spotify-sdk', () => ({
+  AppRemote: { connect: jest.fn(() => Promise.resolve()) },
+  Auth: {
+    isAvailable: jest.fn(() => true),
+    cancelPending: jest.fn(() => Promise.resolve()),
+    authenticate: jest.fn(() => Promise.resolve({ accessToken: 'token' })),
+  },
+  Content: {
+    getRecommendedContentItems: jest.fn(() => Promise.resolve([])),
+    getChildren: jest.fn(() => Promise.resolve([])),
+  },
+  Images: { load: jest.fn() },
+  Player: {
+    play: jest.fn(() => Promise.resolve()),
+    pause: jest.fn(() => Promise.resolve()),
+    resume: jest.fn(() => Promise.resolve()),
+    skipNext: jest.fn(() => Promise.resolve()),
+    skipPrevious: jest.fn(() => Promise.resolve()),
+  },
+  SpotifyURI: { unsafe: jest.fn((uri: string) => uri) },
+  useConnectionState: jest.fn(() => 'disconnected'),
+  usePlayerState: jest.fn(() => null),
+  useSession: jest.fn(() => null),
+}))
+
 jest.mock('@/hooks/useThemeColor', () => {
   const { Colors } =
     jest.requireActual<typeof import('@/constants/Colors')>(
