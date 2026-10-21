@@ -3,7 +3,7 @@ import { usePreventRemove } from '@react-navigation/native'
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { createElement, type ComponentType } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, View, useWindowDimensions } from 'react-native'
 import type { ReactTestInstance } from 'react-test-renderer'
 
 import { Colors, type ThemeName } from '@/constants/Colors'
@@ -12,6 +12,7 @@ import {
   type BodyMassAvailability,
   type BodyMassEntry,
 } from '@/lib/healthSnapshot/bodyMass'
+import type { HealthBodyMassSample } from '@/lib/healthSnapshot/types'
 
 import AddWeightScreen from '../add-weight'
 
@@ -19,6 +20,10 @@ const now = new Date(2026, 8, 21, 15, 42, 18)
 const mockSave = jest.fn<Promise<void>, [BodyMassEntry]>()
 const mockAvailability = jest.fn<BodyMassAvailability, []>()
 const mockLoadPicker = jest.fn<ComponentType<IOSNativeProps> | null, []>()
+const mockBodyMassHistory = jest.fn<
+  Promise<HealthBodyMassSample[]>,
+  [Date, number]
+>()
 const mockDismissTo = jest.fn()
 let mockTheme: ThemeName = 'light'
 
@@ -31,6 +36,16 @@ jest.mock('@/lib/healthSnapshot/bodyMassWriter', () => ({
     getAvailability: () => mockAvailability(),
     save: (entry: BodyMassEntry) => mockSave(entry),
   },
+}))
+jest.mock('@/lib/healthSnapshot/HealthSnapshotSource', () => ({
+  healthSnapshot: {
+    getBodyMassHistory: (date: Date, days: number) =>
+      mockBodyMassHistory(date, days),
+  },
+}))
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }))
 jest.mock('@/components/health/weightDateTimePicker', () => ({
   loadWeightDateTimePicker: () => mockLoadPicker(),
@@ -71,14 +86,50 @@ function pressHandler(testID: string): () => void {
   return node.props.onPress
 }
 
+function rulerValue() {
+  return screen.getByTestId('weight-ruler').props.accessibilityValue.text
+}
+
+function adjustRuler(actionName: 'increment' | 'decrement') {
+  fireEvent(screen.getByTestId('weight-ruler'), 'accessibilityAction', {
+    nativeEvent: { actionName },
+  })
+}
+
+function scrollRuler(
+  event:
+    | 'scroll'
+    | 'scrollBeginDrag'
+    | 'scrollEndDrag'
+    | 'momentumScrollBegin'
+    | 'momentumScrollEnd',
+  x: number,
+) {
+  fireEvent(
+    screen.getByTestId('weight-ruler-list', { includeHiddenElements: true }),
+    event,
+    {
+      nativeEvent: {
+        contentOffset: { x, y: 0 },
+        contentSize: { width: 28_320, height: 76 },
+        layoutMeasurement: { width: 320, height: 76 },
+      },
+    },
+  )
+}
+
 beforeEach(() => {
   jest.useFakeTimers()
   jest.setSystemTime(now)
   jest.clearAllMocks()
   mockTheme = 'light'
   mockSave.mockReset().mockResolvedValue(undefined)
+  mockBodyMassHistory.mockReset().mockResolvedValue([])
   mockAvailability.mockReturnValue({ available: true })
   mockLoadPicker.mockReturnValue(PickerStub)
+  jest
+    .mocked(useWindowDimensions)
+    .mockReturnValue({ width: 402, height: 874, scale: 3, fontScale: 1 })
   jest.mocked(useLocalSearchParams).mockReturnValue({ date: '2026-09-21' })
   jest
     .mocked(useRouter)
@@ -108,8 +159,108 @@ describe('Add weight route', () => {
       expect(
         screen.getByTestId('weight-date-time-picker').props.themeVariant,
       ).toBe(theme)
+      expect(screen.getByTestId('weight-date-time-picker').props.display).toBe(
+        'inline',
+      )
     },
   )
+
+  it('keeps the compact picker where the inline calendar would be squeezed', () => {
+    jest
+      .mocked(useWindowDimensions)
+      .mockReturnValue({ width: 320, height: 568, scale: 2, fontScale: 1 })
+    render(<AddWeightScreen />)
+    expect(screen.getByTestId('weight-date-time-picker').props.display).toBe(
+      'compact',
+    )
+  })
+
+  it('makes room under the ruler for kilogram labels that grow with Dynamic Type', () => {
+    jest
+      .mocked(useWindowDimensions)
+      .mockReturnValue({ width: 402, height: 874, scale: 3, fontScale: 2 })
+    render(<AddWeightScreen />)
+    expect(
+      StyleSheet.flatten(screen.getByTestId('weight-ruler').props.style).height,
+    ).toBe(92)
+  })
+
+  it('starts the ruler at the latest weigh-in without entering a weight', async () => {
+    mockBodyMassHistory.mockResolvedValue([
+      { kilograms: 80.1, startISO: '2026-09-12T06:30:00.000Z' },
+      { kilograms: 82.44, startISO: '2026-09-20T06:30:00.000Z' },
+    ])
+    render(<AddWeightScreen />)
+    await act(async () => {})
+    expect(mockBodyMassHistory).toHaveBeenCalledWith(
+      new Date(2026, 8, 21, 12),
+      30,
+    )
+    expect(rulerValue()).toBe('82.4 kilograms')
+    expect(screen.getByTestId('weight-kilograms').props.value).toBe('')
+    expect(screen.getByTestId('weight-kilograms').props.placeholder).toBe(
+      '82.4',
+    )
+  })
+
+  it('keeps the ruler at 70 kg when Health has no readable weight', async () => {
+    mockBodyMassHistory.mockRejectedValue(new Error('denied'))
+    render(<AddWeightScreen />)
+    await act(async () => {})
+    expect(rulerValue()).toBe('70.0 kilograms')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('moves the ruler to a typed weight and ignores a later Health read', async () => {
+    let finish!: (samples: HealthBodyMassSample[]) => void
+    mockBodyMassHistory.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+    )
+    render(<AddWeightScreen />)
+    fireEvent.changeText(screen.getByLabelText('Weight in kilograms'), '80,2')
+    await act(async () =>
+      finish([{ kilograms: 90, startISO: '2026-09-20T06:30:00.000Z' }]),
+    )
+    expect(rulerValue()).toBe('80.2 kilograms')
+    expect(screen.getByDisplayValue('80,2')).toBeTruthy()
+    fireEvent.changeText(screen.getByLabelText('Weight in kilograms'), '80.')
+    expect(rulerValue()).toBe('80.2 kilograms')
+  })
+
+  it('enters the dragged ruler weight in 0.1 kg steps, ignoring programmatic scrolls', async () => {
+    render(<AddWeightScreen />)
+    await act(async () => {})
+    fireEvent(screen.getByTestId('weight-ruler'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 320, height: 76 } },
+    })
+    scrollRuler('scroll', 6_000)
+    expect(screen.getByTestId('weight-kilograms').props.value).toBe('')
+    scrollRuler('scrollBeginDrag', 5_000)
+    scrollRuler('scroll', 5_840)
+    expect(screen.getByDisplayValue('78.4')).toBeTruthy()
+    scrollRuler('scrollEndDrag', 5_843)
+    scrollRuler('momentumScrollBegin', 5_843)
+    scrollRuler('momentumScrollEnd', 5_850)
+    expect(screen.getByDisplayValue('78.5')).toBeTruthy()
+    expect(rulerValue()).toBe('78.5 kilograms')
+    scrollRuler('scroll', 7_000)
+    // A non-animated programmatic scroll still reports a momentum end on iOS.
+    scrollRuler('momentumScrollEnd', 7_000)
+    expect(screen.getByDisplayValue('78.5')).toBeTruthy()
+  })
+
+  it('steps the ruler by 0.1 kg with VoiceOver adjust gestures', async () => {
+    render(<AddWeightScreen />)
+    await act(async () => {})
+    adjustRuler('increment')
+    expect(screen.getByDisplayValue('70.1')).toBeTruthy()
+    adjustRuler('decrement')
+    adjustRuler('decrement')
+    expect(screen.getByDisplayValue('69.9')).toBeTruthy()
+    expect(rulerValue()).toBe('69.9 kilograms')
+  })
   it.each([
     { date: 'invalid' },
     { date: '2026-02-31' },
@@ -142,6 +293,7 @@ describe('Add weight route', () => {
       )
       expect(screen.queryByTestId('weight-kilograms')).toBeNull()
       expect(mockLoadPicker).not.toHaveBeenCalled()
+      expect(mockBodyMassHistory).not.toHaveBeenCalled()
       expect(mockSave).not.toHaveBeenCalled()
     },
   )
@@ -297,6 +449,11 @@ describe('Add weight route', () => {
       screen.getByRole('button', { name: 'Cancel weight entry' }),
     ).toBeDisabled()
     expect(screen.getByTestId('weight-kilograms').props.editable).toBe(false)
+    expect(
+      screen.getByTestId('weight-ruler').props.accessibilityState,
+    ).toMatchObject({ disabled: true })
+    adjustRuler('increment')
+    expect(screen.getByDisplayValue('78,4')).toBeTruthy()
     expect(screen.getByTestId('weight-date-time-picker').props.disabled).toBe(
       true,
     )

@@ -13,11 +13,13 @@ import {
   Switch,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ScreenHeader } from '@/components/common/ScreenHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { WeightRuler, rulerKilograms } from '@/components/health/WeightRuler'
 import { loadWeightDateTimePicker } from '@/components/health/weightDateTimePicker'
 import {
   Elevation,
@@ -28,6 +30,7 @@ import {
 } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useTheme } from '@/hooks/useThemeColor'
+import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
 import {
   BodyMassWriteError,
   bodyMassErrorMessage,
@@ -38,6 +41,11 @@ import {
 } from '@/lib/healthSnapshot/bodyMass'
 import { bodyMassWriter } from '@/lib/healthSnapshot/bodyMassWriter'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
+import { WEIGHT_MAX_KG, WEIGHT_MIN_KG } from '@/lib/weightTrend'
+
+const RULER_START_KG = 70
+// UIKit lays out the inline calendar no narrower than this.
+const INLINE_CALENDAR_MIN_WIDTH = 280
 
 export function WeightEntry({ selectedDay }: { selectedDay: Date }) {
   const [support] = useState(() => {
@@ -129,7 +137,9 @@ function WeightEntryForm({
   const theme = useTheme()
   const colorScheme = useColorScheme()
   const router = useRouter()
+  const { width } = useWindowDimensions()
   const [kilograms, setKilograms] = useState('')
+  const [rulerKg, setRulerKg] = useState(RULER_START_KG)
   const [measuredAt, setMeasuredAt] = useState(() =>
     initialBodyMassDate(selectedDay),
   )
@@ -140,6 +150,7 @@ function WeightEntryForm({
   const savingRef = useRef(false)
   const savedRef = useRef(false)
   const mounted = useRef(true)
+  const touched = useRef(false)
 
   useEffect(() => {
     mounted.current = true
@@ -147,7 +158,46 @@ function WeightEntryForm({
       mounted.current = false
     }
   }, [])
+  useEffect(() => {
+    let active = true
+    // Only positions the ruler; the weight stays empty until the user enters one.
+    healthSnapshot
+      .getBodyMassHistory(selectedDay, 30)
+      .then((samples) => {
+        const latest = samples[samples.length - 1]
+        if (active && latest && !touched.current) {
+          setRulerKg(rulerKilograms(latest.kilograms))
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [selectedDay])
   usePreventRemove(saving, () => undefined)
+
+  const typeKilograms = (value: string) => {
+    if (savingRef.current) return
+    touched.current = true
+    setKilograms(value)
+    setError(null)
+    try {
+      const typed = parseBodyMassKilograms(value)
+      if (typed >= WEIGHT_MIN_KG && typed <= WEIGHT_MAX_KG) {
+        setRulerKg(rulerKilograms(typed))
+      }
+    } catch {
+      // An unfinished draft leaves the ruler in place; Save reports invalid input.
+    }
+  }
+
+  const dragKilograms = (next: number) => {
+    if (savingRef.current) return
+    touched.current = true
+    setRulerKg(next)
+    setKilograms(next.toFixed(1))
+    setError(null)
+  }
 
   const returnToDay = () => {
     if (savingRef.current) return
@@ -208,6 +258,10 @@ function WeightEntryForm({
     timeZoneName: 'short',
   })
   const pastDay = localDateKey(selectedDay) < localDateKey(new Date())
+  const inline =
+    Math.min(width, Layout.contentMaxWidth) -
+      2 * (Layout.gutter + Spacing.md) >=
+    INLINE_CALENDAR_MIN_WIDTH
 
   return (
     <SafeAreaView
@@ -281,54 +335,51 @@ function WeightEntryForm({
             </View>
           ) : (
             <>
-              <View
-                style={[
-                  styles.panel,
-                  { backgroundColor: theme.cardBackground },
-                ]}
-              >
-                <Text
-                  accessibilityRole="header"
-                  style={[Typography.headingMd, { color: theme.text }]}
-                >
-                  Weight in kilograms
-                </Text>
+              <View style={styles.readout}>
                 <TextInput
                   testID="weight-kilograms"
                   accessibilityLabel="Weight in kilograms"
                   accessibilityHint="Enter a positive weight. A point or comma can mark the decimal."
                   value={kilograms}
-                  onChangeText={(value) => {
-                    if (!savingRef.current) {
-                      setKilograms(value)
-                      setError(null)
-                    }
-                  }}
+                  onChangeText={typeKilograms}
                   editable={!saving}
                   keyboardType="decimal-pad"
                   returnKeyType="done"
-                  placeholder="e.g. 78.4"
+                  placeholder={rulerKg.toFixed(1)}
                   placeholderTextColor={theme.subtitleText}
                   maxLength={32}
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      borderColor: theme.border,
-                      backgroundColor: theme.cardSurface,
-                    },
-                  ]}
+                  // 88 pt already exceeds every Dynamic Type size.
+                  allowFontScaling={false}
+                  style={[styles.input, { color: theme.text }]}
                 />
                 <Text
-                  style={[Typography.bodySm, { color: theme.subtitleText }]}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                  style={[Typography.headingLg, { color: theme.subtitleText }]}
                 >
-                  Use a decimal point or comma, without thousands separators.
+                  kg
                 </Text>
               </View>
+              <WeightRuler
+                value={rulerKg}
+                onChange={dragKilograms}
+                disabled={saving}
+              />
+              <Text
+                style={[
+                  Typography.bodySm,
+                  styles.centered,
+                  { color: theme.subtitleText },
+                ]}
+              >
+                Type a weight or drag the ruler. Use a decimal point or comma,
+                without thousands separators.
+              </Text>
 
               <View
                 style={[
                   styles.panel,
+                  styles.calendar,
                   { backgroundColor: theme.cardBackground },
                 ]}
               >
@@ -351,14 +402,14 @@ function WeightEntryForm({
                   testID="weight-date-time-picker"
                   accessibilityLabel="Measurement date and time"
                   mode="datetime"
-                  display="compact"
+                  display={inline ? 'inline' : 'compact'}
                   value={measuredAt}
                   maximumDate={new Date()}
                   onChange={changeMeasurement}
                   disabled={saving}
                   themeVariant={colorScheme}
                   accentColor={theme.accent}
-                  style={styles.picker}
+                  style={inline ? styles.inlinePicker : styles.picker}
                 />
                 <Text
                   testID="weight-measured-at"
@@ -423,14 +474,14 @@ function WeightEntryForm({
                 style={({ pressed }) => [
                   styles.primary,
                   {
-                    backgroundColor: theme.accent,
+                    backgroundColor: theme.text,
                     opacity: saving || !timeConfirmed ? 0.5 : pressed ? 0.9 : 1,
                   },
                 ]}
               >
-                {saving && <ActivityIndicator color={theme.selectedText} />}
+                {saving && <ActivityIndicator color={theme.homeBackground} />}
                 <Text
-                  style={[styles.buttonText, { color: theme.selectedText }]}
+                  style={[styles.buttonText, { color: theme.homeBackground }]}
                 >
                   {saving ? 'Saving to Apple Health…' : 'Save to Apple Health'}
                 </Text>
@@ -479,15 +530,20 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
   },
+  readout: { alignItems: 'center', gap: Spacing.xxs },
   input: {
-    ...Typography.numericMd,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    minHeight: 64,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    ...Typography.displayXl,
+    // A line height offsets single-line iOS text inputs.
+    lineHeight: undefined,
+    alignSelf: 'stretch',
+    padding: 0,
+    textAlign: 'center',
   },
+  centered: { textAlign: 'center' },
+  calendar: { padding: Spacing.md },
   picker: { minHeight: 48, alignSelf: 'flex-start', maxWidth: '100%' },
+  // Fabric sizes the native calendar itself, so center it rather than stretch.
+  inlinePicker: { alignSelf: 'center', maxWidth: '100%' },
   confirmation: {
     minHeight: 48,
     flexDirection: 'row',
