@@ -75,7 +75,7 @@ export function RepCameraCounter({
 }) {
   useKeepAwake()
   const theme = useTheme()
-  const [permission, requestPermission] = useCameraPermissions()
+  const [permission, requestPermission, getPermission] = useCameraPermissions()
   const [joint, setJoint] = useState(() => defaultJoint(title))
   const jointRef = useRef(joint)
   const count = useRef<RepCount>(emptyRepCount)
@@ -103,7 +103,14 @@ export function RepCameraCounter({
   useEffect(() => {
     const listener = AppState.addEventListener('change', (state) => {
       setForeground(state === 'active')
-      if (state !== 'active') {
+      if (state === 'active') {
+        // Pick up access granted in Settings while this sheet stayed open.
+        getPermission().catch(() =>
+          setError(
+            'Camera permission could not be checked. Close and try again.',
+          ),
+        )
+      } else {
         setInFrame(false)
         if (counting.current) {
           counting.current = false
@@ -119,7 +126,7 @@ export function RepCameraCounter({
       counting.current = false
       listener.remove()
     }
-  }, [])
+  }, [getPermission])
 
   const chooseJoint = (next: Joint) => {
     count.current = emptyRepCount

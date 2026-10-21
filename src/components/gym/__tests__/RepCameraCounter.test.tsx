@@ -10,6 +10,11 @@ let mockOnError: (event: { nativeEvent: { code: string } }) => void = () => {}
 let mockAppState: (state: string) => void = () => {}
 let mockPermission = { granted: true, status: 'granted', canAskAgain: true }
 const mockRequestPermission = jest.fn().mockResolvedValue(mockPermission)
+let mockSetPermission: (permission: typeof mockPermission) => void = () => {}
+const mockGetPermission = jest.fn(async () => {
+  mockSetPermission(mockPermission)
+  return mockPermission
+})
 
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native')
@@ -36,7 +41,13 @@ jest.mock('expo', () => ({
     },
 }))
 jest.mock('expo-camera', () => ({
-  useCameraPermissions: () => [mockPermission, mockRequestPermission],
+  useCameraPermissions: () => {
+    const [permission, setPermission] = jest
+      .requireActual('react')
+      .useState(mockPermission)
+    mockSetPermission = setPermission
+    return [permission, mockRequestPermission, mockGetPermission]
+  },
 }))
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }))
 jest.mock('@/hooks/useThemeColor', () => {
@@ -52,6 +63,7 @@ function angles(values: (number | undefined)[], joint = 'knee') {
 beforeEach(() => {
   mockPermission = { granted: true, status: 'granted', canAskAgain: true }
   mockRequestPermission.mockClear()
+  mockGetPermission.mockClear()
 })
 
 it('starts explicitly, stops before use, and hands back the total once', () => {
@@ -142,4 +154,26 @@ it('offers Settings when permission is denied', () => {
   expect(screen.getByText(/Turn it on in Settings/)).toBeTruthy()
   expect(mockRequestPermission).not.toHaveBeenCalled()
   expect(screen.getByText('Start counting')).toBeDisabled()
+})
+
+it('rechecks access after returning from Settings', async () => {
+  mockPermission = { granted: false, status: 'denied', canAskAgain: false }
+  render(
+    <RepCameraCounter title="Squat" onCount={jest.fn()} onClose={jest.fn()} />,
+  )
+  act(() => mockAppState('background'))
+  mockPermission = { granted: true, status: 'granted', canAskAgain: true }
+  await act(async () => mockAppState('active'))
+  expect(mockGetPermission).toHaveBeenCalledTimes(1)
+  expect(screen.queryByText(/Turn it on in Settings/)).toBeNull()
+  expect(screen.getByText('Start counting')).not.toBeDisabled()
+})
+
+it('reports a failed permission recheck', async () => {
+  mockGetPermission.mockRejectedValueOnce(new Error('unavailable'))
+  render(
+    <RepCameraCounter title="Squat" onCount={jest.fn()} onClose={jest.fn()} />,
+  )
+  await act(async () => mockAppState('active'))
+  expect(screen.getByText(/permission could not be checked/)).toBeTruthy()
 })

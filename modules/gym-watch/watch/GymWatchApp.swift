@@ -324,6 +324,6 @@ struct RepCountView: View {
 
   private func stopOnWake() {
     // Stop on a wrist raise before the motion used to check the watch becomes another rep.
-    if counter.ready && counter.reps > 0 { counter.stop() }
+    if counter.ready { counter.stop() }
   }
 }
