@@ -6,6 +6,7 @@ import { AppState, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { TodayPage } from '@/components/dashboard/TodayPage'
 import {
   GoalGrid,
   GoalSummary,
@@ -29,6 +30,7 @@ export default function HomeScreen() {
     <HealthDateRoute>
       {(date) => (
         <HomeForDate
+          key={localDateKey(date)}
           selectedDate={date}
           reading={reading}
           deepWork={deepWork}
@@ -54,13 +56,16 @@ function HomeForDate({
 
   const [refreshing, setRefreshing] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [homeFocused, setHomeFocused] = useState(true)
   const [widgetError, setWidgetError] = useState<string | null>(null)
   const [pagination, setPagination] = useState({ index: 0, count: 0 })
   const goalGrid = useRef<GoalGridHandle>(null)
 
   const { snapshot, status, error, isDemoMode, refresh } =
     useHealthSnapshot(selectedDate)
-  const canPage = status !== 'error' && !(status === 'loading' && !snapshot)
+  const isToday = localDateKey(selectedDate) === localDateKey(new Date())
+  const canPage =
+    isToday || (status !== 'error' && !(status === 'loading' && !snapshot))
   useEffect(() => {
     if (
       isDemoMode ||
@@ -74,7 +79,8 @@ function HomeForDate({
 
   useFocusEffect(
     useCallback(() => {
-      if (isDemoMode) return
+      setHomeFocused(true)
+      if (isDemoMode) return () => setHomeFocused(false)
 
       let pollInFlight = false
       // ponytail: five-minute fallback for missed imports; observers handle prompt refreshes.
@@ -85,7 +91,10 @@ function HomeForDate({
           pollInFlight = false
         })
       }, 5 * 60_000)
-      return () => clearInterval(interval)
+      return () => {
+        clearInterval(interval)
+        setHomeFocused(false)
+      }
     }, [refresh, isDemoMode]),
   )
 
@@ -138,9 +147,9 @@ function HomeForDate({
           </Text>
         )}
 
-        {status === 'loading' && !snapshot ? (
+        {!isToday && status === 'loading' && !snapshot ? (
           <HealthReadState loading />
-        ) : status === 'error' ? (
+        ) : !isToday && status === 'error' ? (
           <HealthReadState
             error={error}
             onRetry={onRefresh}
@@ -150,7 +159,7 @@ function HomeForDate({
         ) : (
           <GoalGrid
             key={localDateKey(selectedDate)}
-            snapshot={snapshot}
+            snapshot={status === 'error' ? null : snapshot}
             date={selectedDate}
             reading={reading}
             deepWork={deepWork}
@@ -158,6 +167,27 @@ function HomeForDate({
             onPageChange={setPagination}
             editing={editing}
             onEdit={() => setEditing(true)}
+            leadingPage={
+              isToday
+                ? (active) => (
+                    <TodayPage
+                      snapshot={status === 'error' ? null : snapshot}
+                      date={selectedDate}
+                      reading={reading}
+                      deepWork={deepWork}
+                      active={active && homeFocused}
+                      onRetryHealth={onRefresh}
+                      healthError={
+                        status === 'error'
+                          ? (error ?? 'Health readings are unavailable.')
+                          : status === 'loading' && !snapshot
+                            ? 'Loading health data...'
+                            : null
+                      }
+                    />
+                  )
+                : undefined
+            }
           />
         )}
       </View>

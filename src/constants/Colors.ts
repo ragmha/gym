@@ -184,6 +184,45 @@ export const Colors = {
   },
 } as const
 
+export const TodayColors = {
+  light: {
+    background: '#FFFFFF',
+    text: '#17212A',
+    subtitleText: '#56636E',
+    icon: '#56636E',
+    accent: '#6551B2',
+    border: '#DDE1EA',
+    separator: '#DDE1EA',
+    cardBackground: '#FFFFFF',
+    cardSurface: '#E9EBF2',
+    panelTop: '#FFFFFF',
+    panelBottom: '#EBEEF5',
+    highlight: '#B6A6FF',
+    onHighlight: '#18142C',
+    highlightIcon: '#30284E',
+    onHighlightIcon: '#F7F4FF',
+    goalComplete: '#6551B2',
+  },
+  dark: {
+    background: '#10171D',
+    text: '#F3F5F7',
+    subtitleText: '#A7B2BC',
+    icon: '#A7B2BC',
+    accent: '#B6A6FF',
+    border: '#29353F',
+    separator: '#29353F',
+    cardBackground: '#1B252C',
+    cardSurface: '#27323A',
+    panelTop: '#263039',
+    panelBottom: '#192228',
+    highlight: '#B6A6FF',
+    onHighlight: '#18142C',
+    highlightIcon: '#30284E',
+    onHighlightIcon: '#F7F4FF',
+    goalComplete: '#B6A6FF',
+  },
+} as const
+
 export type ThemeName = keyof typeof Colors
 export type ThemeColors = (typeof Colors)[ThemeName]
 export type ThemeColorKey = keyof ThemeColors

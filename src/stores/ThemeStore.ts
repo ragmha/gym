@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { DASHBOARD_GOALS } from '@/lib/fitnessMetrics/presenter'
+import { commuteSchema, type Commute } from '@/lib/planner'
 
 export type ThemePreference = 'system' | 'light' | 'dark'
 
@@ -22,6 +23,8 @@ interface ThemeState {
   /** Goal body weight in kg for the Weight screen; never coach input. */
   weightGoalKg: number | null
   setWeightGoalKg: (weightGoalKg: number | null) => void
+  commute: Commute | null
+  setCommute: (commute: Commute | null) => void
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -37,6 +40,11 @@ export const useThemeStore = create<ThemeState>()(
       setFoodGoalKcal: (foodGoalKcal) => set({ foodGoalKcal }),
       weightGoalKg: null,
       setWeightGoalKg: (weightGoalKg) => set({ weightGoalKg }),
+      commute: null,
+      setCommute: (commute) =>
+        set({
+          commute: commute === null ? null : commuteSchema.parse(commute),
+        }),
     }),
     {
       name: 'theme-preference',

@@ -18,6 +18,50 @@ and its actual measurement date/time directly to Apple Health.
 
 ## Capabilities and constraints
 
+- **Today** is the first Home pager page for the current day. Swipe to the
+  next page for the existing goal tiles; historical days keep their goal pages.
+  The reference-style dot grid summarizes the existing Steps and Gym priorities,
+  not an invented score for every habit. Activity summaries distinguish Health
+  readings, on-device logs, ephemeral timers and activities that are not measured.
+  The **Steps + Gym** percentage, goal badge and dot-grid card remain unchanged.
+  A Calendar-driven agenda groups the day into **Morning**, **Afternoon** and
+  **Night**, with **Anytime** for undated, overdue and all-day items. It suggests
+  activities in genuine Calendar gaps rather than presenting a generic to-do
+  list. Secondary readings stay under **Activity**; refresh and privacy details
+  are disclosed. Actual connection failures, urgent reminder counts and missing
+  commute coverage stay visible.
+- On native 1.0.20+ iOS 17+ builds, Today reads Apple Calendar and eligible
+  incomplete and completed-today Apple Reminders after separate explicit
+  permission requests. Calendar events, reserved work, commute times and
+  suggested activities are read-only rows. Only actual Reminders have
+  checkboxes: an explicit tap can complete or uncomplete an existing reminder
+  after native authorization, writable-calendar and saved-state checks.
+  There is no optimistic completion, task creation, deletion or editing of
+  titles/dates. Urgency means overdue, due within an hour, or high priority;
+  completed reminders are never urgent. Alerts are on-screen only, not
+  background notifications or email scanning.
+- The day plan reserves weekday work (09:00–17:00 by default), Calendar events,
+  and available HSL commute times. Activity proposals must fit remaining open
+  blocks between 07:00 and 22:00, never overlap busy time or create a booking,
+  and always say **Suggested**. At most three are proposed, prioritizing urgent
+  reminder review (15 minutes), unfinished Gym (45 minutes), a short walk
+  (15 minutes, only with measured steps below target), then focus (25 minutes,
+  unless Deep Work is active). These are proposed time budgets, not measured
+  durations or new goals. No timed activity is proposed without Calendar access;
+  all-day events are busy. Event-location travel is not calculated; missing
+  Calendar or transit inputs are disclosed.
+- The user-approved commute preferences (home/work stations, work hours and
+  walking estimates) stay in the device's preference store. A personal
+  Digitransit key stays in device-only iOS Keychain and is removable in setup.
+  Only station searches, selected station coordinates and journey times are sent
+  to HSL's routing API. Calendar, Reminders and Health are never sent to it.
+  HSL metro routing distinguishes live predictions from timetable-only results
+  and refreshes every minute while Today is active. It needs a valid API key;
+  no journeys are fabricated when HSL is unavailable.
+- More/less-time suggestions are rule-based and evidence-limited, not a tracked
+  account of how every hour was spent. Planner readings remain in memory,
+  separate from the on-device Health coach. There is still no backend or login.
+
 - Home, Steps, Coach, and Settings share a date-aware navigation stack;
   Achievements covers the past year. There is no tab bar, account, or backend.
 - **Add weight** beside Morning weight opens an ephemeral kilograms/date/time
