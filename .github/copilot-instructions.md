@@ -361,6 +361,20 @@ This project targets **iOS as the primary platform**.
 - Keep tester-army/e2e (`e2e/`) as the only native E2E Adapter: the pinned iPhone 17 Pro simulator with a dev client built for the current app version, run locally or before a release, not in PR CI. Release checks use deterministic `expect` steps. Agent steps need `bunx e2e login github-copilot` and send the screen to the model provider, so never run them where real Health data is visible or target a physical iPhone. Android flows are not maintained (Android is best-effort).
 - Pre-commit hooks (Husky + lint-staged) auto-run ESLint `--fix` on staged `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs` files.
 
+### Developer evaluations
+
+- Follow `evals/README.md` for fixed synthetic cases, reviewed workflow evidence,
+  and before/after comparisons. Skill-format validation is not a behavioral eval.
+- `/dev-ai-evals` is development-only: synthetic inputs and ephemeral results,
+  no Health reads/writes, personal stores, photos, network, or automatic runs.
+  Unsupported devices must report blocked, never substitute mock model output.
+- Schema checks do not establish factual or nutritional accuracy. Keep semantic
+  review explicit; mocked Jest tests do not qualify the actual Apple model.
+- Record source revision and native/OS context with results, keep raw reports
+  out of Git, and never upload real Health data or private session transcripts.
+- Use bounded repair attempts and unchanged acceptance criteria. Escalate
+  missing evidence instead of relabeling blocked or unreviewed work as passed.
+
 ## Issue and Debugging Hygiene
 
 When creating upstream Expo issues or internal bug reports, include:

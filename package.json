@@ -21,9 +21,10 @@
     "typecheck": "tsc --noEmit",
     "check:dead-code": "bunx knip --no-progress",
     "validate:ai-artifacts": "bun run scripts/validate-ai-artifacts.ts",
+    "eval:workflows": "bun run scripts/evaluate-workflows.ts",
     "expo:check": "bunx expo install --check",
     "expo:doctor": "bunx expo-doctor@latest",
-    "quality:pr": "bun run expo:check && bun run expo:doctor && bun run lint && bun run typecheck && bun run test:unit -- --runInBand --no-watchman",
+    "quality:pr": "bun run expo:check && bun run expo:doctor && bun run validate:ai-artifacts && bun run lint && bun run typecheck && bun run test:unit -- --runInBand --no-watchman --bail",
     "worktree:cleanup": "bash scripts/cleanup-merged-worktrees.sh",
     "prepare": "husky"
   },

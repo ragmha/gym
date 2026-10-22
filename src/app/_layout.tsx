@@ -90,6 +90,12 @@ export default function RootLayout() {
             />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
             <Stack.Screen name="insights" options={{ headerShown: false }} />
+            {__DEV__ ? (
+              <Stack.Screen
+                name="dev-ai-evals"
+                options={{ title: 'AI evaluations', headerShown: true }}
+              />
+            ) : null}
             <Stack.Screen
               name="phone-rest"
               options={{ title: 'Phone rest', headerShown: true }}

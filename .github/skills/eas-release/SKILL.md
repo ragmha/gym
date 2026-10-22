@@ -7,34 +7,53 @@ description: 'Guides safe Expo EAS releases for this app, choosing OTA updates v
 
 ## Quick start
 
-Don't classify changes by hand. Open a PR to `main`. The `preview` workflow's **PR Quality Gates** job fingerprints the native layer with `@expo/fingerprint`. Its run summary shows **Release path: OTA update** or **Release path: native build**.
+For status-only questions use `ship-status`; do not publish to answer them.
+For an authorized release, inspect the PR to `main` and the `preview` workflow's
+**PR Quality Gates** job. It fingerprints the native layer with
+`@expo/fingerprint` and reports **Release path: OTA update** or
+**Release path: native build**. Missing/failed detector evidence blocks release.
 
-- **OTA update:** the PR gets an iOS preview update on branch `pr-<number>`. When merged, `update.yml` publishes to the `production` channel.
-- **Native build:** bump `version` in both `app.json` and `package.json` (the job fails without it). When merged, `update.yml` calls `build.yml` and auto-submits to TestFlight.
+- **OTA update:** eligible same-repository PRs get an iOS preview on
+  `pr-<number>`; guarded `update.yml` publishes to `production` after merge.
+- **Native build:** bump `version` in both `app.json` and `package.json`.
+  Skip preview OTA; guarded `update.yml` calls `build.yml` for a new iOS binary
+  and automatic submission. Submission does not prove TestFlight availability.
+
+Use installed global `eas-update` / `eas-app-stores` for generic API mechanics,
+but retain Gym's guarded workflow ownership; do not vendor those skills.
 
 ## Workflow
 
-1. Expect a native build for native dependencies, config plugins, or native `app.json` fields. JS, UI, and assets ship as OTA. The fingerprint job is the authority, not this list.
-2. Keep `runtimeVersion` on the `appVersion` policy so OTA updates never reach incompatible binaries.
-3. Publish only through the fingerprint-gated workflows. Do not run `eas update` by hand; it bypasses the guard.
-4. Batch native changes to keep most merges on the fast OTA path. Prioritize iOS, keep web unaffected, and treat Android as best-effort.
-5. Monitor EAS build/update output and roll back or republish if production health regresses.
+1. Expect a new binary for native code/dependencies/config, including patches
+   and removals. Verify candidate/baseline SHAs, fingerprints, and runtime
+   isolation in the actual run, not a hand-classified list or another green run.
+2. Keep `runtimeVersion` on the `appVersion` policy with a higher, matching app
+   version for native changes. Build numbers alone do not isolate runtimes.
+   JS-only follow-ups still require that compatible binary to be installed.
+3. Publish only through fingerprint-gated workflows; do not run `eas update`
+   by hand. Honor production-readiness/distribution restrictions, signing,
+   entitlements, and `build.yml`'s guarded automatic-submission path.
+4. Before promotion, record the known-good commit/update group, channel,
+   runtime, and native build. For a regression, stop further promotion and
+   recover through the approved release path to a compatible known-good update
+   or native fix. An OTA rollback cannot undo native incompatibility.
+5. Verify update IDs/runtime/channel, build completion, submission, processing,
+   and tester availability separately. Report installed version/build/running
+   update only from device evidence; a workflow's intent is not delivery.
 
 ## Validation
 
-Run before release changes merge:
+Wrap pre-merge checks with global `stay-sharp`'s `run_silent`:
 
 ```bash
-bun run lint
-bun run typecheck
-bunx expo-doctor@latest
+run_silent "lint" "bun run lint"
+run_silent "typecheck" "bun run typecheck"
+run_silent "Expo Doctor" "bunx expo-doctor@latest"
 ```
 
-Verify the release path matches the change type and that required workflow secrets are present without printing token values.
-
-## Guardrails
-
-- Never ship native dependency or config-plugin changes with OTA only.
-- Do not push directly to `main`; releases must come from reviewed PRs.
-- Do not commit EAS, Apple, Google, or Supabase secrets.
-- Keep release automation aligned with Bun, Expo SDK 55, and the existing GitHub workflow files.
+Verify the release path against exact run evidence and secret presence without
+printing tokens. Keep releases behind reviewed PRs, never direct pushes to
+`main`, and never commit credentials. Prioritize iOS, keep web unaffected, and
+treat Android as best-effort. Keep Bun/Expo SDK 55 and existing workflows aligned.
+Follow `evals/README.md` for synthetic release/status cases; structural skill
+validation and simulator smoke tests do not prove installed-binary delivery.

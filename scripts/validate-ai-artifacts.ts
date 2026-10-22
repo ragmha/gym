@@ -54,6 +54,7 @@ const requiredSkills: RequiredSkill[] = [
       'READ_PERMISSIONS',
       'bodyMassWriter',
       'waterWriter',
+      'foodWriter',
       'native saved sample',
     ],
   },
@@ -61,6 +62,11 @@ const requiredSkills: RequiredSkill[] = [
     name: 'ui-change',
     requiredTerms: ['DESIGN.md', 'useTheme', 'Reduce Motion', '48pt'],
   },
+  { name: 'ship-status', requiredTerms: [] },
+  { name: 'scope-exception', requiredTerms: [] },
+  { name: 'native-feature', requiredTerms: [] },
+  { name: 'ios-dev-loop', requiredTerms: [] },
+  { name: 'e2e-smoke', requiredTerms: [] },
 ]
 
 const requiredAgents: RequiredAgent[] = [

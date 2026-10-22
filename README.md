@@ -99,6 +99,12 @@ The planner's native date and reminder-boundary checks run without a simulator:
 swiftc modules/day-planner/ios/PlannerValues.swift modules/day-planner/Tests/main.swift -o /tmp/gym-day-planner-check && /tmp/gym-day-planner-check
 ```
 
+## Developer evaluations
+
+See [evaluation cases and run instructions](evals/README.md) for synthetic
+on-device AI evaluations and evidence-based coding-agent comparisons. They use
+the existing development build and Bun/Jest tooling, not a cloud AI service.
+
 ## License
 
 [PolyForm Noncommercial 1.0.0](LICENSE.md): free for noncommercial use.

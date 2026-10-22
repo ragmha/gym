@@ -6,6 +6,7 @@ import {
   generateValidatedJson,
 } from '@/lib/coach/appleFMAdapter'
 import {
+  buildMealEstimateRequest,
   estimateMealPhoto,
   mealEstimateSchema,
   photoTime,
@@ -64,6 +65,41 @@ beforeEach(() => {
 })
 
 afterEach(() => jest.useRealTimers())
+
+describe('buildMealEstimateRequest', () => {
+  it('preserves the exact production prompt, retry, structure, and schema', () => {
+    expect(buildMealEstimateRequest(pizzaLabels)).toEqual({
+      system:
+        'You estimate nutrition for one meal from labels an on-device image classifier gave its photo. Labels can be generic or partly wrong, so rely on the most specific food labels. Assume one typical adult serving of what is shown. Reply only with JSON.',
+      prompt:
+        'Photo labels with confidence: food 86%, pizza 85%, baked goods 40%.\nName the meal in 4 words or fewer and estimate its total kcal and its protein, carbohydrate and fat grams.',
+      retryInstruction:
+        'Return ONLY valid JSON matching {"name":"string","kcal":integer,"proteinGrams":integer,"carbsGrams":integer,"fatGrams":integer}.',
+      schema: mealEstimateSchema,
+      structure: {
+        name: { type: 'string', description: 'Short meal name, 4 words max' },
+        kcal: { type: 'integer', description: 'Total kcal for one serving' },
+        proteinGrams: {
+          type: 'integer',
+          description: 'Total protein grams for one serving',
+        },
+        carbsGrams: {
+          type: 'integer',
+          description: 'Total carbohydrate grams for one serving',
+        },
+        fatGrams: {
+          type: 'integer',
+          description: 'Total fat grams for one serving',
+        },
+      },
+      label: 'meal estimate',
+    })
+    expect(mockClassify).not.toHaveBeenCalled()
+    expect(picker.launchCameraAsync).not.toHaveBeenCalled()
+    expect(picker.launchImageLibraryAsync).not.toHaveBeenCalled()
+    expect(generateValidatedJson).not.toHaveBeenCalled()
+  })
+})
 
 describe('photoTime', () => {
   const now = new Date(Date.UTC(2026, 9, 19))
@@ -178,6 +214,7 @@ describe('estimateMealPhoto', () => {
     })
     expect(mockClassify).toHaveBeenCalledWith('file:///cache/meal.jpg')
     const [request] = jest.mocked(generateValidatedJson).mock.calls[0]
+    expect(request).toEqual(buildMealEstimateRequest(pizzaLabels))
     expect(request.prompt).toContain('food 86%, pizza 85%, baked goods 40%')
     expect(request.schema).toBe(mealEstimateSchema)
   })
