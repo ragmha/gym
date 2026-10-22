@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.19",
+    "version": "1.0.20",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "io.raghib.gym",
@@ -17,7 +17,9 @@
       "bundleIdentifier": "io.raghib.gym",
       "buildNumber": "3",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCalendarsFullAccessUsageDescription": "Read today's Apple Calendar events on this device to suggest open time around your day. gym never creates or changes calendar events.",
+        "NSRemindersFullAccessUsageDescription": "Show your Apple Reminders on this device and save completion changes only when you tap a task's checkbox."
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,

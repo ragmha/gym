@@ -5,6 +5,7 @@ import React, {
   useImperativeHandle,
   useRef,
   useState,
+  type ReactNode,
   type Ref,
 } from 'react'
 import {
@@ -361,6 +362,24 @@ function buildTiles(
   ]
 }
 
+export function summarizeHomeGoals(
+  snapshot: DailyHealthSnapshot | null,
+  date: Date,
+  liftLogged: boolean,
+) {
+  const goals = buildTiles(snapshot, date, liftLogged, null).filter(
+    (tile) => tile.done !== null,
+  )
+  return {
+    done: goals.filter((tile) => tile.done).length,
+    total: goals.length,
+    progress: goals.every((tile) => tile.progress === null)
+      ? null
+      : goals.reduce((sum, tile) => sum + (tile.progress ?? 0), 0) /
+        goals.length,
+  }
+}
+
 export function GoalSummary({
   snapshot,
   date,
@@ -564,6 +583,7 @@ export function GoalGrid({
   onPageChange,
   editing = false,
   onEdit = () => {},
+  leadingPage,
 }: {
   snapshot: DailyHealthSnapshot | null
   date: Date
@@ -574,6 +594,7 @@ export function GoalGrid({
   /** iPhone-style edit mode: tiles wiggle and taps don't open them. */
   editing?: boolean
   onEdit?: () => void
+  leadingPage?: (active: boolean) => ReactNode
 }) {
   const theme = useTheme()
   const router = useRouter()
@@ -592,7 +613,9 @@ export function GoalGrid({
   const [layout, setLayout] = useState({ width: 0, height: 0 })
   const [page, setPage] = useState(0)
   const pager = useRef<ScrollView>(null)
-  const pageCount = Math.ceil(tiles.length / 6)
+  const tilePageCount = Math.ceil(tiles.length / 6)
+  const offset = leadingPage ? 1 : 0
+  const pageCount = tilePageCount + offset
   const tileSize = Math.max(
     0,
     Math.min(
@@ -618,6 +641,7 @@ export function GoalGrid({
   }, [page, pageCount, onPageChange])
 
   const showPage = (index: number) => {
+    if (index < 0 || index >= pageCount) return
     setPage(index)
     pager.current?.scrollTo({
       x: layout.width * index,
@@ -646,7 +670,7 @@ export function GoalGrid({
     const contentX = pageIndex * layout.width + x
     const target = Math.max(
       0,
-      Math.min(pageCount - 1, Math.floor(contentX / layout.width)),
+      Math.min(tilePageCount - 1, Math.floor(contentX / layout.width)),
     )
     const col = contentX - target * layout.width < layout.width / 2 ? 0 : 1
     const row = Math.max(0, Math.min(2, Math.floor(y / (layout.height / 3))))
@@ -663,7 +687,7 @@ export function GoalGrid({
         const now = Date.now()
         if (
           step !== 0 &&
-          page + step >= 0 &&
+          page + step >= offset &&
           page + step < pageCount &&
           now - flippedAt.current > FLIP_COOLDOWN_MS
         ) {
@@ -713,16 +737,29 @@ export function GoalGrid({
             }
           }}
         >
-          {Array.from({ length: pageCount }, (_, pageIndex) => (
+          {leadingPage && (
+            <View
+              testID="today-page"
+              style={layout}
+              accessibilityElementsHidden={page !== 0}
+              importantForAccessibility={
+                page === 0 ? 'auto' : 'no-hide-descendants'
+              }
+              aria-hidden={page !== 0}
+            >
+              {leadingPage(page === 0)}
+            </View>
+          )}
+          {Array.from({ length: tilePageCount }, (_, pageIndex) => (
             <GestureDetector key={pageIndex} gesture={dragGesture(pageIndex)}>
               <View
                 testID={`goal-page-${pageIndex + 1}`}
                 style={[styles.grid, layout]}
-                accessibilityElementsHidden={pageIndex !== page}
+                accessibilityElementsHidden={pageIndex + offset !== page}
                 importantForAccessibility={
-                  pageIndex === page ? 'auto' : 'no-hide-descendants'
+                  pageIndex + offset === page ? 'auto' : 'no-hide-descendants'
                 }
-                aria-hidden={pageIndex !== page}
+                aria-hidden={pageIndex + offset !== page}
               >
                 {tiles
                   .slice(pageIndex * 6, (pageIndex + 1) * 6)
@@ -747,8 +784,8 @@ export function GoalGrid({
                           at !== index && { transform: shift(index, at) },
                         ]}
                         {...moveActions(index, tile.label, (to) => {
-                          if (Math.floor(to / 6) !== page) {
-                            showPage(Math.floor(to / 6))
+                          if (Math.floor(to / 6) + offset !== page) {
+                            showPage(Math.floor(to / 6) + offset)
                           }
                         })}
                         accessibilityRole={tile.url ? 'link' : 'button'}
@@ -764,7 +801,7 @@ export function GoalGrid({
                                 : `${tile.done ? 'Goal met' : 'Goal not met'} (${percent}%)`),
                         }}
                         disabled={!tile.url && !tile.route && !tile.onPress}
-                        tabIndex={pageIndex === page ? 0 : -1}
+                        tabIndex={pageIndex + offset === page ? 0 : -1}
                         accessibilityState={{
                           disabled: !tile.url && !tile.route && !tile.onPress,
                         }}

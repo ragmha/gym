@@ -46,6 +46,17 @@ function focusHome(): void {
   focusCleanup = callback()
 }
 
+function selectGoalPage(page: 1 | 2 = 1): void {
+  const hasToday = screen.queryByRole('button', {
+    name: 'Show dashboard page 3 of 3',
+  })
+  fireEvent.press(
+    screen.getByRole('button', {
+      name: `Show dashboard page ${page + (hasToday ? 1 : 0)} of ${hasToday ? 3 : 2}`,
+    }),
+  )
+}
+
 jest.mock('@/hooks/useHealthSnapshot', () => ({
   useHealthSnapshot: jest.fn(() => mockState),
 }))
@@ -121,7 +132,7 @@ describe('HomeScreen', () => {
   })
 
   afterEach(() => {
-    focusCleanup?.()
+    act(() => focusCleanup?.())
     jest.useRealTimers()
     if (originalAppState) {
       Object.defineProperty(AppState, 'currentState', originalAppState)
@@ -137,6 +148,7 @@ describe('HomeScreen', () => {
 
   it('shows the daily priorities and habit links, with other metrics behind their route', () => {
     render(<HomeScreen />)
+    selectGoalPage()
 
     expect(screen.queryByText(/Recovery/i)).toBeNull()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
@@ -154,14 +166,64 @@ describe('HomeScreen', () => {
     expect(screen.queryByText('Morning weight')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Previous week' })).toBeNull()
     expect(screen.queryByText('More health data')).toBeNull()
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
-    )
+    selectGoalPage(2)
     expect(screen.getByText('Speaking')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: 'See achievements' }),
     ).toBeTruthy()
   })
+
+  it('opens Today first and keeps both goal pages and Gym reachable', () => {
+    render(<HomeScreen />)
+
+    expect(screen.getByTestId('today-content')).toBeVisible()
+    expect(screen.getByRole('header', { name: 'Steps + Gym' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+    ).toBeSelected()
+    expect(screen.queryByLabelText('Steps 5,000')).toBeNull()
+    fireEvent.press(screen.getByRole('button', { name: 'Open Gym' }))
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/gym',
+      params: { date: '2026-09-12' },
+    })
+
+    selectGoalPage()
+    expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Open Gym' })).toBeNull()
+    selectGoalPage(2)
+    expect(screen.getByText('Speaking')).toBeTruthy()
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+    )
+    expect(screen.getByRole('button', { name: 'Open Gym' })).toBeTruthy()
+  })
+
+  it.each([
+    { date: '2026-09-12', count: 3, today: true },
+    { date: '2026-09-11', count: 2, today: false },
+  ])(
+    'shows $count pages for the explicitly selected $date',
+    ({ date, count, today }) => {
+      mockInitialParams = { date }
+      render(<HomeScreen />)
+
+      expect(
+        screen.getByRole('button', {
+          name: `Show dashboard page 1 of ${count}`,
+        }),
+      ).toBeSelected()
+      expect(
+        screen.queryByRole('header', { name: 'Steps + Gym' }) !== null,
+      ).toBe(today)
+      if (!today) {
+        expect(screen.queryByTestId('today-content')).toBeNull()
+        expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
+        selectGoalPage(2)
+        expect(screen.getByText('Speaking')).toBeTruthy()
+      }
+    },
+  )
 
   it('publishes current-day readings but not demo data, loading data, or historical days', () => {
     const view = render(<HomeScreen />)
@@ -188,11 +250,12 @@ describe('HomeScreen', () => {
     jest.mocked(publishDailySummary).mockClear()
 
     jest.setSystemTime(new Date(2026, 8, 13, 0, 15))
-    const onStateChange = listen.mock.calls.find(
-      ([event]) => event === 'change',
-    )?.[1]
-    expect(onStateChange).toBeDefined()
-    act(() => onStateChange?.('active'))
+    expect(listen.mock.calls.some(([event]) => event === 'change')).toBe(true)
+    act(() => {
+      for (const [event, onChange] of listen.mock.calls) {
+        if (event === 'change') onChange('active')
+      }
+    })
 
     expect(jest.mocked(useHealthSnapshot).mock.lastCall?.[0]).toEqual(
       new Date(2026, 8, 13, 0, 15),
@@ -238,6 +301,7 @@ describe('HomeScreen', () => {
       )
     render(<HomeScreen />)
     expect(screen.getByRole('alert')).toBeTruthy()
+    selectGoalPage()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
   })
 
@@ -254,6 +318,7 @@ describe('HomeScreen', () => {
       }),
     }
     render(<HomeScreen />)
+    selectGoalPage()
 
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
     expect(screen.queryByText('Sleep')).toBeNull()
@@ -269,6 +334,7 @@ describe('HomeScreen', () => {
       snapshot: makeSnapshot({ steps: 0, calories: 0, sleepHours: null }),
     }
     render(<HomeScreen />)
+    selectGoalPage()
 
     expect(screen.getByLabelText('Steps 0')).toBeTruthy()
     expect(
@@ -281,6 +347,7 @@ describe('HomeScreen', () => {
 
   it('shows the morning weigh-in without mounting the activity heatmap', () => {
     render(<HomeScreen />)
+    selectGoalPage()
 
     expect(
       screen.getByLabelText(/^Gym,.*Weight, 78\.4 kg weigh-in/),
@@ -296,9 +363,8 @@ describe('HomeScreen', () => {
         name: 'Saturday, September 12, 2026',
       }),
     ).toBeTruthy()
-    expect(screen.getAllByRole('header')).toHaveLength(1)
     expect(screen.getAllByText('Sat 12')).toHaveLength(1)
-    expect(screen.queryByText('Today')).toBeNull()
+    expect(screen.getByRole('header', { name: 'Steps + Gym' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /Choose date/ })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Previous week' })).toBeNull()
     for (const name of ['Insights', 'Open coach']) {
@@ -320,9 +386,9 @@ describe('HomeScreen', () => {
     ).toBeTruthy()
     const footer = within(screen.getByTestId('home-footer'))
     expect(footer.queryByRole('button', { name: 'Settings' })).toBeNull()
-    expect(footer.getAllByRole('button')).toHaveLength(4)
+    expect(footer.getAllByRole('button')).toHaveLength(5)
     expect(
-      footer.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+      footer.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
     ).toBeSelected()
     expect(screen.queryByText('0/2')).toBeNull()
     for (const label of ['Insights', 'Settings', 'Chat']) {
@@ -347,36 +413,52 @@ describe('HomeScreen', () => {
     fireEvent.scroll(screen.getByTestId('goal-pages'), {
       nativeEvent: {
         contentOffset: { x: 402, y: 0 },
-        contentSize: { width: 804, height: 600 },
+        contentSize: { width: 1206, height: 600 },
         layoutMeasurement: { width: 402, height: 600 },
       },
     })
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 3' }),
     ).toBeSelected()
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }).props[
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 3' }).props[
         'aria-pressed'
       ],
     ).toBe(true)
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }).props[
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }).props[
         'aria-pressed'
       ],
     ).toBe(false)
     fireEvent.press(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
     )
-    expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
+    expect(screen.getByRole('header', { name: 'Steps + Gym' })).toBeTruthy()
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
     ).toBeSelected()
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }).props[
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }).props[
         'aria-pressed'
       ],
     ).toBe(true)
 
+    mockState = {
+      ...mockState,
+      status: 'error',
+      error: 'Unable to load health data',
+    }
+    rerender(<HomeScreen />)
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+    ).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Open Gym' })).toBeTruthy()
+    mockInitialParams = { date: '2026-09-11' }
+    mockState = { ...mockState, status: 'ready', error: null }
+    rerender(<HomeScreen />)
+    expect(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+    ).toBeSelected()
     mockState = {
       ...mockState,
       status: 'error',
@@ -413,6 +495,7 @@ describe('HomeScreen', () => {
 
     mockState = { ...mockState, status: 'ready', snapshot: makeSnapshot() }
     rerender(<HomeScreen />)
+    selectGoalPage()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
   })
 
@@ -447,6 +530,7 @@ describe('HomeScreen', () => {
 
     expect(mockRefresh).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('alert')).toBeNull()
+    selectGoalPage()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
   })
 
@@ -484,13 +568,14 @@ describe('HomeScreen', () => {
 
   it('keeps an end action for a running Deep Work session after a Health error', () => {
     const { rerender } = render(<HomeScreen />)
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
-    )
+    selectGoalPage(2)
     fireEvent.press(
       screen.getByRole('button', {
         name: 'Deep work, starts a 25 minute focus block',
       }),
+    )
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
     )
     mockState = {
       ...mockState,
@@ -515,6 +600,7 @@ describe('HomeScreen', () => {
         }),
     )
     const { rerender } = render(<HomeScreen />)
+    selectGoalPage()
 
     fireEvent.press(
       screen.getByRole('button', { name: 'Reading, stops the reading timer' }),
@@ -585,9 +671,7 @@ describe('HomeScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Settings' }))
     fireEvent.press(screen.getByRole('button', { name: 'Open coach' }))
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
-    )
+    selectGoalPage(2)
     fireEvent.press(screen.getByRole('button', { name: 'See achievements' }))
 
     expect(mockPush.mock.calls).toEqual([
@@ -693,6 +777,7 @@ describe('HomeScreen', () => {
   it('keeps unavailable data honest when the fallback runs without read access', async () => {
     mockState = { ...mockState, snapshot: null }
     render(<HomeScreen />)
+    selectGoalPage()
     act(focusHome)
 
     await act(async () => focusHome())
@@ -726,6 +811,7 @@ describe('HomeScreen', () => {
       }
     })
     const { rerender } = render(<HomeScreen />)
+    selectGoalPage()
     act(focusHome)
     expect(mockRefresh).not.toHaveBeenCalled()
     await act(async () => jest.advanceTimersByTime(5 * 60_000 - 1))
@@ -756,7 +842,7 @@ describe('HomeScreen', () => {
     await act(async () => jest.advanceTimersByTime(15 * 60_000))
     expect(mockRefresh).not.toHaveBeenCalled()
 
-    focusCleanup?.()
+    act(() => focusCleanup?.())
     Object.defineProperty(AppState, 'currentState', { value: 'active' })
     await act(async () => jest.advanceTimersByTime(15 * 60_000))
     expect(mockRefresh).not.toHaveBeenCalled()
@@ -841,6 +927,7 @@ describe('HomeScreen', () => {
     (theme) => {
       mockTheme = theme
       render(<HomeScreen />)
+      selectGoalPage()
 
       const scroll = screen.getByTestId('home-screen')
       expect(StyleSheet.flatten(scroll.props.style).backgroundColor).toBe(

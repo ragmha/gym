@@ -318,6 +318,41 @@ and visible selected states; do not introduce a tab bar.
 
 ### Signature components
 
+Today is a **Calendar-led agenda**, not a generic to-do list or a wall of cards.
+Keep the user's explicitly selected **Steps + Gym** progress card unchanged:
+the same percentage, goal-count badge, 96px 10-by-10 lavender matrix, rounded
+panel and material gradient. The dots represent only Steps and Gym; Reminders
+and other habits must not acquire invented progress scores.
+
+Beneath it, follow the later minimal agenda reference: bold **Morning**,
+**Afternoon** and **Night** headings, generous separation and simple open rows.
+Use **Anytime** only for genuinely undated, overdue or all-day items, never
+invented scheduling. Actual Calendar events, reserved work and HSL journeys
+are fixed items; proposed activities fit free Calendar gaps and always say
+**Suggested**, never booked. Do not add another Up next card or duplicate Inbox.
+Calendar and proposed rows have outline icons, not completion checkboxes.
+Only native Reminders have checkboxes, with a pending state and native-confirmed
+checkmark; completed titles are muted. No optimistic completion or local task
+store. Calendar items remain read-only.
+
+Preserve the scoped `TodayColors` charcoal/lavender identity and both themes.
+The agenda uses a clean page rather than individually boxed tasks. A local-time
+greeting remains; the Home header already supplies the date. Secondary readings
+live under **Activity**, retaining the four-reading bento and **All activities**
+expansion without competing with the agenda. Steps and Sleep use lavender fills;
+Active energy and Water are neutral. No invented charts or measurements.
+Connection permissions, commute setup, refresh and provenance stay available
+through clearly named disclosures, not default explanatory paragraphs.
+Actual read/save/routing errors, urgent reminder counts and missing/partial
+commute coverage remain visible. Preserve leave-by and Live/Timetable semantics.
+
+Today scrolls vertically inside the existing current-day Home pager; goal pages
+still follow horizontally and retain their red completion treatment. Historical
+Home behavior is unchanged. Keep outline icons, 48pt controls, scalable labels
+and `--` for unavailable readings. At large text sizes, stack readings and
+metadata instead of squeezing columns. All disclosure and pending states are
+ephemeral; no Calendar/Reminders content is persisted or sent to the Health coach.
+
 - **Goal tile:** SVG outline, upward progress fill, solid red completion, and a short completion bounce.
 - **Tile badge:** Outline play or stop glyph in a goal tile's top-right corner when a tap starts or stops a timer.
 - **Gym tile:** Reuses the goal-tile treatment with restrained uppercase SpaceMono captions.

@@ -1,0 +1,6 @@
+{
+  "name": "day-planner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local EventKit planner with read-only Calendar, explicit Reminders completion and device-only transit credential storage."
+}

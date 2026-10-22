@@ -8,16 +8,13 @@ import { useThemeStore } from '@/stores/ThemeStore'
  */
 export function useColorScheme(): 'light' | 'dark' {
   const preference = useThemeStore((s) => s.preference)
-  const [systemScheme, setSystemScheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') return 'light'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light'
-  })
+  // Match the static HTML first, then resolve this device's appearance.
+  const [systemScheme, setSystemScheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    setSystemScheme(mq.matches ? 'dark' : 'light')
     const handler = (e: MediaQueryListEvent) =>
       setSystemScheme(e.matches ? 'dark' : 'light')
     mq.addEventListener('change', handler)

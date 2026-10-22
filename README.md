@@ -58,6 +58,47 @@ after one hour or local midnight, whichever comes first; this is display expiry,
 not guaranteed storage deletion. The app does not fetch Health data in the
 background.
 
+### Today planner (iOS)
+
+Native version **1.0.20** provides Today as the first Home page; the existing goal
+tiles remain on the following pages. Today summarizes measured activity and
+on-device logs, then proposes an agenda around Apple Calendar, weekday work
+and an optional metro commute. Morning, Afternoon and Night group the plan;
+undated, overdue and all-day items stay under Anytime. Suggested activities
+fit open gaps and are not Calendar bookings. Secondary readings are expandable.
+Apple Reminders supplies tasks, not email.
+
+Calendar and Reminders require **a new iOS 17+ development/native build**, not
+an OTA to 1.0.19 or Expo Go. The new Reminders completion boundary and updated
+permission-purpose text require this isolated runtime. Tap each Connect action
+to request access. Calendar stays read-only. Reminders checkbox taps alone
+can complete or uncomplete existing tasks, after native authorization and save
+confirmation; there is no creation, deletion or title/date editing. The app
+reads eligible incomplete tasks and tasks actually completed today.
+Those readings stay in memory on the phone and
+never become Health coach context. Web/Android show explicitly unavailable
+connections rather than sample events or transit departures.
+
+For metro times, open **Commute setup** and save your own
+[Digitransit subscription key](https://portal-api.digitransit.fi/) into the
+iPhone's device-only Keychain. Search and select home/work stations, confirm
+work hours and walking estimates, then save the local preferences. No key is
+bundled in the app or stored in AsyncStorage. Both the key and commute
+preferences can be removed in setup. Only station searches, station coordinates
+and journey times go to HSL. Routing uses the current HSL v2 API, metro-only,
+with walking time; schedules are not claimed to be live predictions.
+
+Work hours use the device's local timezone and Monday–Friday schedule; review
+them when travelling or changing work patterns. Suggestions do not write
+bookings, estimate travel to calendar event locations, send background alerts,
+or infer unmeasured reading, prayer, journaling or screen time.
+
+The planner's native date and reminder-boundary checks run without a simulator:
+
+```bash
+swiftc modules/day-planner/ios/PlannerValues.swift modules/day-planner/Tests/main.swift -o /tmp/gym-day-planner-check && /tmp/gym-day-planner-check
+```
+
 ## License
 
 [PolyForm Noncommercial 1.0.0](LICENSE.md): free for noncommercial use.

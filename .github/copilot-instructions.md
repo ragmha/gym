@@ -28,7 +28,7 @@ HealthKit.
 Each lifting exercise's info sheet fetches a reference demo (animation, muscles,
 steps) from ExerciseDB only on tap, using a curated ID in `exerciseMedia.json`.
 That read-only lookup sends only the ID, stores nothing, and is not coach input;
-it is the app's only in-app network lookup, and media must not be bundled.
+media must not be bundled.
 The lifting workout screen also has an optional iOS Spotify App Remote: only
 after the user connects, it displays the current track and album art and offers
 playback controls. Opening the music sheet loads Spotify's recent/recommended
@@ -37,7 +37,8 @@ This is not full-library access and must not silently add Web API calls/scopes.
 Spotify handles authorization and playback. Artwork is held in memory and the
 SDK's temporary image files are deleted after loading, including stale requests.
 Do not persist Spotify track/session data, write it to Health, or give it to the
-coach. Web and Android only open Spotify.
+coach. Web and Android only open Spotify. The separate user-approved HSL
+routing lookup is described below.
 The Lifting rest timer between sets is ephemeral screen state: a rule-based
 target (`restSeconds` in `rest.ts`, 2:00 default) adjustable by ±15 s. It is
 never persisted, written to Health, or used as coach input.
@@ -86,6 +87,22 @@ current block in a silent `DeepWorkActivity` Live Activity
 (`src/lib/deepWorkActivity.tsx`); other platforms run it in-app only. The
 session lives in memory only: no persistence, notifications, Health writes, or
 coach input.
+The user approved a Today planner as the first current-day Home pager page.
+Its native `DayPlanner` module reads Apple Calendar and eligible incomplete
+and completed-today Apple Reminders after explicit, separate permission requests.
+Calendar stays read-only. The user approved one narrow Reminders write:
+an explicit checkbox tap may complete or uncomplete that existing reminder.
+Require full authorization, a writable calendar and a confirmed native save;
+never create, delete or edit reminder titles, dates or other fields.
+Readings and Calendar-driven activity suggestions stay in memory,
+never enter Health, the App Group, or the Health coach. Alerts are on-screen
+only. Commute preferences (home/work stations, work hours and walking minutes)
+are approved device-local fields in ThemeStore. The user's Digitransit key
+belongs only in device-only Keychain, never AsyncStorage or bundled config.
+HSL receives only station searches, selected station coordinates and journey
+times; never Calendar, Reminders, Health or log data. Transit requires a real
+successful response, not an invented departure. Native 1.0.20+ and iOS 17+
+are required for these connections; older binaries fail closed.
 No other manual-entry feature is approved.
 
 The user-approved Daily rings Home Screen widget shares only today's formatted
@@ -236,7 +253,9 @@ This project targets **iOS as the primary platform**.
 
 - `ThemeStore` persists user-approved preferences through AsyncStorage: the
   theme, the Home and Gym tile order (tile labels or ids only), the daily
-  food calorie goal (`foodGoalKcal`), and the Weight goal (`weightGoalKg`).
+  food calorie goal (`foodGoalKcal`), the Weight goal (`weightGoalKg`), and
+  the approved commute preferences
+  (stations, work hours and walking minutes). The transit key is Keychain-only.
 - `GymLogStore` is the approved on-device lifting log: programme start date and
   per-day sets, rating, and notes. Do not add Health readings to it.
 - `SpeakingLogStore` is the approved speaking post-mortem log: raw session
