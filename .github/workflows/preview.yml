@@ -44,6 +44,9 @@ jobs:
       - name: Run Expo Doctor
         run: bun run expo:doctor
 
+      - name: Validate agent artifacts
+        run: bun run validate:ai-artifacts
+
       - name: Run linter
         run: bun run lint
 
@@ -51,7 +54,7 @@ jobs:
         run: bun run typecheck
 
       - name: Run unit tests
-        run: bun run test:unit -- --runInBand --no-watchman
+        run: bun run test:unit -- --runInBand --no-watchman --bail
 
       - name: Resolve runtime anchor
         id: baseline

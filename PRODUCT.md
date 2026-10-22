@@ -13,8 +13,11 @@ review steps, recorded cardio and lifting, water, and morning weight at a glance
 Apple HealthKit is the only source of real health data. Web and Android are
 explicitly labelled, deterministic design previews. There is no Gym account or
 backend.
-The user approved one manual-entry exception: saving a confirmed body weight
-and its actual measurement date/time directly to Apple Health.
+The approved Health manual-entry exceptions are confirmed body weight at its
+actual measurement time, water for today, and a confirmed meal-photo estimate
+for today. The [canonical project policy](.github/copilot-instructions.md)
+records their exact boundaries and the separately approved on-device tools.
+These exceptions do not authorize additional forms, persistence, or Health writes.
 
 ## Capabilities and constraints
 
@@ -148,7 +151,8 @@ app has those assets, features, or measurements.
 
 - Make the five daily priorities easy to scan.
 - Read what Health already records rather than asking for duplicate entry.
-- Limit manual input to the explicitly approved Apple Health body-mass save;
-  all dashboard values continue to come back through HealthKit.
+- Limit manual input and persistence to the explicitly approved exceptions in
+  the canonical project policy; displayed Health measurements continue to come
+  back through HealthKit.
 - Keep every visible measurement and completion state traceable to its source.
 - Preserve native navigation, safe areas, and readable, scalable text.

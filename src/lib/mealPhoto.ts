@@ -75,6 +75,27 @@ const mealEstimateStructure: StructureSchema = {
   fatGrams: { type: 'integer', description: 'Total fat grams for one serving' },
 }
 
+export function buildMealEstimateRequest(
+  labels: readonly { label: string; confidence: number }[],
+) {
+  const listed = labels
+    .map(
+      ({ label, confidence }) =>
+        `${label.replace(/_/g, ' ')} ${Math.round(confidence * 100)}%`,
+    )
+    .join(', ')
+  return {
+    system:
+      'You estimate nutrition for one meal from labels an on-device image classifier gave its photo. Labels can be generic or partly wrong, so rely on the most specific food labels. Assume one typical adult serving of what is shown. Reply only with JSON.',
+    prompt: `Photo labels with confidence: ${listed}.\nName the meal in 4 words or fewer and estimate its total kcal and its protein, carbohydrate and fat grams.`,
+    retryInstruction:
+      'Return ONLY valid JSON matching {"name":"string","kcal":integer,"proteinGrams":integer,"carbsGrams":integer,"fatGrams":integer}.',
+    schema: mealEstimateSchema,
+    structure: mealEstimateStructure,
+    label: 'meal estimate',
+  }
+}
+
 /**
  * EXIF capture time. iOS flattens it to `DateTimeOriginal` plus an optional
  * `OffsetTimeOriginal`. Null when the photo has none, including EXIF's blank or
@@ -162,22 +183,7 @@ export async function estimateMealPhoto(
   if (localDateKey(eatenAt) !== localDateKey(pickedAt)) {
     throw new MealPhotoError('other-day')
   }
-  const listed = labels
-    .map(
-      ({ label, confidence }) =>
-        `${label.replace(/_/g, ' ')} ${Math.round(confidence * 100)}%`,
-    )
-    .join(', ')
-  const estimate = await generateValidatedJson({
-    system:
-      'You estimate nutrition for one meal from labels an on-device image classifier gave its photo. Labels can be generic or partly wrong, so rely on the most specific food labels. Assume one typical adult serving of what is shown. Reply only with JSON.',
-    prompt: `Photo labels with confidence: ${listed}.\nName the meal in 4 words or fewer and estimate its total kcal and its protein, carbohydrate and fat grams.`,
-    retryInstruction:
-      'Return ONLY valid JSON matching {"name":"string","kcal":integer,"proteinGrams":integer,"carbsGrams":integer,"fatGrams":integer}.',
-    schema: mealEstimateSchema,
-    structure: mealEstimateStructure,
-    label: 'meal estimate',
-  })
+  const estimate = await generateValidatedJson(buildMealEstimateRequest(labels))
   if (estimate.kcal < 1) throw new MealPhotoError('not-food')
   return { ...estimate, eatenAt }
 }
