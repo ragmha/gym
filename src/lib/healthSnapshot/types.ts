@@ -110,6 +110,13 @@ export interface HealthSnapshotSource {
   getWaterHistory(endDate: Date, days: number): Promise<DailyWaterReading[]>
   /** Workouts for `days` local days ending on `endDate`, oldest first, in one bulk query. */
   getWorkoutHistory(endDate: Date, days: number): Promise<DailyWorkouts[]>
+  /** Weigh-ins for `days` local days ending on `endDate`, oldest first, in one query. Throws when the read fails. */
+  getBodyMassHistory(
+    endDate: Date,
+    days: number,
+  ): Promise<HealthBodyMassSample[]>
+  /** Latest height in metres; null when Health has none or hides it. */
+  getHeightMeters(): Promise<number | null>
   /** Every stair session in Health, oldest first. */
   getStairWorkouts(): Promise<HealthWorkout[]>
   /** Every stair session starting on `date` with its heart rate, oldest first. */

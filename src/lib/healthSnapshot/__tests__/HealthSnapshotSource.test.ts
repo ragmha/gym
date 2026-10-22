@@ -1007,6 +1007,8 @@ describe('HealthSnapshotSource adapters', () => {
       getActivityHistory: true,
       getWaterHistory: true,
       getWorkoutHistory: true,
+      getBodyMassHistory: true,
+      getHeightMeters: true,
       getStairWorkouts: true,
       getStairSessions: true,
       subscribeToWorkoutChanges: true,
@@ -1037,6 +1039,7 @@ describe('HealthSnapshotSource adapters', () => {
         'HKQuantityTypeIdentifierDietaryWater',
         'HKQuantityTypeIdentifierFlightsClimbed',
         'HKQuantityTypeIdentifierBodyMass',
+        'HKQuantityTypeIdentifierHeight',
         'HKQuantityTypeIdentifierDietaryEnergyConsumed',
         'HKQuantityTypeIdentifierDietaryProtein',
         'HKQuantityTypeIdentifierDietaryCarbohydrates',
@@ -1114,6 +1117,10 @@ describe('HealthSnapshotSource adapters', () => {
       expect(
         iosHealthKitAdapter.subscribeToWorkoutChanges(jest.fn()),
       ).toBeNull()
+      await expect(
+        iosHealthKitAdapter.getBodyMassHistory(new Date(2026, 1, 20, 12), 14),
+      ).resolves.toEqual([])
+      await expect(iosHealthKitAdapter.getHeightMeters()).resolves.toBeNull()
 
       for (const nativeMethod of Object.values(hk)) {
         expect(nativeMethod).not.toHaveBeenCalled()
@@ -1187,6 +1194,85 @@ describe('HealthSnapshotSource adapters', () => {
     expect(warn.mock.calls).toEqual([
       ['[HealthSnapshotSource] body mass history read failed (Error)'],
     ])
+  })
+
+  it('reads long weigh-in history in one strict local window, oldest first', async () => {
+    const morning = new Date(2026, 0, 3, 7)
+    hk.queryQuantitySamples.mockResolvedValue([
+      { quantity: 80.2, startDate: morning },
+      { quantity: null, startDate: morning },
+    ])
+
+    await expect(
+      iosHealthKitAdapter.getBodyMassHistory(new Date(2026, 1, 15, 12), 182),
+    ).resolves.toEqual([{ kilograms: 80.2, startISO: morning.toISOString() }])
+    expect(hk.queryQuantitySamples).toHaveBeenCalledTimes(1)
+    expect(hk.queryQuantitySamples).toHaveBeenCalledWith(
+      'HKQuantityTypeIdentifierBodyMass',
+      {
+        limit: 0,
+        ascending: true,
+        unit: 'kg',
+        filter: {
+          date: {
+            startDate: new Date(2025, 7, 18),
+            endDate: new Date(2026, 1, 16),
+            strictStartDate: true,
+          },
+        },
+      },
+    )
+
+    hk.queryQuantitySamples.mockResolvedValue([])
+    await expect(
+      iosHealthKitAdapter.getBodyMassHistory(new Date(2026, 1, 15, 12), 14),
+    ).resolves.toEqual([])
+  })
+
+  it('rejects invalid or failed weigh-in history instead of returning partial data', async () => {
+    hk.queryQuantitySamples.mockResolvedValue([
+      { quantity: -1, startDate: new Date(2026, 1, 15, 7) },
+    ])
+    await expect(
+      iosHealthKitAdapter.getBodyMassHistory(new Date(2026, 1, 15, 12), 14),
+    ).rejects.toThrow('Invalid body mass sample')
+
+    const error = new Error('read failed')
+    hk.queryQuantitySamples.mockRejectedValue(error)
+    await expect(
+      iosHealthKitAdapter.getBodyMassHistory(new Date(2026, 1, 15, 12), 14),
+    ).rejects.toBe(error)
+  })
+
+  it('reads the latest height in metres and hides missing or invalid values', async () => {
+    hk.getMostRecentQuantitySample.mockResolvedValue({ quantity: 1.78 })
+    await expect(iosHealthKitAdapter.getHeightMeters()).resolves.toBe(1.78)
+    expect(hk.getMostRecentQuantitySample).toHaveBeenCalledWith(
+      'HKQuantityTypeIdentifierHeight',
+      'm',
+    )
+
+    for (const sample of [undefined, { quantity: 0 }, { quantity: NaN }]) {
+      hk.getMostRecentQuantitySample.mockResolvedValue(sample)
+      await expect(iosHealthKitAdapter.getHeightMeters()).resolves.toBeNull()
+    }
+  })
+
+  it('serves deterministic mock weigh-ins oldest first and a fixed height', async () => {
+    const history = await deterministicMockAdapter.getBodyMassHistory(
+      new Date(2026, 1, 15, 12),
+      30,
+    )
+    expect(history).toHaveLength(30)
+    expect(new Date(history[0].startISO)).toEqual(new Date(2026, 0, 17, 7))
+    expect(new Date(history[29].startISO)).toEqual(new Date(2026, 1, 15, 7))
+    expect(history).toEqual(
+      await deterministicMockAdapter.getBodyMassHistory(
+        new Date(2026, 1, 15, 12),
+        30,
+      ),
+    )
+    await expect(deterministicMockAdapter.getHeightMeters()).resolves.toBe(1.78)
   })
 
   it('does not round a 29:59 run up to the 30-minute goal', async () => {

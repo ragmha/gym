@@ -27,6 +27,14 @@ export const Layout = {
 } as const
 
 export const Typography = {
+  /** Weight screen hero only; see DESIGN.md "Weight screen exception". */
+  displayXl: {
+    fontSize: 88,
+    lineHeight: 96,
+    fontWeight: '800',
+    letterSpacing: -3,
+    fontVariant: ['tabular-nums'],
+  },
   displayLg: {
     fontSize: 64,
     lineHeight: 72,

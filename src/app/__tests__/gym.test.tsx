@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { FlatList } from 'react-native'
+import { FlatList, StyleSheet } from 'react-native'
+import { Rect } from 'react-native-svg'
 import { State } from 'react-native-gesture-handler'
 import {
   fireGestureHandler,
@@ -24,6 +25,7 @@ import {
   workoutKcal,
   zoneMinutes,
 } from '@/components/gym/activities'
+import { Colors } from '@/constants/Colors'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory'
 import { healthSnapshot } from '@/lib/healthSnapshot/HealthSnapshotSource'
@@ -75,7 +77,11 @@ beforeEach(() => {
   } as never)
   jest.mocked(useWorkoutHistory).mockReturnValue(null)
   useGymLogStore.setState({ programmeStart: null, logs: {} })
-  useThemeStore.setState({ gymTileOrder: [], foodGoalKcal: 2200 })
+  useThemeStore.setState({
+    gymTileOrder: [],
+    foodGoalKcal: 2200,
+    weightGoalKg: null,
+  })
 })
 
 describe('Gym hub', () => {
@@ -385,17 +391,211 @@ describe('Gym detail screens', () => {
     expect(screen.getByText(/Plan \d+ AM · \d+ PM/)).toBeTruthy()
     expect(screen.getByLabelText('Streak: --')).toBeTruthy()
   })
+})
 
-  it('shows the morning weigh-in and links to add weight', () => {
+describe('Weight screen', () => {
+  const weighIn = (day: string, kilograms: number, time = '07:00') => ({
+    kilograms,
+    startISO: `${day}T${time}:00`,
+  })
+  const history = [
+    weighIn('2026-08-01', 86),
+    weighIn('2026-10-10', 83.1),
+    weighIn('2026-10-15', 82.9),
+    weighIn('2026-10-16', 82.7),
+    weighIn('2026-10-16', 80, '19:00'),
+    weighIn('2026-10-17', 82.4),
+  ]
+  const layoutChart = () =>
+    fireEvent(screen.getByTestId('weight-chart'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 280, height: 240 } },
+    })
+
+  beforeEach(() => {
+    jest.mocked(useRouter).mockReturnValue({ push: jest.fn() } as never)
+    jest.spyOn(healthSnapshot, 'getBodyMassHistory').mockResolvedValue(history)
+    jest.spyOn(healthSnapshot, 'getHeightMeters').mockResolvedValue(null)
+  })
+
+  it('shows the latest morning weigh-in and links to add weight', async () => {
     const push = jest.fn()
     jest.mocked(useRouter).mockReturnValue({ push } as never)
     render(<WeightScreen />)
-    expect(screen.getAllByText('82.4 kg').length).toBeGreaterThan(0)
+    expect(await screen.findByTestId('weight-chart')).toBeTruthy()
+    expect(healthSnapshot.getBodyMassHistory).toHaveBeenCalledWith(
+      expect.any(Date),
+      182,
+    )
+    expect(
+      screen.getByLabelText('Latest morning weigh-in: 82.4 kg'),
+    ).toBeTruthy()
+    expect(screen.getByTestId('weight-goal-status')).toHaveTextContent(
+      'No goal set',
+    )
+    expect(screen.getByLabelText('7-day avg: 82.7')).toBeTruthy()
     fireEvent.press(screen.getByTestId('gym-add-weight'))
     expect(push).toHaveBeenCalledWith({
       pathname: '/add-weight',
       params: { date: '2026-10-17' },
     })
+  })
+
+  it('charts daily mornings for 2W and weekly averages for 3M', async () => {
+    render(<WeightScreen />)
+    await screen.findByTestId('weight-chart')
+    expect(
+      screen.getByLabelText(
+        'Morning weight, past 2 weeks: 83.1 kg to 82.4 kg, lowest 82.4 kg, highest 83.1 kg',
+      ),
+    ).toBeTruthy()
+    layoutChart()
+    const fills = () =>
+      screen.UNSAFE_getAllByType(Rect).map((rect) => rect.props.fill)
+    // Beam, four mornings (the evening weigh-in is ignored), fade.
+    expect(fills()).toHaveLength(6)
+    expect(fills()[4]).toBe(Colors.dark.text)
+
+    fireEvent.press(screen.getByRole('tab', { name: '3M' }))
+    expect(
+      screen.getByLabelText(/^Morning weight, weekly averages, past 3 months/),
+    ).toBeTruthy()
+    expect(fills()).toHaveLength(5)
+  })
+
+  it('says so when a range has no morning weigh-ins', async () => {
+    jest
+      .spyOn(healthSnapshot, 'getBodyMassHistory')
+      .mockResolvedValue([weighIn('2026-08-01', 86)])
+    render(<WeightScreen />)
+    expect(
+      await screen.findByText('No morning weigh-ins in this range'),
+    ).toBeTruthy()
+    fireEvent.press(screen.getByRole('tab', { name: '6M' }))
+    expect(screen.getByTestId('weight-chart')).toBeTruthy()
+  })
+
+  it('steps a stored goal from the current weight and tracks progress', async () => {
+    render(<WeightScreen />)
+    await screen.findByTestId('weight-chart')
+    expect(screen.getByLabelText('Start: 86.0, Aug 1')).toBeTruthy()
+
+    fireEvent.press(screen.getByLabelText('Lower goal weight'))
+    expect(useThemeStore.getState().weightGoalKg).toBe(81)
+    expect(screen.getByTestId('weight-goal-status')).toHaveTextContent(
+      '1.4 kg to goal',
+    )
+    expect(screen.getByLabelText('Goal: 81')).toBeTruthy()
+    expect(screen.getByTestId('weight-goal-progress').props).toMatchObject({
+      accessibilityValue: { now: 72 },
+    })
+    expect(screen.getByLabelText(/\. Goal 81 kg$/)).toBeTruthy()
+
+    fireEvent.press(screen.getByLabelText('Raise goal weight'))
+    fireEvent.press(screen.getByLabelText('Raise goal weight'))
+    expect(useThemeStore.getState().weightGoalKg).toBe(83)
+    expect(screen.getByTestId('weight-goal-status')).toHaveTextContent(
+      'Goal reached',
+    )
+    expect(screen.getByTestId('weight-goal-progress').props).toMatchObject({
+      accessibilityValue: { now: 100 },
+    })
+  })
+
+  it('shows BMI from Apple Health height, or how to add it', async () => {
+    jest.spyOn(healthSnapshot, 'getHeightMeters').mockResolvedValue(1.8)
+    render(<WeightScreen />)
+    expect(await screen.findByLabelText('BMI 25.4')).toBeTruthy()
+    expect(
+      screen.getByTestId('weight-bmi-marker', { includeHiddenElements: true }),
+    ).toBeTruthy()
+    expect(screen.getByText(/BMI doesn't reflect muscle mass/)).toBeTruthy()
+  })
+
+  it('treats a failed height read as missing', async () => {
+    jest
+      .spyOn(healthSnapshot, 'getHeightMeters')
+      .mockRejectedValue(new Error('denied'))
+    render(<WeightScreen />)
+    await screen.findByTestId('weight-chart')
+    expect(screen.getByLabelText('BMI unavailable')).toBeTruthy()
+    expect(
+      screen.queryByTestId('weight-bmi-marker', {
+        includeHiddenElements: true,
+      }),
+    ).toBeNull()
+    expect(
+      screen.getByText(
+        'Add your height in Apple Health, then review Health access in Settings.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('grows its text rows with Dynamic Type and keeps the goal chip on the plot', async () => {
+    // React Native's Jest setup reports a font scale of 2.
+    useThemeStore.setState({ weightGoalKg: 90 })
+    jest.spyOn(healthSnapshot, 'getHeightMeters').mockResolvedValue(1.8)
+    render(<WeightScreen />)
+    await screen.findByLabelText('BMI 25.4')
+    layoutChart()
+    const style = (testID: string) =>
+      StyleSheet.flatten(
+        screen.getByTestId(testID, { includeHiddenElements: true }).props.style,
+      )
+    expect(style('weight-chart').height).toBe(260)
+    expect(style('weight-goal-chip')).toMatchObject({ top: 0, height: 44 })
+    expect(style('weight-bmi-ticks').height).toBe(36)
+  })
+
+  it('lists the latest mornings newest first with their changes', async () => {
+    render(<WeightScreen />)
+    await screen.findByTestId('weight-chart')
+    expect(
+      screen.getByLabelText(/October 17, 7:00\sAM, 82\.4 kg, down 0\.3 kg$/),
+    ).toBeTruthy()
+    expect(
+      screen.getByLabelText(/October 10, 7:00\sAM, 83\.1 kg, down 2\.9 kg$/),
+    ).toBeTruthy()
+    expect(screen.getByLabelText(/August 1, 7:00\sAM, 86\.0 kg$/)).toBeTruthy()
+  })
+
+  it('offers a retry when the weight history cannot be read', async () => {
+    jest
+      .spyOn(healthSnapshot, 'getBodyMassHistory')
+      .mockRejectedValueOnce(new Error('unavailable'))
+    render(<WeightScreen />)
+    expect(
+      await screen.findByText('Unable to load weight history'),
+    ).toBeTruthy()
+    expect(
+      screen.getByLabelText('Latest morning weigh-in: 82.4 kg'),
+    ).toBeTruthy()
+    // The 14-day snapshot can't stand in for the six-month start.
+    expect(screen.getByLabelText(/^Start: --/)).toBeTruthy()
+    fireEvent.press(screen.getByRole('button', { name: /retry/i }))
+    expect(await screen.findByTestId('weight-chart')).toBeTruthy()
+  })
+
+  it('only says there are no weigh-ins once the history is read', async () => {
+    jest.mocked(useHealthSnapshot).mockReturnValue({
+      snapshot: { ...mockToday, bodyMassHistory: null },
+      isDemoMode: false,
+    } as never)
+    jest
+      .spyOn(healthSnapshot, 'getBodyMassHistory')
+      .mockRejectedValue(new Error('unavailable'))
+    render(<WeightScreen />)
+    expect(
+      await screen.findByText('Unable to load weight history'),
+    ).toBeTruthy()
+    expect(
+      screen.getByLabelText('Latest morning weigh-in unavailable'),
+    ).toBeTruthy()
+    expect(screen.queryByText(/^No morning weigh-ins? yet$/)).toBeNull()
+
+    jest.spyOn(healthSnapshot, 'getBodyMassHistory').mockResolvedValue([])
+    fireEvent.press(screen.getByRole('button', { name: /retry/i }))
+    expect(await screen.findByText('No morning weigh-ins yet')).toBeTruthy()
+    expect(screen.getByLabelText('No morning weigh-in yet')).toBeTruthy()
   })
 })
 
