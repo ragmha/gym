@@ -47,16 +47,18 @@ run. Repeat real model runs to expose variation.
 and stopping rules. Use the same case selection and model configuration to
 compare existing instructions with a candidate skill change.
 
-The local entry point is `bun run eval:workflows`:
+The local entry point is `bun scripts/evaluate-workflows.ts`. It is not a
+`package.json` script because scripts are part of the Expo native fingerprint,
+and adding one would force a new native build:
 
 ```bash
 mkdir -p test-results/evals
-bun run eval:workflows list
-bun run eval:workflows template --split tuning > test-results/evals/baseline.json
+bun scripts/evaluate-workflows.ts list
+bun scripts/evaluate-workflows.ts template --split tuning > test-results/evals/baseline.json
 # Execute the scenarios and fill in the template with reviewed observations.
-bun run eval:workflows grade test-results/evals/baseline.json
+bun scripts/evaluate-workflows.ts grade test-results/evals/baseline.json
 # Run the same cases with the candidate instructions; record candidate.json.
-bun run eval:workflows compare test-results/evals/baseline.json test-results/evals/candidate.json
+bun scripts/evaluate-workflows.ts compare test-results/evals/baseline.json test-results/evals/candidate.json
 ```
 
 Use `--split held-out` when creating the final evaluation template. The eight

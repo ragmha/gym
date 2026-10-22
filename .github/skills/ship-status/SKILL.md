@@ -54,6 +54,6 @@ Check a merged-but-unpublished change, a published update with an older installe
 runtime, and a successful build still processing in TestFlight. Each must retain
 its distinct unknown/blocked downstream stage rather than imply delivery.
 
-For skill behavior, follow `evals/README.md` and `bun run eval:workflows` with
+For skill behavior, follow `evals/README.md` and `bun scripts/evaluate-workflows.ts` with
 reviewed synthetic evidence. Wrap checks with global `stay-sharp`'s `run_silent`.
 `bun run validate:ai-artifacts` checks structure, not truthful status reasoning.

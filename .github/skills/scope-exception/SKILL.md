@@ -54,6 +54,6 @@ Verify “none” claims at the boundary, not merely by hiding a UI control.
 Report the approval reference, changed rules, focused tests, and remaining
 blocked scope; never label an unapproved path complete.
 
-Use `evals/README.md` and `bun run eval:workflows` for reviewed workflow cases;
+Use `evals/README.md` and `bun scripts/evaluate-workflows.ts` for reviewed workflow cases;
 wrap checks with global `stay-sharp`'s `run_silent`. Skill-format validation is
 not evidence that an agent will respect an unapproved boundary.

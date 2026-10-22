@@ -58,7 +58,7 @@ Report selected flows, each expected/observed result, command and exit status,
 attempt count, source revision/build/device, and local evidence paths. Refresh
 provenance after a repair; an old passing report cannot qualify changed code.
 
-Use `evals/README.md` and `bun run eval:workflows` to evaluate the repair/status
+Use `evals/README.md` and `bun scripts/evaluate-workflows.ts` to evaluate the repair/status
 decisions with synthetic cases. That reviewed workflow evaluation is separate
 from real simulator execution; `bun run validate:ai-artifacts` proves only skill
 structure. Keep blocked/unrun flows and physical-device qualification explicit.
