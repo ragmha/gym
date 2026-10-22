@@ -1,6 +1,7 @@
 import { useTheme } from '@react-navigation/native'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  AppState,
   Platform,
   Pressable,
   ScrollView,
@@ -27,6 +28,12 @@ import {
   type EvaluationReport,
 } from '@/lib/coach/evaluations'
 
+// States a user can fix in Settings or by waiting; the rest need a new device,
+// OS, or build, which relaunches the app anyway.
+const RECHECKABLE: ReadonlySet<EvaluationEnvironment['availability']> = new Set(
+  ['ai-disabled', 'model-not-ready', 'check-failed', 'not-checked'],
+)
+
 export default function DevAiEvalsPanel() {
   const theme = Colors[useTheme().dark ? 'dark' : 'light']
   const [split, setSplit] = useState<EvaluationSplit>('tuning')
@@ -35,28 +42,49 @@ export default function DevAiEvalsPanel() {
   )
   const [report, setReport] = useState<EvaluationReport | null>(null)
   const [busy, setBusy] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [showJson, setShowJson] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const job = useRef<EvaluationJob | null>(null)
   const mounted = useRef(true)
   const generation = useRef(0)
+  const availabilityCheck = useRef(0)
+
+  // Availability probes only; generation always waits for an explicit Run tap.
+  const checkAvailability = useCallback(() => {
+    if (job.current) return
+    const id = ++availabilityCheck.current
+    const current = () => mounted.current && id === availabilityCheck.current
+    setChecking(true)
+    void inspectEvaluationEnvironment().then(
+      (info) => {
+        if (!current()) return
+        setEnvironment(info)
+        setChecking(false)
+      },
+      () => {
+        if (current()) setChecking(false)
+      },
+    )
+  }, [])
 
   useEffect(() => {
     mounted.current = true
-    let current = true
-    void inspectEvaluationEnvironment().then((info) => {
-      if (current) setEnvironment(info)
+    checkAvailability()
+    const foreground = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkAvailability()
     })
     return () => {
-      current = false
+      foreground.remove()
       mounted.current = false
+      availabilityCheck.current += 1
       generation.current += 1
       job.current?.stop()
     }
-  }, [])
+  }, [checkAvailability])
 
   const start = () => {
-    if (job.current) return
+    if (job.current || checking) return
     const id = ++generation.current
     setBusy(true)
     setError(null)
@@ -104,7 +132,7 @@ export default function DevAiEvalsPanel() {
 
   const status =
     report?.status ??
-    (busy || !environment
+    (busy || checking || !environment
       ? 'checking'
       : environment.availability === 'available'
         ? 'ready'
@@ -113,6 +141,10 @@ export default function DevAiEvalsPanel() {
   const textStyle = [Typography.bodySm, { color: theme.text }]
   const mutedStyle = [Typography.bodySm, { color: theme.subtitleText }]
   const fixtures = AI_EVALUATION_FIXTURES.filter((item) => item.split === split)
+  const runDisabled =
+    busy || checking || environment?.availability !== 'available'
+  const canRecheck =
+    !busy && environment !== null && RECHECKABLE.has(environment.availability)
 
   return (
     <SafeAreaView
@@ -158,6 +190,18 @@ export default function DevAiEvalsPanel() {
             Apple’s model version is not exposed or pinned. Record the tested
             source commit beside any shared report.
           </Text>
+          {canRecheck ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Check availability again"
+              accessibilityState={{ disabled: checking }}
+              disabled={checking}
+              onPress={checkAvailability}
+              style={buttonStyle}
+            >
+              <Text style={textStyle}>Check availability again</Text>
+            </Pressable>
+          ) : null}
           {report?.reason ? (
             <Text style={textStyle}>{report.reason}</Text>
           ) : null}
@@ -202,10 +246,8 @@ export default function DevAiEvalsPanel() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Run ${split} evaluations`}
-          accessibilityState={{
-            disabled: busy || environment?.availability !== 'available',
-          }}
-          disabled={busy || environment?.availability !== 'available'}
+          accessibilityState={{ disabled: runDisabled }}
+          disabled={runDisabled}
           onPress={start}
           style={[...buttonStyle, { backgroundColor: theme.accentInactive }]}
         >

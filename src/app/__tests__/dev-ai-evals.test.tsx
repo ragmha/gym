@@ -1,6 +1,6 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
 import { Redirect } from 'expo-router'
-import { Platform, Share } from 'react-native'
+import { AppState, Platform, Share } from 'react-native'
 
 import DevAiEvalsRoute from '@/app/dev-ai-evals'
 import { AI_EVALUATION_FIXTURES } from '@/lib/coach/evaluationFixtures'
@@ -158,13 +158,79 @@ describe('hidden dev AI evaluation route (plumbing only)', () => {
       ).toBeTruthy()
       const run = screen.getByRole('button', { name: 'Run tuning evaluations' })
       expect(run).toBeDisabled()
+      expect(
+        screen.queryByRole('button', { name: 'Check availability again' }),
+      ).toBeNull()
       fireEvent.press(run)
       expect(start).not.toHaveBeenCalled()
       expect(Share.share).not.toHaveBeenCalled()
     },
   )
 
-  it('probes only on mount, then runs the explicitly selected split with a double-start guard', async () => {
+  it.each(['ai-disabled', 'model-not-ready', 'check-failed'] as const)(
+    'rechecks %s on an explicit tap and enables Run without generating',
+    async (availability) => {
+      inspect.mockResolvedValueOnce({ ...info, availability })
+      const screen = render(<DevAiEvalsRoute />)
+      await waitFor(() => expect(screen.getByText('BLOCKED')).toBeTruthy())
+      expect(
+        screen.getByRole('button', { name: 'Run tuning evaluations' }),
+      ).toBeDisabled()
+
+      fireEvent.press(
+        screen.getByRole('button', { name: 'Check availability again' }),
+      )
+      await waitFor(() => expect(screen.getByText('READY')).toBeTruthy())
+      expect(inspect).toHaveBeenCalledTimes(2)
+      expect(
+        screen.getByRole('button', { name: 'Run tuning evaluations' }),
+      ).toBeEnabled()
+      expect(
+        screen.queryByRole('button', { name: 'Check availability again' }),
+      ).toBeNull()
+      expect(start).not.toHaveBeenCalled()
+    },
+  )
+
+  it('rechecks availability when the app returns to the foreground', async () => {
+    const remove = jest.fn()
+    const listen = jest
+      .spyOn(AppState, 'addEventListener')
+      .mockReturnValue({ remove })
+    inspect.mockResolvedValueOnce({ ...info, availability: 'ai-disabled' })
+    const screen = render(<DevAiEvalsRoute />)
+    await waitFor(() => expect(screen.getByText('BLOCKED')).toBeTruthy())
+    const onChange = listen.mock.calls[0][1]
+
+    act(() => onChange('background'))
+    expect(inspect).toHaveBeenCalledTimes(1)
+    act(() => onChange('active'))
+    await waitFor(() => expect(screen.getByText('READY')).toBeTruthy())
+    expect(inspect).toHaveBeenCalledTimes(2)
+    expect(start).not.toHaveBeenCalled()
+
+    screen.unmount()
+    expect(remove).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not recheck availability while an evaluation is running', async () => {
+    const pending = pendingJob()
+    start.mockReturnValue(pending)
+    const listen = jest.spyOn(AppState, 'addEventListener')
+    const screen = render(<DevAiEvalsRoute />)
+    await waitFor(() => expect(screen.getByText('READY')).toBeTruthy())
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Run tuning evaluations' }),
+    )
+    act(() => listen.mock.calls[0][1]('active'))
+    expect(inspect).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      pending.resolve(completedReport())
+      await pending.done
+    })
+  })
+
+  it('probes availability without generating, then runs the explicitly selected split with a double-start guard', async () => {
     const pending = pendingJob()
     start.mockReturnValue(pending)
     const screen = render(<DevAiEvalsRoute />)

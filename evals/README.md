@@ -23,6 +23,8 @@ from the dashboard. It never reads Health, opens photos, or saves samples.
 Run the tuning cases while developing prompts; reserve held-out cases for the
 final comparison. Missing Apple Intelligence, an unsupported platform, and an
 unready model are **blocked**, not passes. Do not substitute the mock engine.
+After enabling Apple Intelligence or waiting for the model, return to the app
+or tap **Check availability again**; the panel rechecks but never starts a run.
 Web can verify the unsupported-platform UI, not Apple model quality.
 
 Review the returned synthetic output as well as objective checks. Valid JSON,
