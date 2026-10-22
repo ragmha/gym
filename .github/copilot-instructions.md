@@ -367,6 +367,7 @@ This project targets **iOS as the primary platform**.
 ## Build and Testing Expectations
 
 - Use development builds for production-grade app workflows; do not rely solely on Expo Go.
+- Evidence belongs to a commit: a PR description states the verified commit SHA and the `bun run quality:pr` result for it. Any later push invalidates that evidence; re-run and update the description.
 - Treat testing tools as explicit Modules with CLI Interfaces:
   - PR quality gate: `bun run quality:pr`
   - Expo compatibility: `bun run expo:check` and `bun run expo:doctor`
