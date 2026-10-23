@@ -89,6 +89,7 @@ export default function RootLayout() {
               options={{ headerShown: false, title: '' }}
             />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="inbox-zero" options={{ headerShown: false }} />
             <Stack.Screen name="insights" options={{ headerShown: false }} />
             {__DEV__ ? (
               <Stack.Screen

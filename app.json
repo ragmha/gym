@@ -2,10 +2,13 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.20",
+    "version": "1.0.21",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
-    "scheme": "io.raghib.gym",
+    "scheme": [
+      "io.raghib.gym",
+      "com.googleusercontent.apps.326998065942-gri0bsvipmjvpnqnn6rsanpq6s69gtpd"
+    ],
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./src/assets/images/splash.png",
@@ -111,7 +114,8 @@
         {
           "root": "./modules/gym-watch"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "runtimeVersion": {
       "policy": "appVersion"

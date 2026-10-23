@@ -177,7 +177,7 @@ describe('GoalGrid', () => {
     expect(screen.queryByLabelText('Steps 5,000')).toBeNull()
     expect(
       within(screen.getByTestId('goal-page-2')).getAllByTestId(/^goal-tile-/),
-    ).toHaveLength(2)
+    ).toHaveLength(3)
     fireEvent.press(screen.getByRole('button', { name: 'See achievements' }))
     expect(push).toHaveBeenCalledWith({
       pathname: '/achievements',
@@ -889,6 +889,7 @@ describe('GoalGrid', () => {
       'Steps',
       'Speaking',
       'Achievements',
+      'Inbox Zero',
     ])
     expect(
       within(screen.getByTestId('goal-page-1')).getByTestId('goal-tile-steps'),
@@ -901,9 +902,10 @@ describe('GoalGrid', () => {
       'Speaking',
       'Steps',
       'Achievements',
+      'Inbox Zero',
     ])
     expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
-      'Steps moved to position 7 of 8',
+      'Steps moved to position 7 of 9',
     )
     expect(
       screen.getByTestId('goal-page-2').props.accessibilityElementsHidden,

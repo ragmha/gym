@@ -21,6 +21,23 @@ These exceptions do not authorize additional forms, persistence, or Health write
 
 ## Capabilities and constraints
 
+- **Inbox Zero** is an opt-in Google sign-in exception on native iOS 1.0.21+.
+  It reads Gmail inbox metadata (sender, subject and List-Unsubscribe headers)
+  in user-requested pages, groups loaded messages by sender and discloses partial
+  counts. No message bodies, attachments, remote images or archived mail are read.
+  A separate review and confirmation can move up to 1,000 selected, loaded
+  messages to Gmail Trash, with per-message read-back before claiming success.
+  Gmail normally permanently deletes Trash after 30 days; Gym never calls a
+  permanent-delete endpoint. Failed/partial cleanup requires a refresh.
+  Unsubscribe is separate: review an email-provided HTTPS destination, explicitly
+  open it and finish in the browser. Opening is not a confirmed unsubscribe.
+  No mail is sent, no automatic/background cleanup runs and no backend is added.
+  Email and access tokens stay in this screen's memory and are discarded on
+  disconnect/exit; reconnect when access expires. No refresh token is requested
+  or persisted. The Google grant itself remains until revoked in Google Account
+  settings. Nothing enters Health, the coach, personal stores or App Groups.
+  Web, Android and incompatible iOS builds show an unavailable explanation.
+
 - **Today** is the first Home pager page for the current day. Swipe to the
   next page for the existing goal tiles; historical days keep their goal pages.
   The reference-style dot grid summarizes the existing Steps and Gym priorities,
