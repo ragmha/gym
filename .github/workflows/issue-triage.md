@@ -1,6 +1,6 @@
 ---
 description: |
-  Intelligent issue triage assistant that processes new and reopened issues.
+  Intelligent issue triage assistant that processes new issues.
   Analyzes issue content, selects appropriate labels, detects spam, gathers context
   from similar issues, and provides analysis notes including debugging strategies,
   reproduction steps, and resource links. Helps maintainers quickly understand and
@@ -8,7 +8,9 @@ description: |
 
 on:
   issues:
-    types: [opened, reopened]
+    # Opened only: on reopened, the role check sees the reopener, not the author,
+    # which would let an outsider's copilot-ready issue reach assign-to-agent.
+    types: [opened]
   reaction: eyes
 
 permissions: read-all
@@ -18,7 +20,12 @@ network: defaults
 safe-outputs:
   add-labels:
     max: 5
+    blocked: [copilot-ready]
   add-comment:
+  # Needs the GH_AW_AGENT_TOKEN secret (a PAT); GITHUB_TOKEN cannot assign Copilot.
+  # ponytail: the copilot-ready gate is prompt-level; add `required-labels: [copilot-ready]` after upgrading gh-aw past v0.72.1.
+  assign-to-agent:
+    max: 1
 
 tools:
   web-fetch:
@@ -78,7 +85,15 @@ You're a triage assistant for GitHub issues. Your task is to analyze issue #${{ 
    - DO NOT communicate directly with users
    - If no labels are clearly applicable, do not apply any labels
 
-8. Add an issue comment to the issue with your analysis:
+8. If the issue has the `copilot-ready` label, it is a request for the Copilot coding agent. Treat the issue as the agent's contract and check it before dispatch:
+
+   - Every acceptance criterion is testable, the files in scope are named, and the work fits one PR.
+   - The work stays within the product scope in `.github/copilot-instructions.md` (HealthKit is the only data source; no new backend, persistence, or manual-entry path).
+   - If the contract holds, call `assign_to_agent` for this issue and say so in the step 9 comment.
+   - Otherwise, do not assign. List what is missing at the top of the step 9 comment.
+   - Never add the `copilot-ready` label yourself.
+
+9. Add one issue comment to the issue with your analysis:
    - Start with "🎯 Agentic Issue Triage"
    - Provide a brief summary of the issue
    - Mention any relevant details that might help the team understand the issue better

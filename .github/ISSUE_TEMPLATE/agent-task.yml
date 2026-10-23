@@ -1,0 +1,40 @@
+name: Copilot agent task
+description: A self-contained task the Copilot coding agent can turn into a draft PR.
+labels: [copilot-ready]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should change, and why.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Testable checks. Each one should be provable by a test, a command, or a screenshot.
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Files in scope
+      description: Paths the agent may change. Anything else is out of scope.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence for the PR
+      description: What the PR description must include beyond the verified SHA and `bun run quality:pr` result.
+      placeholder: e.g. iOS simulator screenshot of the changed screen
+  - type: checkboxes
+    id: product-scope
+    attributes:
+      label: Product scope
+      options:
+        - label: Adds no backend, persistence, or manual-entry path beyond those approved in `.github/copilot-instructions.md`.
+          required: true
