@@ -56,11 +56,17 @@ import { useThemeStore } from '@/stores/ThemeStore'
 const EDGE_FLIP = 32
 const FLIP_COOLDOWN_MS = 800
 
-type Route = '/steps' | '/water' | '/gym' | '/achievements' | '/speaking'
+type Route =
+  | '/steps'
+  | '/water'
+  | '/gym'
+  | '/achievements'
+  | '/speaking'
+  | '/inbox-zero'
 
 interface Tile {
   label: string
-  icon: GoalMascotKind | 'trophy'
+  icon: GoalMascotKind | 'trophy' | 'mail'
   caption: string
   accessibilityLabel: string
   hint: string
@@ -359,6 +365,17 @@ function buildTiles(
       route: '/achievements',
     },
     ...(deepWork ? [deepWorkTile(deepWork)] : []),
+    {
+      label: 'Inbox Zero',
+      icon: 'mail',
+      caption: 'Review Gmail',
+      accessibilityLabel: 'Inbox Zero, review Gmail by sender',
+      hint: 'Opens confirmed Gmail cleanup. Email progress is not tracked.',
+      done: null,
+      progress: null,
+      status: 'Not tracked',
+      route: '/inbox-zero',
+    },
   ]
 }
 
@@ -489,7 +506,7 @@ export function GoalTileSurface({
   badge,
 }: {
   id: string
-  icon: GoalMascotKind | 'trophy'
+  icon: GoalMascotKind | 'trophy' | 'mail'
   size: number
   progress: number | null
   done: boolean | null
@@ -548,8 +565,12 @@ export function GoalTileSurface({
           strokeWidth={6}
         />
       </Svg>
-      {icon === 'trophy' ? (
-        <Ionicons name="trophy-outline" size={size * 0.44} color={theme.text} />
+      {icon === 'trophy' || icon === 'mail' ? (
+        <Ionicons
+          name={icon === 'mail' ? 'mail-outline' : 'trophy-outline'}
+          size={size * 0.44}
+          color={theme.text}
+        />
       ) : (
         <GoalMascot
           kind={icon}

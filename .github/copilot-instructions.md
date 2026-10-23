@@ -5,7 +5,8 @@ These instructions capture Expo team best practices from Expo docs, GitHub issue
 ## What this app is
 
 A daily health dashboard whose displayed readings come from Apple HealthKit.
-There is no backend or login. The user-approved manual-entry exceptions are
+There is no backend or Gym account. The optional Inbox Zero Google sign-in
+exception below is limited to Gmail cleanup. The user-approved manual-entry exceptions are
 body weight, water, and meal photos: a confirmed weight in kilograms and its
 actual measurement time, a water amount explicitly confirmed for today, or a
 meal estimate explicitly confirmed for today can be saved directly to Apple
@@ -103,6 +104,22 @@ HSL receives only station searches, selected station coordinates and journey
 times; never Calendar, Reminders, Health or log data. Transit requires a real
 successful response, not an invented departure. Native 1.0.20+ and iOS 17+
 are required for these connections; older binaries fail closed.
+The user approved Inbox Zero: optional Google OAuth on native iOS 1.0.21+,
+reading only inbox sender/subject/List-Unsubscribe metadata into screen memory,
+grouping loaded messages by sender and moving up to 1,000 explicitly reviewed
+and confirmed messages to Gmail Trash. Require per-message read-back before
+claiming success; partial/unknown outcomes require refresh before another write.
+Never permanently delete, send mail, run automatic/background cleanup, or read
+bodies, attachments, images or archived mail. Google’s gmail.modify scope is
+broader than these approved actions; do not use its other capabilities.
+Unsubscribe is a separate explicit review of an email-provided HTTPS link and
+opening in the browser, where the user completes it. Do not automatically POST
+to unsubscribe endpoints or claim that opening a link confirmed success.
+Google tokens and email stay in screen memory only, discarded on disconnect or
+exit; no refresh token, backend, local cache, profile, Health/coach input, App
+Group or persistent store. The Google grant remains until the user revokes it.
+Google OAuth client IDs are public configuration, never bundle client secrets.
+Unsupported platforms and old/missing native capabilities fail closed.
 No other manual-entry feature is approved.
 
 The user-approved Daily rings Home Screen widget shares only today's formatted
