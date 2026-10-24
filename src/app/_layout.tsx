@@ -126,6 +126,13 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="prayer"
+              options={{
+                headerShown: false,
+                presentation: 'modal',
+              }}
+            />
+            <Stack.Screen
               name="coach"
               options={{
                 headerShown: false,

@@ -141,6 +141,10 @@ These exceptions do not authorize additional forms, persistence, or Health write
   Reading starts a Dynamic Island timer and opens Apple Books; tapping it again
   (or the island's Stop) ends it. The tile shows that day's last session in
   whole minutes until the app closes. Minutes are never saved or sent to Health.
+- **Praying** opens the five daily prayer times for Helsinki, calculated on the
+  device with the Athan PWA's defaults, and a checklist to mark each prayer.
+  Marks and the complete-day streak stay on the device; the tile shows that
+  day's count but prayer is not a Home goal.
 - **Apple Watch** shows today's lifting day and logs or undoes sets in the
   iPhone's on-device lifting log. It needs the iPhone reachable and saves
   nothing on the watch or to Health.

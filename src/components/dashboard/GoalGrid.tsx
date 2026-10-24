@@ -49,7 +49,9 @@ import {
 import { presentSteps } from '@/lib/fitnessMetrics/presenter'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
+import { PRAYERS } from '@/lib/prayer'
 import { useGymLogStore } from '@/stores/GymLogStore'
+import { usePrayerLogStore } from '@/stores/PrayerLogStore'
 import { useThemeStore } from '@/stores/ThemeStore'
 
 const EDGE_FLIP = 32
@@ -66,7 +68,7 @@ const LIGHT_UP = {
   to: { opacity: 1 },
 } satisfies CSSAnimationKeyframes
 
-type Route = '/steps' | '/gym' | '/speaking'
+type Route = '/steps' | '/gym' | '/speaking' | '/prayer'
 
 interface Tile {
   label: string
@@ -104,11 +106,17 @@ function useLiftLogged(date: Date): boolean {
   return useGymLogStore((s) => Boolean(s.logs[key]?.finishedAt))
 }
 
+function usePrayedCount(date: Date): number {
+  const key = localDateKey(date)
+  return usePrayerLogStore((s) => s.prayed[key]?.length ?? 0)
+}
+
 function buildTiles(
   snapshot: DailyHealthSnapshot | null,
   date: Date,
   liftLogged: boolean,
   reading: ReadingTimer | null,
+  prayed = 0,
 ): Tile[] {
   const steps = presentSteps(snapshot)
   const stepCount = snapshot?.steps ?? null
@@ -218,13 +226,13 @@ function buildTiles(
     {
       label: 'Praying',
       icon: 'praying',
-      caption: 'Athan',
-      accessibilityLabel: 'Praying, opens Athan prayer times',
-      hint: 'Prayer progress is not shared with this app.',
+      caption: `${prayed}/${PRAYERS.length} prayed`,
+      accessibilityLabel: 'Praying, prayer times',
+      hint: 'Opens prayer times and your on-device prayer checklist.',
       done: null,
       progress: null,
-      status: 'Not tracked',
-      url: 'https://ragmha.github.io/athan-pwa/',
+      status: `${prayed} of ${PRAYERS.length} prayers marked`,
+      route: '/prayer',
     },
     {
       label: 'Speaking',
@@ -542,9 +550,10 @@ export function GoalGrid({
   const router = useRouter()
   const reducedMotion = useReducedMotion()
   const liftLogged = useLiftLogged(date)
+  const prayed = usePrayedCount(date)
   const tileOrder = useThemeStore((s) => s.tileOrder)
   const setTileOrder = useThemeStore((s) => s.setTileOrder)
-  const all = buildTiles(snapshot, date, liftLogged, reading)
+  const all = buildTiles(snapshot, date, liftLogged, reading, prayed)
   const tiles = sortByOrder(all, tileOrder, (tile) => tile.label)
   const flippedAt = useRef(0)
   const { fontScale } = useWindowDimensions()

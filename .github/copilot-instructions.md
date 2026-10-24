@@ -72,6 +72,12 @@ finished session's topic, mode, length, and transcript, scored by the
 rule-based `postMortem` (fillers, pace, solo opening promise and close) and
 deletable from `/speaking-history`. Nothing is written to Health or given to
 the coach.
+The user also approved `/prayer`, a native port of their Athan PWA: `adhan`
+calculates the five daily prayer times on the device, fixed to the PWA defaults
+(Helsinki, Muslim World League, Shafi Asr, middle-of-the-night high-latitude
+rule), and `PrayerLogStore` keeps an on-device checklist of prayers marked per
+day plus a complete-day streak. No location permission, network, Health write,
+App Group or coach input.
 The Reading timer is ephemeral too. Apple Books and HealthKit expose no reading
 time, so on native 1.0.13+ iOS builds tapping the Reading tile starts a
 `ReadingActivity` Live Activity (`expo-widgets` + `@expo/ui`,
@@ -217,7 +223,7 @@ src/
     coach/              #   on-device AI coach engines and prompts
     validators/         #   zod schemas for coach output
     watch/              #   Apple Watch state + tap validation
-  stores/               # ThemeStore, GymLogStore, SpeakingLogStore
+  stores/               # ThemeStore, GymLogStore, SpeakingLogStore, PrayerLogStore
   utils/                # recovery scoring and pure helpers
   assets/               # fonts, images
 modules/
@@ -280,6 +286,8 @@ This project targets **iOS as the primary platform**.
   Health readings to it.
 - `SpeakingLogStore` is the approved speaking post-mortem log: raw session
   inputs only; scores are recomputed by `postMortem`.
+- `PrayerLogStore` is the approved prayer checklist: prayer ids marked per
+  local day only.
 - Health data is not state to be managed. It is read per-day through
   `useHealthSnapshot(date)` and rendered. Do not cache it into a store.
 - If you find yourself adding a store, first check that you are not

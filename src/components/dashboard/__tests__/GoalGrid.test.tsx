@@ -31,6 +31,7 @@ import { Colors } from '@/constants/Colors'
 import { useTheme } from '@/hooks/useThemeColor'
 import type { HealthWorkout } from '@/lib/healthSnapshot/types'
 import { useGymLogStore } from '@/stores/GymLogStore'
+import { usePrayerLogStore } from '@/stores/PrayerLogStore'
 import { useThemeStore } from '@/stores/ThemeStore'
 
 jest.mock('@/hooks/useThemeColor', () => {
@@ -82,6 +83,7 @@ describe('GoalGrid', () => {
       fontScale: 1,
     })
     useThemeStore.setState({ tileOrder: [] })
+    usePrayerLogStore.setState({ prayed: {} })
   })
 
   it.each([
@@ -270,7 +272,7 @@ describe('GoalGrid', () => {
         ['Steps', 'steps', 'button'],
         ['Gym', 'lift', 'button'],
         ['Reading', 'reading', 'link'],
-        ['Praying', 'praying', 'link'],
+        ['Praying', 'praying', 'button'],
         ['Speaking', 'speaking', 'button'],
       ] as const) {
         const tile = screen.getByRole(role, {
@@ -344,8 +346,8 @@ describe('GoalGrid', () => {
       expect(
         within(screen.getByTestId('goal-tile-gym')).queryByText(/goals|\/3/i),
       ).toBeNull()
-      expect(screen.getAllByRole('button')).toHaveLength(3)
-      expect(screen.getAllByRole('link')).toHaveLength(2)
+      expect(screen.getAllByRole('button')).toHaveLength(4)
+      expect(screen.getAllByRole('link')).toHaveLength(1)
     },
   )
 
@@ -434,12 +436,13 @@ describe('GoalGrid', () => {
         includeHiddenElements: true,
       }),
     ).toHaveLength(5)
-    for (const name of ['Reading', 'Praying']) {
+    for (const name of ['Reading']) {
       expect(
         screen.getByRole('link', { name: new RegExp(`^${name},`) }).props
           .accessibilityValue.text,
       ).toBe('Not tracked')
     }
+    expect(goalState(/^Praying,/)).toBe('0 of 5 prayers marked')
     expect(screen.queryAllByText(/^\d+%$/)).toHaveLength(0)
     expect(
       screen.queryAllByTestId(/^goal-fill-/, { includeHiddenElements: true }),
@@ -578,6 +581,7 @@ describe('GoalGrid', () => {
   it.each([
     [/^Steps 5,000$/, '/steps'],
     [/^Gym,/, '/gym'],
+    [/^Praying,/, '/prayer'],
   ])('opens %s on the selected day', (name, pathname) => {
     const push = jest.fn()
     jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
@@ -589,12 +593,21 @@ describe('GoalGrid', () => {
     })
   })
 
+  it('shows prayers marked on the selected day without making them a goal', () => {
+    usePrayerLogStore.setState({
+      prayed: { '2026-09-12': ['fajr', 'dhuhr'], '2026-09-11': ['fajr'] },
+    })
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
+    expect(goalState(/^Praying,/)).toBe('2 of 5 prayers marked')
+    expect(
+      screen.queryByTestId('goal-fill-praying', {
+        includeHiddenElements: true,
+      }),
+    ).toBeNull()
+  })
+
   it.each([
     ['Reading, opens Apple Books', 'ibooks://'],
-    [
-      'Praying, opens Athan prayer times',
-      'https://ragmha.github.io/athan-pwa/',
-    ],
   ])('opens %s without tracking it as a goal', async (name, url) => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
     const push = jest.fn()
