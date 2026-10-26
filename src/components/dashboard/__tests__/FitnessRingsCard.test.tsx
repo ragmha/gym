@@ -5,11 +5,7 @@ import { buildFitnessRings } from '@/components/dashboard/fitnessRings'
 import { FitnessRingsCard } from '@/components/dashboard/WorkoutXPCard'
 
 jest.mock('@/hooks/useThemeColor', () => ({
-  useTheme: () => ({
-    cardBackground: '#FFFFFF',
-    text: '#111111',
-    icon: '#666666',
-  }),
+  useTheme: () => jest.requireActual('@/constants/Colors').Colors.light,
 }))
 
 describe('FitnessRingsCard missing data', () => {

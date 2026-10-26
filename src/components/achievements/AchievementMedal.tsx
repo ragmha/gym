@@ -1,16 +1,7 @@
 import { useId } from 'react'
 import { StyleSheet, View } from 'react-native'
-import Svg, {
-  ClipPath,
-  Defs,
-  G,
-  LinearGradient,
-  Path,
-  Stop,
-  Text as SvgText,
-} from 'react-native-svg'
+import Svg, { ClipPath, Defs, G, Path, Text as SvgText } from 'react-native-svg'
 
-import { AchievementMedalColors } from '@/constants/Colors'
 import { useTheme } from '@/hooks/useThemeColor'
 import type { BadgeArtwork } from '@/lib/achievements'
 
@@ -152,18 +143,14 @@ export function AchievementMedal({
 }) {
   const theme = useTheme()
   const id = useId()
-  const rimId = `medal-rim-${id}`
-  const faceId = `medal-face-${id}`
-  const glossId = `medal-gloss-${id}`
   const clipId = `medal-shape-${id}`
   const artwork = ARTWORKS[art]
-  const palette = AchievementMedalColors.enamel[art]
-  const outline = earned ? `url(#${rimId})` : theme.disabled
+  const outline = earned ? theme.accent : theme.disabled
   const fills: Record<EnamelFill, string> = {
-    accent: palette.accent,
-    detail: palette.detail,
-    metal: `url(#${rimId})`,
-    highlight: AchievementMedalColors.highlight,
+    accent: theme.text,
+    detail: theme.cardBackground,
+    metal: theme.accent,
+    highlight: theme.background,
     none: 'none',
   }
 
@@ -171,7 +158,6 @@ export function AchievementMedal({
     <View
       testID="achievement-medal-art"
       style={styles.frame}
-      accessible={false}
       aria-hidden
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
@@ -187,44 +173,7 @@ export function AchievementMedal({
           <ClipPath id={clipId}>
             <Path d={artwork.shape} />
           </ClipPath>
-          <LinearGradient id={rimId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0" stopColor={AchievementMedalColors.highlight} />
-            <Stop offset="0.35" stopColor={AchievementMedalColors.gold} />
-            <Stop offset="0.55" stopColor={AchievementMedalColors.highlight} />
-            <Stop offset="1" stopColor={AchievementMedalColors.shadow} />
-          </LinearGradient>
-          <LinearGradient id={faceId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0" stopColor={palette.top} />
-            <Stop offset="1" stopColor={palette.bottom} />
-          </LinearGradient>
-          <LinearGradient id={glossId} x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop
-              offset="0"
-              stopColor={AchievementMedalColors.highlight}
-              stopOpacity={0.3}
-            />
-            <Stop
-              offset="0.5"
-              stopColor={AchievementMedalColors.highlight}
-              stopOpacity={0}
-            />
-            <Stop
-              offset="1"
-              stopColor={AchievementMedalColors.highlight}
-              stopOpacity={0.08}
-            />
-          </LinearGradient>
         </Defs>
-        {earned && (
-          <Path
-            d={artwork.shape}
-            fill={theme.shadow}
-            stroke={theme.shadow}
-            strokeWidth={4}
-            opacity={0.3}
-            transform="translate(0 2)"
-          />
-        )}
         <G
           stroke={outline}
           strokeWidth={1.8}
@@ -234,7 +183,7 @@ export function AchievementMedal({
         >
           <Path
             d={artwork.shape}
-            fill={earned ? `url(#${faceId})` : theme.background}
+            fill={earned ? theme.cardSurface : theme.background}
             strokeWidth={4}
           />
           <G clipPath={`url(#${clipId})`}>
@@ -251,14 +200,11 @@ export function AchievementMedal({
                 }
               />
             ))}
-            {earned && (
-              <Path d={artwork.shape} fill={`url(#${glossId})`} stroke="none" />
-            )}
             {mark && (
               <>
                 <Path
                   d="M39 91H81L87 99 81 107H39L33 99Z"
-                  fill={earned ? palette.detail : theme.background}
+                  fill={earned ? theme.text : theme.background}
                 />
                 <SvgText
                   x={60}
@@ -267,9 +213,7 @@ export function AchievementMedal({
                   textAnchor="middle"
                   fontSize={13}
                   fontWeight="700"
-                  fill={
-                    earned ? AchievementMedalColors.highlight : theme.disabled
-                  }
+                  fill={earned ? theme.background : theme.disabled}
                   stroke="none"
                 >
                   {mark}

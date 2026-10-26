@@ -435,7 +435,7 @@ function SpotifyPlayer() {
         animationType={reduceMotion ? 'none' : 'slide'}
         onRequestClose={close}
       >
-        <View style={styles.spotifyOverlay}>
+        <View style={[styles.spotifyOverlay, { backgroundColor: theme.scrim }]}>
           <Pressable
             accessible={false}
             onPress={close}
@@ -1725,7 +1725,6 @@ const styles = StyleSheet.create({
   spotifyOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   spotifySheet: {
     width: '100%',

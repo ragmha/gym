@@ -195,7 +195,7 @@ export function WeightRuler({
           <View
             style={[
               styles.indicator,
-              { left: width / 2 - 2, backgroundColor: theme.weightGoalText },
+              { left: width / 2 - 2, backgroundColor: theme.accent },
             ]}
           />
         </>

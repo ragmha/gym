@@ -17,14 +17,21 @@ import type { DailySummaryProps } from '@/lib/widgets/dailySummary'
 
 function DailySummaryLayout(props: Partial<DailySummaryProps>) {
   'widget'
-  // The widget runs in an isolated JS context; keep its layout self-contained.
+  // Isolated layout globals cannot import Colors; mirror the shared dark tokens.
+  const colors = {
+    background: '#000000',
+    text: '#E8E8E8',
+    muted: '#999999',
+    track: '#333333',
+    accent: '#FF4D55',
+  }
   const fresh = !!props.expiresAt && Date.now() < props.expiresAt
   const readings =
     props.readings ??
     [
-      { label: 'STEPS', target: '20,000', color: '#83D7AB' },
-      { label: 'WATER', target: '2.5 L', color: '#8AB4FF' },
-      { label: 'ACTIVE KCAL', target: '500 kcal', color: '#EF7171' },
+      { label: 'STEPS', target: '20,000' },
+      { label: 'WATER', target: '2.5 L' },
+      { label: 'ACTIVE KCAL', target: '500 kcal' },
     ].map((reading) => ({
       ...reading,
       value: '--',
@@ -38,7 +45,7 @@ function DailySummaryLayout(props: Partial<DailySummaryProps>) {
       modifiers={[
         padding({ all: 14 }),
         frame({ maxWidth: Infinity, maxHeight: Infinity }),
-        background('#11151D'),
+        background(colors.background),
         widgetURL('io.raghib.gym://'),
       ]}
     >
@@ -46,7 +53,7 @@ function DailySummaryLayout(props: Partial<DailySummaryProps>) {
         <Text
           modifiers={[
             font({ size: 12, weight: 'semibold' }),
-            foregroundStyle('#F4F6FA'),
+            foregroundStyle(colors.text),
           ]}
         >
           GYM
@@ -55,7 +62,7 @@ function DailySummaryLayout(props: Partial<DailySummaryProps>) {
         <Text
           modifiers={[
             font({ size: 10 }),
-            foregroundStyle('#AFB7C6'),
+            foregroundStyle(colors.muted),
             lineLimit(1),
           ]}
         >
@@ -86,14 +93,14 @@ function DailySummaryLayout(props: Partial<DailySummaryProps>) {
                   value={progress}
                   modifiers={[
                     gaugeStyle('circularCapacity'),
-                    tint(available ? reading.color : '#394252'),
+                    tint(available ? colors.accent : colors.track),
                     frame({ height: 54 }),
                   ]}
                 />
                 <Text
                   modifiers={[
-                    font({ size: 17, weight: 'semibold', design: 'rounded' }),
-                    foregroundStyle('#F4F6FA'),
+                    font({ size: 17, weight: 'regular', design: 'monospaced' }),
+                    foregroundStyle(colors.text),
                   ]}
                 >
                   {available ? `${Math.floor(progress * 100)}%` : '--'}
@@ -102,7 +109,7 @@ function DailySummaryLayout(props: Partial<DailySummaryProps>) {
               <Text
                 modifiers={[
                   font({ size: 10, weight: 'semibold' }),
-                  foregroundStyle(reading.color),
+                  foregroundStyle(colors.text),
                   lineLimit(1),
                 ]}
               >
@@ -111,7 +118,7 @@ function DailySummaryLayout(props: Partial<DailySummaryProps>) {
               <Text
                 modifiers={[
                   font({ size: 10 }),
-                  foregroundStyle('#AFB7C6'),
+                  foregroundStyle(colors.muted),
                   lineLimit(1),
                 ]}
               >

@@ -1,12 +1,6 @@
 import { render, screen } from '@testing-library/react-native'
 import { StyleSheet } from 'react-native'
-import {
-  ClipPath,
-  G,
-  LinearGradient,
-  Path,
-  Text as SvgText,
-} from 'react-native-svg'
+import { ClipPath, G, Path, Text as SvgText } from 'react-native-svg'
 
 import { AchievementMedal } from '@/components/achievements/AchievementMedal'
 import { Colors, type ThemeName } from '@/constants/Colors'
@@ -39,17 +33,13 @@ describe.each(['light', 'dark'] as const)('%s achievement medals', (theme) => {
   })
 
   it.each(artworks)(
-    'renders %s as colored enamel when earned and linework when locked',
+    'renders %s as flat red-accented artwork when earned and linework when locked',
     (art) => {
       const result = render(<AchievementMedal art={art} mark="7" earned />)
       expect(
         result
           .UNSAFE_getAllByType(Path)
-          .some(
-            (path) =>
-              typeof path.props.fill === 'string' &&
-              path.props.fill.startsWith('url(#medal-face-'),
-          ),
+          .some((path) => path.props.fill === Colors[theme].cardSurface),
       ).toBe(true)
       expect(result.UNSAFE_getByType(SvgText).props.children).toBe('7')
       result.rerender(<AchievementMedal art={art} mark="7" earned={false} />)
@@ -85,18 +75,22 @@ describe.each(['light', 'dark'] as const)('%s achievement medals', (theme) => {
     })
   })
 
-  it('uses distinct gradient IDs for each medal in the grid', () => {
+  it('uses distinct clip IDs for each medal without gradient fills', () => {
     const result = render(
       <>
         <AchievementMedal art="steps" earned />
         <AchievementMedal art="lifting" earned={false} />
       </>,
     )
-    const ids = result
-      .UNSAFE_getAllByType(LinearGradient)
-      .map((gradient) => gradient.props.id)
-    expect(ids).toHaveLength(6)
-    expect(new Set(ids).size).toBe(6)
+    expect(
+      result
+        .UNSAFE_getAllByType(Path)
+        .some(
+          (path) =>
+            typeof path.props.fill === 'string' &&
+            path.props.fill.startsWith('url('),
+        ),
+    ).toBe(false)
     const clips = result
       .UNSAFE_getAllByType(ClipPath)
       .map((clip) => clip.props.id)

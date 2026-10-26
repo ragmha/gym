@@ -10,7 +10,7 @@ import { StyleSheet, useWindowDimensions } from 'react-native'
 
 import { TodayPage } from '@/components/dashboard/TodayPage'
 import { makeSnapshot } from '@/components/dashboard/__fixtures__/healthSnapshot'
-import { TodayColors } from '@/constants/Colors'
+import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useDayPlanner } from '@/hooks/useDayPlanner'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
@@ -24,12 +24,10 @@ jest.mock('@/hooks/useDayPlanner', () => ({ useDayPlanner: jest.fn() }))
 jest.mock('@/hooks/useColorScheme', () => ({
   useColorScheme: jest.fn(() => 'light'),
 }))
+jest.unmock('@/hooks/useThemeColor')
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   __esModule: true,
   default: jest.fn(),
-}))
-jest.mock('@/hooks/useThemeColor', () => ({
-  useTheme: () => jest.requireActual('@/constants/Colors').Colors.light,
 }))
 const date = new Date(2026, 9, 21, 18)
 const push = jest.fn()
@@ -136,7 +134,7 @@ it('keeps the priority card and open grouped agenda, with secondary readings dis
       StyleSheet.flatten(
         screen.getByRole('header', { name: period }).props.style,
       ).fontSize,
-    ).toBe(24)
+    ).toBe(12)
   }
   for (const name of ['Up next', 'Inbox', 'Day plan'])
     expect(screen.queryByRole('header', { name })).toBeNull()
@@ -182,29 +180,64 @@ it('does not invent zeroes for unknown readings, but preserves observed zeroes',
   expect(screen.getByLabelText('Health workouts, --')).toBeTruthy()
 })
 
+it('keeps an end action for an existing Deep Work session after a Health error', () => {
+  renderToday(null, {
+    healthError: 'Unable to load health data',
+    deepWork: {
+      ...deepWork,
+      session: {
+        phase: 'focus',
+        endsAt: atTime(date, '18:25'),
+        remainingMs: 0,
+      },
+    },
+  })
+
+  fireEvent.press(screen.getByRole('button', { name: 'End deep work' }))
+  expect(deepWork.end).toHaveBeenCalledTimes(1)
+})
+
 it.each(['light', 'dark'] as const)(
-  'preserves the selected card and bento colors in %s',
+  'uses shared neutral activity surfaces and a segmented priority bar in %s',
   (theme) => {
     jest.mocked(useColorScheme).mockReturnValue(theme)
     renderToday(makeSnapshot({ steps: 0, waterLiters: null }))
     expect(screen.getByText('0/2 met')).toBeTruthy()
     expect(screen.getByText('0%')).toBeTruthy()
-    const dots = screen.getByLabelText(
+    const progress = screen.getByLabelText(
       '0% daily priority progress, Steps and Gym',
     )
-    expect(StyleSheet.flatten(dots.props.style)).toEqual({
-      width: 96,
-      height: 96,
+    expect(progress.props.accessibilityValue).toEqual({
+      min: 0,
+      max: 100,
+      now: 0,
     })
+    const bar = screen.getByTestId('goal-bar-today-priority', {
+      includeHiddenElements: true,
+    })
+    expect(StyleSheet.flatten(bar.props.style)).toMatchObject({
+      height: 8,
+      flexDirection: 'row',
+      gap: 2,
+    })
+    const segments = screen.getAllByTestId(/^goal-segment-today-priority-/, {
+      includeHiddenElements: true,
+    })
+    expect(segments).toHaveLength(20)
+    for (const segment of segments) {
+      expect(StyleSheet.flatten(segment.props.style).backgroundColor).toBe(
+        Colors[theme].goalTrack,
+      )
+    }
     fireEvent.press(screen.getByRole('button', { name: 'Activity' }))
     expect(
       StyleSheet.flatten(screen.getByLabelText('Steps, 0').props.style)
         .backgroundColor,
-    ).toBe(TodayColors[theme].highlight)
+    ).toBe(Colors[theme].cardBackground)
     expect(
       StyleSheet.flatten(screen.getByLabelText('Water, --').props.style)
         .backgroundColor,
-    ).toBe(TodayColors[theme].cardBackground)
+    ).toBe(Colors[theme].cardBackground)
   },
 )
 

@@ -5,6 +5,7 @@ import {
   monospacedDigit,
   multilineTextAlignment,
   padding,
+  tint,
 } from '@expo/ui/swift-ui/modifiers'
 import { addUserInteractionListener, createLiveActivity } from 'expo-widgets'
 import { Platform } from 'react-native'
@@ -17,11 +18,13 @@ interface ReadingProps {
 // Compiled to a string for the widget extension: use only @expo/ui globals.
 function ReadingLayout({ startedAt, supportsInteractiveStop }: ReadingProps) {
   'widget'
+  // Isolated widget layouts mirror the shared dark accent.
+  const accent = '#FF4D55'
   const since = new Date(startedAt)
-  const book = <Image systemName="book.fill" color="#FF9500" />
+  const book = <Image systemName="book.fill" color={accent} />
   const session = (
     <HStack spacing={12}>
-      <Image systemName="book.fill" color="#FF9500" size={28} />
+      <Image systemName="book.fill" color={accent} size={28} />
       <VStack alignment="leading" spacing={2}>
         <Text modifiers={[font({ size: 15, weight: 'semibold' })]}>
           Reading
@@ -37,7 +40,12 @@ function ReadingLayout({ startedAt, supportsInteractiveStop }: ReadingProps) {
       </VStack>
       <Spacer />
       {supportsInteractiveStop ? (
-        <Button label="Stop" systemImage="stop.fill" target="stop" />
+        <Button
+          label="Stop"
+          systemImage="stop.fill"
+          target="stop"
+          modifiers={[tint(accent)]}
+        />
       ) : (
         <Text modifiers={[font({ size: 13 })]}>
           Return to gym and tap Reading to stop

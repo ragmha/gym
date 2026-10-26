@@ -224,8 +224,7 @@ function WeightForDate({ date }: { date: Date }) {
               style={[
                 styles.status,
                 {
-                  color:
-                    goalKg === null ? theme.subtitleText : theme.weightGoalText,
+                  color: goalKg === null ? theme.subtitleText : theme.accent,
                 },
               ]}
             >
@@ -324,7 +323,7 @@ function WeightForDate({ date }: { date: Date }) {
                 styles.fill,
                 {
                   width: `${progress * 100}%`,
-                  backgroundColor: theme.weightBarStart,
+                  backgroundColor: theme.accent,
                 },
               ]}
             />

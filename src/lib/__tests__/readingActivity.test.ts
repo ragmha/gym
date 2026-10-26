@@ -1,6 +1,7 @@
 import { addUserInteractionListener, createLiveActivity } from 'expo-widgets'
 import { Platform } from 'react-native'
 
+import { Colors } from '@/constants/Colors'
 import {
   addStopListener,
   isReading,
@@ -36,6 +37,7 @@ function renderLayout(props: {
     'monospacedDigit',
     'multilineTextAlignment',
     'padding',
+    'tint',
   ]
   const jsx = (type: string, elementProps: object) => ({
     type,
@@ -93,8 +95,14 @@ it('compiles a self-contained timer layout for the Dynamic Island', () => {
   })
   expect(regions.expandedBottom.props.children).toContainEqual({
     type: 'Button',
-    props: { label: 'Stop', systemImage: 'stop.fill', target: 'stop' },
+    props: {
+      label: 'Stop',
+      systemImage: 'stop.fill',
+      target: 'stop',
+      modifiers: [{ modifier: 'tint', args: [Colors.dark.accent] }],
+    },
   })
+  expect(regions.compactLeading.props.color).toBe(Colors.dark.accent)
 })
 
 it('instructs users on older iOS versions to stop from the Reading tile', () => {

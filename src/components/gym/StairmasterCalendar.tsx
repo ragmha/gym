@@ -9,6 +9,7 @@ import {
 import Svg, { Line, Polyline, Rect } from 'react-native-svg'
 
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
+import { ChartColors } from '@/constants/Colors'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useTheme } from '@/hooks/useThemeColor'
@@ -26,15 +27,8 @@ import {
   type ActivitySummary,
 } from './activities'
 
-const ZONE_COLORS = ['#5AB0F5', '#3CC48A', '#F2C230', '#F5893A', '#EE4D5F']
-// Darker traces keep at least 3:1 contrast over the light theme's tinted zone bands.
-const ZONE_STROKES_LIGHT = [
-  '#2F7BBF',
-  '#1F8A5C',
-  '#8C6D0A',
-  '#B85A16',
-  '#C8303F',
-]
+const ZONE_COLORS = ChartColors.zones
+const ZONE_STROKES_LIGHT = ChartColors.zoneStrokesLight
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 function clock(minutes: number): string {
@@ -609,7 +603,7 @@ const HeartRateChart = memo(function HeartRateChart({
   /** Trace colour when zones are unavailable. */
   line: string
   /** Trace colour per zone. */
-  strokes: string[]
+  strokes: readonly string[]
 }) {
   const height = 140
   const start = Date.parse(workout.startISO)

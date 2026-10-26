@@ -46,15 +46,12 @@ function focusHome(): void {
   focusCleanup = callback()
 }
 
-function selectGoalPage(page: 1 | 2 = 1): void {
-  const hasToday = screen.queryByRole('button', {
-    name: 'Show dashboard page 3 of 3',
+/** The five Home icons share the page after Today. */
+function selectGoalPage(): void {
+  const tiles = screen.queryByRole('button', {
+    name: 'Show dashboard page 2 of 2',
   })
-  fireEvent.press(
-    screen.getByRole('button', {
-      name: `Show dashboard page ${page + (hasToday ? 1 : 0)} of ${hasToday ? 3 : 2}`,
-    }),
-  )
+  if (tiles) fireEvent.press(tiles)
 }
 
 jest.mock('@/hooks/useHealthSnapshot', () => ({
@@ -156,30 +153,38 @@ describe('HomeScreen', () => {
     expect(screen.queryByLabelText('Sleep 8.0 hrs')).toBeNull()
     expect(screen.getByText('Gym')).toBeTruthy()
     expect(screen.getByLabelText(/^Gym,.*Cardio,.*Lift,.*Weight,/)).toBeTruthy()
-    expect(screen.getByText('Water')).toBeTruthy()
-    for (const formerTile of ['cardio', 'lift', 'weight']) {
-      expect(screen.queryByTestId(`goal-tile-${formerTile}`)).toBeNull()
+    for (const formerTile of [
+      'cardio',
+      'lift',
+      'weight',
+      'water',
+      'journal',
+      'achievements',
+      'deep work',
+      'inbox zero',
+    ]) {
+      expect(
+        screen.queryByTestId(`goal-tile-${formerTile}`, {
+          includeHiddenElements: true,
+        }),
+      ).toBeNull()
     }
-    for (const habit of ['Reading', 'Praying', 'Journal']) {
+    for (const habit of ['Reading', 'Praying']) {
       expect(screen.getByText(habit)).toBeTruthy()
     }
     expect(screen.queryByText('Morning weight')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Previous week' })).toBeNull()
     expect(screen.queryByText('More health data')).toBeNull()
-    selectGoalPage(2)
     expect(screen.getByText('Speaking')).toBeTruthy()
-    expect(
-      screen.getByRole('button', { name: 'See achievements' }),
-    ).toBeTruthy()
   })
 
-  it('opens Today first and keeps both goal pages and Gym reachable', () => {
+  it('opens Today first and keeps the icon page and Gym reachable', () => {
     render(<HomeScreen />)
 
     expect(screen.getByTestId('today-content')).toBeVisible()
     expect(screen.getByRole('header', { name: 'Steps + Gym' })).toBeTruthy()
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
     ).toBeSelected()
     expect(screen.queryByLabelText('Steps 5,000')).toBeNull()
     fireEvent.press(screen.getByRole('button', { name: 'Open Gym' }))
@@ -191,17 +196,16 @@ describe('HomeScreen', () => {
     selectGoalPage()
     expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Open Gym' })).toBeNull()
-    selectGoalPage(2)
     expect(screen.getByText('Speaking')).toBeTruthy()
     fireEvent.press(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
     )
     expect(screen.getByRole('button', { name: 'Open Gym' })).toBeTruthy()
   })
 
   it.each([
-    { date: '2026-09-12', count: 3, today: true },
-    { date: '2026-09-11', count: 2, today: false },
+    { date: '2026-09-12', count: 2, today: true },
+    { date: '2026-09-11', count: 1, today: false },
   ])(
     'shows $count pages for the explicitly selected $date',
     ({ date, count, today }) => {
@@ -219,7 +223,6 @@ describe('HomeScreen', () => {
       if (!today) {
         expect(screen.queryByTestId('today-content')).toBeNull()
         expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
-        selectGoalPage(2)
         expect(screen.getByText('Speaking')).toBeTruthy()
       }
     },
@@ -386,9 +389,9 @@ describe('HomeScreen', () => {
     ).toBeTruthy()
     const footer = within(screen.getByTestId('home-footer'))
     expect(footer.queryByRole('button', { name: 'Settings' })).toBeNull()
-    expect(footer.getAllByRole('button')).toHaveLength(5)
+    expect(footer.getAllByRole('button')).toHaveLength(4)
     expect(
-      footer.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+      footer.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
     ).toBeSelected()
     expect(screen.queryByText('0/2')).toBeNull()
     for (const label of ['Insights', 'Settings', 'Chat']) {
@@ -407,38 +410,39 @@ describe('HomeScreen', () => {
 
   it('keeps footer page dots in sync with swipes and disables them when the grid is unavailable', () => {
     const { rerender } = render(<HomeScreen />)
+    // Large test text still leaves all five icons on one page.
     fireEvent(screen.getByTestId('goal-viewport'), 'layout', {
-      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 600 } },
+      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 300 } },
     })
     fireEvent.scroll(screen.getByTestId('goal-pages'), {
       nativeEvent: {
         contentOffset: { x: 402, y: 0 },
-        contentSize: { width: 1206, height: 600 },
-        layoutMeasurement: { width: 402, height: 600 },
+        contentSize: { width: 804, height: 300 },
+        layoutMeasurement: { width: 402, height: 300 },
       },
     })
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 2 of 3' }),
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
     ).toBeSelected()
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 2 of 3' }).props[
+      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }).props[
         'aria-pressed'
       ],
     ).toBe(true)
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }).props[
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }).props[
         'aria-pressed'
       ],
     ).toBe(false)
     fireEvent.press(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
     )
     expect(screen.getByRole('header', { name: 'Steps + Gym' })).toBeTruthy()
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
     ).toBeSelected()
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }).props[
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }).props[
         'aria-pressed'
       ],
     ).toBe(true)
@@ -450,14 +454,14 @@ describe('HomeScreen', () => {
     }
     rerender(<HomeScreen />)
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
     ).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Open Gym' })).toBeTruthy()
     mockInitialParams = { date: '2026-09-11' }
     mockState = { ...mockState, status: 'ready', error: null }
     rerender(<HomeScreen />)
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 1' }),
     ).toBeSelected()
     mockState = {
       ...mockState,
@@ -466,7 +470,7 @@ describe('HomeScreen', () => {
     }
     rerender(<HomeScreen />)
     expect(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 2' }),
+      screen.getByRole('button', { name: 'Show dashboard page 1 of 1' }),
     ).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Insights' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Open coach' })).toBeEnabled()
@@ -566,30 +570,6 @@ describe('HomeScreen', () => {
     expect(stopListener.remove).not.toHaveBeenCalled()
   })
 
-  it('keeps an end action for a running Deep Work session after a Health error', () => {
-    const { rerender } = render(<HomeScreen />)
-    selectGoalPage(2)
-    fireEvent.press(
-      screen.getByRole('button', {
-        name: 'Deep work, starts a 25 minute focus block',
-      }),
-    )
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Show dashboard page 1 of 3' }),
-    )
-    mockState = {
-      ...mockState,
-      status: 'error',
-      snapshot: null,
-      error: 'Unable to load health data',
-    }
-    rerender(<HomeScreen />)
-
-    fireEvent.press(screen.getByRole('button', { name: 'End deep work' }))
-
-    expect(screen.queryByRole('button', { name: 'End deep work' })).toBeNull()
-  })
-
   it('reconciles a deferred stop after the selected date changes', async () => {
     let finishStop: (() => void) | undefined
     mockLive.isReading.mockReturnValue(true)
@@ -671,13 +651,13 @@ describe('HomeScreen', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Settings' }))
     fireEvent.press(screen.getByRole('button', { name: 'Open coach' }))
-    selectGoalPage(2)
-    fireEvent.press(screen.getByRole('button', { name: 'See achievements' }))
+    selectGoalPage()
+    fireEvent.press(screen.getByRole('button', { name: 'Speaking practice' }))
 
     expect(mockPush.mock.calls).toEqual([
       ['/settings'],
       [{ pathname: '/coach', params: { date: '2026-09-12' } }],
-      [{ pathname: '/achievements', params: { date: '2026-09-12' } }],
+      [{ pathname: '/speaking', params: { date: '2026-09-12' } }],
     ])
   })
 
@@ -704,21 +684,18 @@ describe('HomeScreen', () => {
     ).toBeTruthy()
   })
 
-  it('carries the selected day into steps, coach, and the full metric breakdown', () => {
+  it('carries the selected day into steps, coach, and Gym', () => {
     mockInitialParams = { date: '2026-09-11' }
     render(<HomeScreen />)
 
     fireEvent.press(screen.getByRole('button', { name: 'Steps 5,000' }))
     fireEvent.press(screen.getByRole('button', { name: 'Open coach' }))
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Show dashboard page 2 of 2' }),
-    )
-    fireEvent.press(screen.getByRole('button', { name: 'See achievements' }))
+    fireEvent.press(screen.getByRole('button', { name: /^Gym,/ }))
 
     expect(mockPush.mock.calls).toEqual([
       [{ pathname: '/steps', params: { date: '2026-09-11' } }],
       [{ pathname: '/coach', params: { date: '2026-09-11' } }],
-      [{ pathname: '/achievements', params: { date: '2026-09-11' } }],
+      [{ pathname: '/gym', params: { date: '2026-09-11' } }],
     ])
   })
 

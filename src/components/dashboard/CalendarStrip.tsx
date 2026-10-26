@@ -4,6 +4,8 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 
+import { Radii } from '@/constants/DesignSystem'
+
 interface CalendarStripProps {
   /** The date around which to generate the calendar strip. */
   focusDate?: Date
@@ -295,7 +297,7 @@ const COMPACT_SIZE = 44
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 20,
-    borderRadius: 16,
+    borderRadius: Radii.xl,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 16,

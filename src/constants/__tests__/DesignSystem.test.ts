@@ -18,6 +18,13 @@ function contrast(foreground: string, background: string) {
 
 describe.each(['light', 'dark'] as const)('%s visual system', (mode) => {
   const theme = Colors[mode]
+  it('uses the Nothing monochrome canvas and neutral metric palette', () => {
+    expect(theme.background).toBe(mode === 'light' ? '#F5F5F5' : '#000000')
+    expect(theme.homeBackground).toBe(theme.background)
+    expect(theme.metricSteps).toBe(theme.text)
+    expect(theme.metricHydration).toBe(theme.text)
+  })
+
   it.each([
     'background',
     'homeBackground',
@@ -32,6 +39,7 @@ describe.each(['light', 'dark'] as const)('%s visual system', (mode) => {
       'success',
       'warning',
       'danger',
+      'disabled',
     ] as const) {
       expect(contrast(theme[text], theme[surface])).toBeGreaterThanOrEqual(4.5)
     }
@@ -51,39 +59,54 @@ describe.each(['light', 'dark'] as const)('%s visual system', (mode) => {
     expect(
       contrast(theme.goalProgressText, theme.homeBackground),
     ).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(theme.text, theme.goalFill)).toBeGreaterThanOrEqual(3)
+    expect(
+      contrast(theme.goalOnComplete, theme.goalFill),
+    ).toBeGreaterThanOrEqual(4.5)
     expect(
       contrast(theme.goalOnComplete, theme.goalComplete),
     ).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('keeps the weight goal text readable and the trend bars visible', () => {
-    for (const surface of ['homeBackground', 'cardBackground'] as const) {
-      expect(
-        contrast(theme.weightGoalText, theme[surface]),
-      ).toBeGreaterThanOrEqual(4.5)
+  it('uses red as the only chromatic accent with no screen palettes', () => {
+    for (const color of Object.values(theme)) {
+      if (color.startsWith('#') && !/^#([0-9A-F]{2})\1\1$/i.test(color)) {
+        expect(color).toBe(theme.accent)
+      }
     }
-    for (const bar of ['weightBarStart', 'weightBarEnd'] as const) {
-      expect(contrast(theme[bar], theme.homeBackground)).toBeGreaterThanOrEqual(
-        3,
-      )
-    }
+    expect(theme.warning).toBe(theme.accent)
+    expect(theme.danger).toBe(theme.accent)
+    expect(theme.goalComplete).toBe(theme.accent)
+    expect(theme).not.toHaveProperty('weightBarStart')
+    expect(theme).not.toHaveProperty('weightBarEnd')
+    expect(theme).not.toHaveProperty('weightGoalText')
   })
 })
 
 describe('Shared visual tokens', () => {
-  it('uses system typography with a lighter numeric hierarchy', () => {
-    for (const style of Object.values(Typography)) {
-      expect(style).not.toHaveProperty('fontFamily')
-    }
+  it('shares the same red identity across every screen in both appearances', () => {
+    expect(Colors.light.accent).toBe('#C8102E')
+    expect(Colors.dark.accent).toBe('#FF4D55')
+    expect(Colors.light.metricWeight).toBe(Colors.light.text)
+    expect(Colors.dark.metricWeight).toBe(Colors.dark.text)
+  })
+
+  it('keeps system typography with Space Mono instrument labels and tabular values', () => {
+    expect(Typography.bodyMd).not.toHaveProperty('fontFamily')
+    expect(Typography.headingLg).not.toHaveProperty('fontFamily')
+    expect(Typography.labelMd.fontFamily).toBe('SpaceMono')
+    expect(Typography.labelMd.textTransform).toBe('uppercase')
+    expect(Typography.numericMd.fontVariant).toContain('tabular-nums')
     expect(Typography.displayLg.fontWeight).toBe('300')
+    expect(Typography.displayXl.fontWeight).toBe('300')
     expect(Typography.headingXl.fontWeight).toBe('700')
     expect(Typography.bodyMd.fontSize).toBeGreaterThanOrEqual(17)
   })
 
-  it('uses offset box shadows and touch targets of at least 44 points', () => {
-    expect(Elevation.soft.boxShadow).toContain('0 6px')
+  it('uses flat surfaces and accessible touch targets', () => {
+    expect(Elevation.soft.boxShadow).toBe('none')
+    expect(Elevation.floating.boxShadow).toBe('none')
     expect(Elevation.soft).not.toHaveProperty('shadowOpacity')
     expect(Layout.controlSize).toBeGreaterThanOrEqual(44)
+    expect(Layout.controlSize).toBe(48)
   })
 })

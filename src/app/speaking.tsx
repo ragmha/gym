@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ScreenHeader } from '@/components/common/ScreenHeader'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
-import { Orb } from '@/components/speaking/Orb'
+import { SpeakingSymbol } from '@/components/speaking/SpeakingSymbol'
 import { SessionReview } from '@/components/speaking/SessionReview'
 import { SpeakingButton } from '@/components/speaking/SpeakingButton'
 import {
@@ -191,7 +191,7 @@ export default function SpeakingScreen() {
                   >
                     {/* Only nearby pages draw their ~1,300 dots. */}
                     {Math.abs(i - index) <= 1 ? (
-                      <Orb colors={item.colors} size={260} />
+                      <SpeakingSymbol size={260} />
                     ) : (
                       <View style={styles.orb} />
                     )}

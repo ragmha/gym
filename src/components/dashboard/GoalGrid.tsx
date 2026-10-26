@@ -22,6 +22,7 @@ import {
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   useReducedMotion,
+  type CSSAnimationKeyframes,
   type CSSStyle,
 } from 'react-native-reanimated'
 import Svg, { Circle, Rect } from 'react-native-svg'
@@ -36,8 +37,7 @@ import {
   sortByOrder,
   useTileReorder,
 } from '@/components/dashboard/useTileReorder'
-import { Layout, Spacing } from '@/constants/DesignSystem'
-import type { DeepWork } from '@/hooks/useDeepWork'
+import { Layout, Radii, Spacing } from '@/constants/DesignSystem'
 import type { ReadingTimer } from '@/hooks/useReadingTimer'
 import { useTheme } from '@/hooks/useThemeColor'
 import {
@@ -46,7 +46,6 @@ import {
   longestWorkout,
   summarizeMorningWeights,
 } from '@/lib/dailyGoals'
-import { formatRemaining } from '@/lib/deepWork'
 import { presentSteps } from '@/lib/fitnessMetrics/presenter'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import type { DailyHealthSnapshot } from '@/lib/healthSnapshot/types'
@@ -55,18 +54,24 @@ import { useThemeStore } from '@/stores/ThemeStore'
 
 const EDGE_FLIP = 32
 const FLIP_COOLDOWN_MS = 800
+// iOS Home Screen: four icon columns (three larger ones when everything fits
+// on one page).
+const COLUMNS = 4
+const ROOMY_COLUMNS = 3
+const MIN_ROWS = 2
+const ICON_SIZE = 96
+const SEGMENT_HEIGHT = 8
+const SEGMENT_STAGGER_MS = 40
+const LIGHT_UP = {
+  from: { opacity: 0 },
+  to: { opacity: 1 },
+} satisfies CSSAnimationKeyframes
 
-type Route =
-  | '/steps'
-  | '/water'
-  | '/gym'
-  | '/achievements'
-  | '/speaking'
-  | '/inbox-zero'
+type Route = '/steps' | '/gym' | '/speaking'
 
 interface Tile {
   label: string
-  icon: GoalMascotKind | 'trophy' | 'mail'
+  icon: GoalMascotKind
   caption: string
   accessibilityLabel: string
   hint: string
@@ -83,111 +88,17 @@ interface Tile {
   /** Runs before the url or route opens. */
   onPress?: () => boolean | void
   badge?: Badge
+  /** A running timer: the icon shows its caption instead of its name. */
+  live?: true
 }
 
-type Badge = 'play' | 'pause' | 'stop'
+type Badge = 'play' | 'stop'
+type Segments = { total: number; lit: number }
 
 const BADGE_ICONS = {
   play: 'play-circle-outline',
-  pause: 'pause-circle-outline',
   stop: 'stop-circle-outline',
 } as const
-
-function deepWorkTile({
-  session,
-  island,
-  start,
-  pause,
-  resume,
-  end,
-}: DeepWork): Tile {
-  const tile = {
-    label: 'Deep Work',
-    icon: 'focus',
-    done: null,
-    progress: null,
-  } as const
-  if (!session) {
-    return {
-      ...tile,
-      caption: '25 / 5 min',
-      accessibilityLabel: 'Deep work, starts a 25 minute focus block',
-      hint: `Then alternates 5 minute breaks with 25 minute focus blocks${island ? ', shown in the Dynamic Island' : ''}. Sessions are not saved.`,
-      status: 'Not started',
-      onPress: start,
-      badge: 'play',
-    }
-  }
-  const block = session.phase === 'focus' ? 'Focus' : 'Break'
-  if (session.endsAt === null) {
-    const left = formatRemaining(session.remainingMs)
-    const ask = () =>
-      // react-native-web's Alert has no buttons.
-      Platform.OS === 'web'
-        ? window.confirm('End this deep work session? Cancel resumes it.')
-          ? end()
-          : resume()
-        : Alert.alert('Deep work paused', `${block}, ${left} left.`, [
-            { text: 'End session', style: 'destructive', onPress: end },
-            { text: 'Resume', style: 'cancel', onPress: resume },
-          ])
-    return {
-      ...tile,
-      caption: `${left} paused`,
-      accessibilityLabel: `Deep work, ${block.toLowerCase()} paused, ${left} left`,
-      hint: 'Resumes or ends the session.',
-      status: 'Paused',
-      onPress: ask,
-      badge: 'play',
-    }
-  }
-  const until = new Date(session.endsAt).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-  return {
-    ...tile,
-    // ponytail: block end time, not a ticking clock; the island counts down.
-    caption: `${block} until ${until}`,
-    accessibilityLabel: `Deep work, ${block.toLowerCase()} until ${until}`,
-    hint: 'Pauses the timer.',
-    status: session.phase === 'focus' ? 'Focusing' : 'On break',
-    onPress: pause,
-    badge: 'pause',
-  }
-}
-
-function DotRing({
-  done,
-  total,
-  color,
-  track,
-}: {
-  done: number
-  total: number
-  color: string
-  track: string
-}) {
-  const dots = 16
-  const lit = total === 0 ? 0 : Math.round((done / total) * dots)
-  return (
-    <Svg width={32} height={32}>
-      {Array.from({ length: dots }, (_, i) => {
-        const angle = (i / dots) * 2 * Math.PI - Math.PI / 2
-        return (
-          <Circle
-            key={i}
-            cx={16 + 12 * Math.cos(angle)}
-            cy={16 + 12 * Math.sin(angle)}
-            r={1.7}
-            fill={i < lit ? color : track}
-          />
-        )
-      })}
-      <Circle cx={16} cy={16} r={2.6} fill={color} />
-    </Svg>
-  )
-}
 
 function useLiftLogged(date: Date): boolean {
   const key = localDateKey(date)
@@ -199,14 +110,12 @@ function buildTiles(
   date: Date,
   liftLogged: boolean,
   reading: ReadingTimer | null,
-  deepWork: DeepWork | null = null,
 ): Tile[] {
   const steps = presentSteps(snapshot)
   const stepCount = snapshot?.steps ?? null
   const run = longestWorkout(snapshot, 'running')
   const stairs = longestWorkout(snapshot, 'stairClimber')
   const lift = longestWorkout(snapshot, 'strength')
-  const water = snapshot?.waterLiters ?? null
   const morning = summarizeMorningWeights(
     snapshot?.bodyMassHistory ?? null,
     date,
@@ -248,7 +157,7 @@ function buildTiles(
     {
       label: 'Gym',
       icon: 'lift',
-      caption: gymProgress === null ? '--' : `${gymDoneCount}/3 goals`,
+      caption: gymProgress === null ? '--' : `${gymDoneCount}/3`,
       accessibilityLabel: [
         `Gym, ${gymDoneCount} of 3 goals met`,
         `Cardio, ${cardioCaption === '--' ? 'no workout' : cardioCaption}`,
@@ -266,20 +175,6 @@ function buildTiles(
       progress: gymProgress,
       route: '/gym',
     },
-    {
-      label: 'Water',
-      icon: 'water',
-      caption: water === null ? '--' : `${water.toFixed(1)} L`,
-      accessibilityLabel:
-        water === null
-          ? 'Water unavailable'
-          : `Water ${water.toFixed(1)} liters recorded`,
-      // ponytail: no hydration target exists, so the tile reports without completing.
-      hint: 'Recorded in Apple Health. No hydration goal is set.',
-      done: null,
-      progress: null,
-      route: '/water',
-    },
     reading?.running
       ? {
           label: 'Reading',
@@ -292,6 +187,7 @@ function buildTiles(
           status: 'Timer running',
           onPress: reading.stop,
           badge: 'stop',
+          live: true,
         }
       : {
           label: 'Reading',
@@ -332,17 +228,6 @@ function buildTiles(
       url: 'https://ragmha.github.io/athan-pwa/',
     },
     {
-      label: 'Journal',
-      icon: 'journal',
-      caption: 'Bear',
-      accessibilityLabel: 'Journal, opens Bear',
-      hint: 'Opens Today in Bear. Journal progress is not shared with this app.',
-      done: null,
-      progress: null,
-      status: 'Not tracked',
-      url: 'bear://x-callback-url/today',
-    },
-    {
       label: 'Speaking',
       icon: 'speaking',
       caption: 'Practice',
@@ -352,29 +237,6 @@ function buildTiles(
       progress: null,
       status: 'Not tracked',
       route: '/speaking',
-    },
-    {
-      label: 'Achievements',
-      icon: 'trophy',
-      caption: 'Badges & records',
-      accessibilityLabel: 'See achievements',
-      hint: 'Opens badges and personal records from the past year.',
-      done: null,
-      progress: null,
-      status: 'Badges & records',
-      route: '/achievements',
-    },
-    ...(deepWork ? [deepWorkTile(deepWork)] : []),
-    {
-      label: 'Inbox Zero',
-      icon: 'mail',
-      caption: 'Review Gmail',
-      accessibilityLabel: 'Inbox Zero, review Gmail by sender',
-      hint: 'Opens confirmed Gmail cleanup. Email progress is not tracked.',
-      done: null,
-      progress: null,
-      status: 'Not tracked',
-      route: '/inbox-zero',
     },
   ]
 }
@@ -420,10 +282,10 @@ export function GoalSummary({
     (tile) => tile.done !== null,
   )
   const doneCount = goals.filter((tile) => tile.done).length
-  const mono = [styles.mono, { color: theme.subtitleText }]
+  const mono = [styles.mono, { color: theme.text }]
 
   return (
-    <View style={styles.summary}>
+    <View testID="home-header" style={styles.summary}>
       <Text
         style={[mono, styles.summaryDate]}
         accessibilityRole="header"
@@ -437,26 +299,25 @@ export function GoalSummary({
         {date.toLocaleDateString('en-US', { weekday: 'short' })}{' '}
         {date.getDate()}
       </Text>
-      <Pressable
-        testID="home-refresh"
-        onPress={onRefresh}
-        disabled={refreshing}
-        accessibilityRole="button"
-        accessibilityLabel={`Refresh health data, ${doneCount} of ${goals.length} goals met`}
-        accessibilityState={{ busy: refreshing, disabled: refreshing }}
-        style={({ pressed }) => [
-          styles.pageButton,
-          { opacity: pressed || refreshing ? 0.6 : 1 },
-        ]}
-      >
-        <DotRing
-          done={doneCount}
-          total={goals.length}
-          color={theme.goalComplete}
-          track={theme.goalTrack}
-        />
-      </Pressable>
       <View style={styles.summaryActions}>
+        <Pressable
+          testID="home-refresh"
+          onPress={onRefresh}
+          disabled={refreshing}
+          accessibilityRole="button"
+          accessibilityLabel={`Refresh health data, ${doneCount} of ${goals.length} goals met`}
+          accessibilityState={{ busy: refreshing, disabled: refreshing }}
+          style={({ pressed }) => [
+            styles.pageButton,
+            styles.headerButton,
+            {
+              borderColor: theme.border,
+              opacity: pressed || refreshing ? 0.6 : 1,
+            },
+          ]}
+        >
+          <Ionicons name="refresh-outline" size={20} color={theme.icon} />
+        </Pressable>
         {editing ? (
           <DoneButton onPress={onDone} />
         ) : (
@@ -466,10 +327,11 @@ export function GoalSummary({
             accessibilityLabel="Settings"
             style={({ pressed }) => [
               styles.pageButton,
-              { opacity: pressed ? 0.65 : 1 },
+              styles.headerButton,
+              { borderColor: theme.border, opacity: pressed ? 0.65 : 1 },
             ]}
           >
-            <Ionicons name="settings-outline" size={22} color={theme.text} />
+            <Ionicons name="settings-outline" size={20} color={theme.icon} />
           </Pressable>
         )}
       </View>
@@ -504,13 +366,15 @@ export function GoalTileSurface({
   progress,
   done,
   badge,
+  pixel = false,
 }: {
   id: string
-  icon: GoalMascotKind | 'trophy' | 'mail'
+  icon: GoalMascotKind
   size: number
   progress: number | null
   done: boolean | null
   badge?: Badge
+  pixel?: boolean
 }) {
   const theme = useTheme()
   const reducedMotion = useReducedMotion()
@@ -527,16 +391,19 @@ export function GoalTileSurface({
   return (
     <View
       testID={`goal-surface-${id}`}
-      accessible={false}
       aria-hidden
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={[
-        styles.tile,
+        pixel ? styles.pixelTile : styles.tile,
         {
           width: size,
           height: size,
-          backgroundColor: complete ? theme.goalComplete : theme.homeBackground,
+          backgroundColor: complete
+            ? theme.goalComplete
+            : pixel
+              ? theme.homeSurface
+              : theme.homeBackground,
         },
       ]}
     >
@@ -553,31 +420,36 @@ export function GoalTileSurface({
         style={StyleSheet.absoluteFill}
         focusable={false}
       >
-        <Rect
-          testID={`goal-outline-${id}`}
-          x={3}
-          y={3}
-          width={94}
-          height={94}
-          rx={20}
-          fill="none"
-          stroke={complete ? theme.goalComplete : theme.goalTrack}
-          strokeWidth={6}
-        />
+        {pixel ? (
+          <Circle
+            testID={`goal-outline-${id}`}
+            cx={50}
+            cy={50}
+            r={47}
+            fill="none"
+            stroke={complete ? theme.goalComplete : theme.goalTrack}
+            strokeWidth={2}
+          />
+        ) : (
+          <Rect
+            testID={`goal-outline-${id}`}
+            x={3}
+            y={3}
+            width={94}
+            height={94}
+            rx={20}
+            fill="none"
+            stroke={complete ? theme.goalComplete : theme.goalTrack}
+            strokeWidth={6}
+          />
+        )}
       </Svg>
-      {icon === 'trophy' || icon === 'mail' ? (
-        <Ionicons
-          name={icon === 'mail' ? 'mail-outline' : 'trophy-outline'}
-          size={size * 0.44}
-          color={theme.text}
-        />
-      ) : (
-        <GoalMascot
-          kind={icon}
-          mood={mood}
-          color={complete ? theme.goalOnComplete : theme.text}
-        />
-      )}
+      <GoalMascot
+        kind={icon}
+        mood={mood}
+        color={complete ? theme.goalOnComplete : theme.text}
+        pixel={pixel}
+      />
       {badge && (
         <Ionicons
           testID={`goal-badge-${id}-${badge}`}
@@ -591,6 +463,58 @@ export function GoalTileSurface({
   )
 }
 
+/** Segmented bar whose lit segments light up one by one when the count changes. */
+export function GlyphBar({
+  id,
+  segments,
+  done,
+}: {
+  id: string
+  segments: Segments | null
+  done: boolean | null
+}) {
+  const theme = useTheme()
+  const reducedMotion = useReducedMotion()
+  return (
+    <View
+      key={segments?.lit ?? 'unknown'}
+      testID={`goal-bar-${id}`}
+      style={styles.bar}
+      aria-hidden
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {segments &&
+        Array.from({ length: segments.total }, (_, i) => {
+          const on = i < segments.lit
+          const light: CSSStyle<ViewStyle> = {
+            backgroundColor: done ? theme.goalComplete : theme.goalFill,
+            animationName: reducedMotion ? 'none' : LIGHT_UP,
+            animationDuration: 150,
+            animationDelay: i * SEGMENT_STAGGER_MS,
+            animationFillMode: 'backwards',
+            animationIterationCount: 1,
+            animationTimingFunction: 'ease-out',
+          }
+          return (
+            <View
+              key={i}
+              testID={`goal-segment-${id}-${i}-${on ? 'on' : 'off'}`}
+              style={[styles.segment, { backgroundColor: theme.goalTrack }]}
+            >
+              {on && (
+                <Animated.View
+                  testID={`goal-glyph-${id}-${i}`}
+                  style={[styles.segmentLight, light]}
+                />
+              )}
+            </View>
+          )
+        })}
+    </View>
+  )
+}
+
 export interface GoalGridHandle {
   showPage: (index: number) => void
 }
@@ -599,7 +523,6 @@ export function GoalGrid({
   snapshot,
   date,
   reading = null,
-  deepWork = null,
   ref,
   onPageChange,
   editing = false,
@@ -609,7 +532,6 @@ export function GoalGrid({
   snapshot: DailyHealthSnapshot | null
   date: Date
   reading?: ReadingTimer | null
-  deepWork?: DeepWork | null
   ref?: Ref<GoalGridHandle>
   onPageChange?: (pagination: { index: number; count: number }) => void
   /** iPhone-style edit mode: tiles wiggle and taps don't open them. */
@@ -623,36 +545,47 @@ export function GoalGrid({
   const liftLogged = useLiftLogged(date)
   const tileOrder = useThemeStore((s) => s.tileOrder)
   const setTileOrder = useThemeStore((s) => s.setTileOrder)
-  const tiles = sortByOrder(
-    buildTiles(snapshot, date, liftLogged, reading, deepWork),
-    tileOrder,
-    (tile) => tile.label,
-  )
+  const all = buildTiles(snapshot, date, liftLogged, reading)
+  const tiles = sortByOrder(all, tileOrder, (tile) => tile.label)
   const flippedAt = useRef(0)
-  const mono = [styles.mono, { color: theme.subtitleText }]
   const { fontScale } = useWindowDimensions()
   const [layout, setLayout] = useState({ width: 0, height: 0 })
   const [page, setPage] = useState(0)
   const pager = useRef<ScrollView>(null)
-  const tilePageCount = Math.ceil(tiles.length / 6)
+  const metrics = (columns: number) => {
+    const colW = (layout.width - Layout.gutter * 2) / columns
+    const iconSize = Math.max(0, Math.min(ICON_SIZE, colW - Spacing.xl))
+    const minRowH =
+      Spacing.xs +
+      iconSize +
+      Spacing.xxs +
+      styles.name.lineHeight * fontScale +
+      Spacing.sm
+    const used = Math.ceil(tiles.length / columns)
+    const onePage = layout.height > 0 && used * minRowH <= layout.height
+    return { columns, colW, iconSize, minRowH, used, onePage }
+  }
+  const roomy = metrics(ROOMY_COLUMNS)
+  const { columns, colW, iconSize, minRowH, used, onePage } = roomy.onePage
+    ? roomy
+    : metrics(COLUMNS)
+  // Before layout, one page holds everything.
+  const rows = Math.max(
+    MIN_ROWS,
+    !layout.height || onePage ? used : Math.floor(layout.height / minRowH),
+  )
+  // Spread the rows down the whole page, as iOS does.
+  const rowH = Math.max(minRowH, layout.height / rows)
+  const pageSize = columns * rows
+  const tilePageCount = Math.max(1, Math.ceil(tiles.length / pageSize))
   const offset = leadingPage ? 1 : 0
   const pageCount = tilePageCount + offset
-  const tileSize = Math.max(
-    0,
-    Math.min(
-      (layout.width - Layout.gutter * 2) / 2 - Spacing.xs * 2,
-      layout.height / 3 -
-        (styles.label.lineHeight + styles.mono.lineHeight) * fontScale -
-        Spacing.xs * 2 -
-        Spacing.xxs * 2,
-    ),
-  )
   const { drag, preview, ghostStyle, gesture, moveActions, wiggle } =
     useTileReorder({
       items: tiles,
       keyOf: (tile) => tile.label,
       save: setTileOrder,
-      tileSize,
+      tileSize: iconSize,
       editing,
       onEdit,
     })
@@ -672,33 +605,87 @@ export function GoalGrid({
 
   useImperativeHandle(ref, () => ({ showPage }))
 
-  // Preview by transform so the touched tile's view is never re-parented mid-drag.
-  const shift = (from: number, to: number) => [
-    {
-      translateX:
-        (Math.floor(to / 6) - Math.floor(from / 6)) * layout.width +
-        ((to % 2) - (from % 2)) * ((layout.width - Layout.gutter * 2) / 2),
-    },
-    {
-      translateY:
-        (Math.floor((to % 6) / 2) - Math.floor((from % 6) / 2)) *
-        (layout.height / 3),
-    },
-  ]
+  /** Tile page and grid cell of icon `i`. */
+  const place = (i: number) => {
+    return { page: Math.floor(i / pageSize), cell: i % pageSize }
+  }
 
-  /** Slot under a point on a page; can pass the last tile on a partial page. */
+  const point = (i: number) => {
+    const { page: at, cell } = place(i)
+    return {
+      x: at * layout.width + (cell % columns) * colW,
+      y: Math.floor(cell / columns) * rowH,
+    }
+  }
+
+  // Preview by transform so the touched tile's view is never re-parented mid-drag.
+  const shift = (from: number, to: number) => {
+    const a = point(from)
+    const b = point(to)
+    return [{ translateX: b.x - a.x }, { translateY: b.y - a.y }]
+  }
+
+  /** Icon slot under a point on a page. */
   const slotAt = (pageIndex: number, x: number, y: number) => {
     const contentX = pageIndex * layout.width + x
     const target = Math.max(
       0,
       Math.min(tilePageCount - 1, Math.floor(contentX / layout.width)),
     )
-    const col = contentX - target * layout.width < layout.width / 2 ? 0 : 1
-    const row = Math.max(0, Math.min(2, Math.floor(y / (layout.height / 3))))
-    return target * 6 + row * 2 + col
+    const col = Math.max(
+      0,
+      Math.min(
+        columns - 1,
+        Math.floor((contentX - target * layout.width - Layout.gutter) / colW),
+      ),
+    )
+    const row = Math.max(0, Math.min(rows - 1, Math.floor(y / rowH)))
+    return target * pageSize + row * columns + col
   }
 
-  // ponytail: one long-press pan per page, hit-tested against the fixed 2x3 grid.
+  /** Accessibility and press handling shared by icon tiles. */
+  const tileProps = (tile: Tile, pageIndex: number) => {
+    const percent =
+      tile.progress === null ? null : Math.floor(tile.progress * 100)
+    const disabled = !tile.url && !tile.route && !tile.onPress
+    return {
+      testID: `goal-tile-${tile.label.toLowerCase()}`,
+      accessibilityRole: tile.url ? ('link' as const) : ('button' as const),
+      accessibilityLabel: tile.accessibilityLabel,
+      accessibilityHint: tile.hint,
+      accessibilityValue: {
+        text:
+          tile.status ??
+          (tile.done === null
+            ? 'No goal'
+            : percent === null
+              ? 'Goal progress unavailable'
+              : `${tile.done ? 'Goal met' : 'Goal not met'} (${percent}%)`),
+      },
+      disabled,
+      tabIndex: pageIndex + offset === page ? (0 as const) : (-1 as const),
+      accessibilityState: { disabled },
+      onPress: () => {
+        if (editing) return
+        const startResult = tile.onPress?.()
+        if (tile.url && startResult !== false) {
+          Linking.openURL(tile.url).catch(() => {
+            Alert.alert(
+              `Couldn't open ${tile.app ?? tile.caption}`,
+              'Check that the app is installed or the link is available, then try again.',
+            )
+          })
+        } else if (tile.route) {
+          router.push({
+            pathname: tile.route,
+            params: { date: localDateKey(date) },
+          })
+        }
+      },
+    }
+  }
+
+  // ponytail: one long-press pan per page, hit-tested against the fixed grid.
   const dragGesture = (pageIndex: number) =>
     gesture(
       `goal-drag-${pageIndex + 1}`,
@@ -775,113 +762,67 @@ export function GoalGrid({
             <GestureDetector key={pageIndex} gesture={dragGesture(pageIndex)}>
               <View
                 testID={`goal-page-${pageIndex + 1}`}
-                style={[styles.grid, layout]}
+                style={layout}
                 accessibilityElementsHidden={pageIndex + offset !== page}
                 importantForAccessibility={
                   pageIndex + offset === page ? 'auto' : 'no-hide-descendants'
                 }
                 aria-hidden={pageIndex + offset !== page}
               >
-                {tiles
-                  .slice(pageIndex * 6, (pageIndex + 1) * 6)
-                  .map((tile, slot) => {
-                    const index = pageIndex * 6 + slot
-                    const at = preview.indexOf(tile)
-                    const tileID = tile.label.toLowerCase()
-                    const percent =
-                      tile.progress === null
-                        ? null
-                        : Math.floor(tile.progress * 100)
-                    return (
-                      <Pressable
-                        key={tile.label}
-                        testID={`goal-tile-${tileID}`}
-                        style={({ pressed }) => [
-                          styles.cell,
+                {tiles.map((tile, index) => {
+                  const { page: at, cell } = place(index)
+                  if (at !== pageIndex) return null
+                  const to = preview.indexOf(tile)
+                  return (
+                    <Pressable
+                      key={tile.label}
+                      {...tileProps(tile, pageIndex)}
+                      style={({ pressed }) => [
+                        styles.icon,
+                        {
+                          left: Layout.gutter + (cell % columns) * colW,
+                          top: Math.floor(cell / columns) * rowH,
+                          width: colW,
+                          height: rowH,
+                          opacity: drag?.from === index ? 0 : pressed ? 0.7 : 1,
+                        },
+                        to !== index && { transform: shift(index, to) },
+                      ]}
+                      {...moveActions(index, tile.label, (moved) => {
+                        if (place(moved).page + offset !== page) {
+                          showPage(place(moved).page + offset)
+                        }
+                      })}
+                    >
+                      <Animated.View style={wiggle(index)}>
+                        <GoalTileSurface
+                          id={tile.label.toLowerCase()}
+                          icon={tile.icon}
+                          size={iconSize}
+                          progress={tile.progress}
+                          done={tile.done}
+                          badge={tile.badge}
+                          pixel
+                        />
+                      </Animated.View>
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.7}
+                        style={[
+                          styles.name,
                           {
-                            opacity:
-                              drag?.from === index ? 0 : pressed ? 0.7 : 1,
+                            color: tile.live
+                              ? theme.goalProgressText
+                              : theme.text,
                           },
-                          at !== index && { transform: shift(index, at) },
                         ]}
-                        {...moveActions(index, tile.label, (to) => {
-                          if (Math.floor(to / 6) + offset !== page) {
-                            showPage(Math.floor(to / 6) + offset)
-                          }
-                        })}
-                        accessibilityRole={tile.url ? 'link' : 'button'}
-                        accessibilityLabel={tile.accessibilityLabel}
-                        accessibilityHint={tile.hint}
-                        accessibilityValue={{
-                          text:
-                            tile.status ??
-                            (tile.done === null
-                              ? 'No goal'
-                              : percent === null
-                                ? 'Goal progress unavailable'
-                                : `${tile.done ? 'Goal met' : 'Goal not met'} (${percent}%)`),
-                        }}
-                        disabled={!tile.url && !tile.route && !tile.onPress}
-                        tabIndex={pageIndex + offset === page ? 0 : -1}
-                        accessibilityState={{
-                          disabled: !tile.url && !tile.route && !tile.onPress,
-                        }}
-                        onPress={() => {
-                          if (editing) return
-                          const startResult = tile.onPress?.()
-                          const openUrl = () => {
-                            if (!tile.url) return
-                            Linking.openURL(tile.url).catch(() => {
-                              Alert.alert(
-                                `Couldn't open ${tile.app ?? tile.caption}`,
-                                'Check that the app is installed or the link is available, then try again.',
-                              )
-                            })
-                          }
-
-                          if (tile.url && startResult !== false) {
-                            openUrl()
-                          } else if (tile.route) {
-                            router.push({
-                              pathname: tile.route,
-                              params: { date: localDateKey(date) },
-                            })
-                          }
-                        }}
                       >
-                        <Animated.View style={wiggle(index)}>
-                          <GoalTileSurface
-                            id={tileID}
-                            icon={tile.icon}
-                            size={tileSize}
-                            progress={tile.progress}
-                            done={tile.done}
-                            badge={tile.badge}
-                          />
-                        </Animated.View>
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.label, { color: theme.text }]}
-                        >
-                          {tile.label}
-                        </Text>
-                        <Text
-                          selectable
-                          numberOfLines={1}
-                          style={[
-                            mono,
-                            styles.caption,
-                            tile.progress !== null &&
-                              tile.progress > 0 && {
-                                color: theme.goalProgressText,
-                              },
-                          ]}
-                        >
-                          {tile.caption}
-                        </Text>
-                      </Pressable>
-                    )
-                  })}
+                        {tile.live ? tile.caption : tile.label}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
               </View>
             </GestureDetector>
           ))}
@@ -894,10 +835,11 @@ export function GoalGrid({
             <GoalTileSurface
               id="dragging"
               icon={tiles[drag.from].icon}
-              size={tileSize}
+              size={iconSize}
               progress={tiles[drag.from].progress}
               done={tiles[drag.from].done}
               badge={tiles[drag.from].badge}
+              pixel
             />
           </Animated.View>
         )}
@@ -913,6 +855,15 @@ const styles = StyleSheet.create({
     top: 0,
     pointerEvents: 'none',
   },
+  pixelTile: {
+    aspectRatio: 1,
+    borderRadius: '50%',
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
   container: {
     flex: 1,
     minHeight: 0,
@@ -922,30 +873,37 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pageButton: {
-    width: 44,
-    height: 44,
+    width: Layout.controlSize,
+    height: Layout.controlSize,
     alignItems: 'center',
     justifyContent: 'center',
   },
   doneButton: {
-    minWidth: 44,
-    height: 44,
+    minWidth: Layout.controlSize,
+    height: Layout.controlSize,
     paddingHorizontal: Spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
   summary: {
     paddingHorizontal: Layout.gutter,
-    minHeight: 44,
+    minHeight: Layout.controlSize,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
+    gap: Spacing.xs,
   },
   summaryDate: {
     flex: 1,
   },
   summaryActions: {
-    flex: 1,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  headerButton: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
   },
   mono: {
     fontFamily: 'SpaceMono',
@@ -955,19 +913,36 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontVariant: ['tabular-nums'],
   },
-  grid: {
-    paddingHorizontal: Layout.gutter,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  cell: {
-    width: '50%',
-    height: '33.333333%',
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xs,
+  icon: {
+    position: 'absolute',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: Spacing.xs,
     gap: Spacing.xxs,
+  },
+  name: {
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    fontVariant: ['tabular-nums'],
+  },
+  bar: {
+    height: SEGMENT_HEIGHT,
+    flexDirection: 'row',
+    gap: 2,
+  },
+  segment: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  segmentLight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   tile: {
     aspectRatio: 1,
@@ -986,10 +961,6 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-  },
-  caption: {
-    width: '100%',
-    textAlign: 'center',
   },
   label: {
     fontFamily: 'SpaceMono',

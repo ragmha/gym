@@ -451,15 +451,20 @@ describe('Weight screen', () => {
     layoutChart()
     const fills = () =>
       screen.UNSAFE_getAllByType(Rect).map((rect) => rect.props.fill)
-    // Beam, four mornings (the evening weigh-in is ignored), fade.
-    expect(fills()).toHaveLength(6)
-    expect(fills()[4]).toBe(Colors.dark.text)
+    // Beam and four mornings; the evening weigh-in is ignored.
+    expect(fills()).toEqual([
+      Colors.dark.text,
+      Colors.dark.subtitleText,
+      Colors.dark.subtitleText,
+      Colors.dark.subtitleText,
+      Colors.dark.accent,
+    ])
 
     fireEvent.press(screen.getByRole('tab', { name: '3M' }))
     expect(
       screen.getByLabelText(/^Morning weight, weekly averages, past 3 months/),
     ).toBeTruthy()
-    expect(fills()).toHaveLength(5)
+    expect(fills()).toHaveLength(4)
   })
 
   it('says so when a range has no morning weigh-ins', async () => {
