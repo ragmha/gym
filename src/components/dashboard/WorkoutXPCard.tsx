@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Circle } from 'react-native-svg'
 
+import { Radii } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
 
 function clamp(val: number, min: number, max: number) {
@@ -22,7 +23,6 @@ export interface MetricRing {
   value: number | null
   goal: number
   unit: string
-  color: string
   icon: React.ComponentProps<typeof Ionicons>['name']
 }
 
@@ -90,7 +90,14 @@ function AnimatedRing({
 // ── Main component ─────────────────────────────────────────────────────
 
 export function FitnessRingsCard({ metrics, onPress }: FitnessRingsCardProps) {
-  const { cardBackground, text: textColor, icon: subtextColor } = useTheme()
+  const {
+    cardBackground,
+    text: textColor,
+    icon: subtextColor,
+    accent,
+    goalTrack,
+    cardSurface,
+  } = useTheme()
 
   const center = RING_SIZE / 2
 
@@ -126,7 +133,7 @@ export function FitnessRingsCard({ metrics, onPress }: FitnessRingsCardProps) {
                     cx={center}
                     cy={center}
                     r={r}
-                    stroke={`${m.color}20`}
+                    stroke={goalTrack}
                     strokeWidth={RING_STROKE}
                     fill="none"
                   />
@@ -135,7 +142,7 @@ export function FitnessRingsCard({ metrics, onPress }: FitnessRingsCardProps) {
                     cx={center}
                     cy={center}
                     r={r}
-                    stroke={m.color}
+                    stroke={accent}
                     strokeWidth={RING_STROKE}
                     progress={progress}
                     circumference={circumference}
@@ -154,12 +161,9 @@ export function FitnessRingsCard({ metrics, onPress }: FitnessRingsCardProps) {
             return (
               <View key={m.label} style={styles.legendRow}>
                 <View
-                  style={[
-                    styles.legendIcon,
-                    { backgroundColor: `${m.color}20` },
-                  ]}
+                  style={[styles.legendIcon, { backgroundColor: cardSurface }]}
                 >
-                  <Ionicons name={m.icon} size={14} color={m.color} />
+                  <Ionicons name={m.icon} size={14} color={accent} />
                 </View>
                 <View style={styles.legendText}>
                   <Text style={[styles.legendLabel, { color: textColor }]}>
@@ -193,7 +197,7 @@ function formatMetricValue(value: number | null, unit: string): string {
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 20,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     padding: 18,
     marginBottom: 16,
   },

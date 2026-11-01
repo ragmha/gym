@@ -9,7 +9,6 @@ export interface DailySummaryProps {
     target: string
     available: boolean
     progress: number
-    color: string
   }[]
   updatedAt: string
   expiresAt: number
@@ -26,21 +25,18 @@ export function dailySummaryTimeline(
       value: current?.steps,
       goal: DAILY_STEP_GOAL,
       target: '20,000',
-      color: '#83D7AB',
     },
     {
       label: 'WATER',
       value: current?.waterLiters,
       goal: 2.5,
       target: '2.5 L',
-      color: '#8AB4FF',
     },
     {
       label: 'ACTIVE KCAL',
       value: current?.calories,
       goal: 500,
       target: '500 kcal',
-      color: '#EF7171',
     },
   ]
   const midnight = new Date(now)

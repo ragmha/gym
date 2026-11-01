@@ -1,6 +1,12 @@
 import SwiftUI
 import WatchKit
 
+private enum WatchPalette {
+  // Mirrors the shared dark tokens; the Watch app is always OLED-black.
+  static let accent = Color(red: 1, green: 77.0 / 255, blue: 85.0 / 255)
+  static let track = Color(white: 51.0 / 255)
+}
+
 @main
 struct GymWatchApp: App {
   @State private var phone = Phone()
@@ -12,7 +18,7 @@ struct GymWatchApp: App {
         WorkoutView()
       }
       .environment(phone)
-      .tint(.red)
+      .tint(WatchPalette.accent)
       .preferredColorScheme(.dark)
     }
     // Refresh on every raise so a new day never logs into yesterday's workout.
@@ -45,7 +51,7 @@ struct WorkoutView: View {
               Text(exercise.title)
               Text(exercise.progress)
                 .font(.footnote)
-                .foregroundStyle(exercise.done ? .green : .secondary)
+                .foregroundStyle(exercise.done ? WatchPalette.accent : Color.secondary)
             }
           }
         }
@@ -92,7 +98,7 @@ struct SetLogger: View {
                   Circle()
                     .trim(from: Double(index) / count + gap, to: Double(index + 1) / count - gap)
                     .stroke(
-                      Color.red.opacity(index < exercise.filledSegments ? 1 : 0.28),
+                      index < exercise.filledSegments ? WatchPalette.accent : WatchPalette.track,
                       style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
@@ -144,7 +150,7 @@ struct SetLogger: View {
             if let error = phone.error {
               Text(error)
                 .font(.footnote)
-                .foregroundStyle(.red)
+                .foregroundStyle(WatchPalette.accent)
             }
             Text(exercise.band(locked: state.locked))
               .font(.headline)
@@ -189,7 +195,7 @@ struct SetLogger: View {
               }
             }
             .font(.headline)
-            .foregroundStyle(.red)
+            .foregroundStyle(WatchPalette.accent)
           }
           .buttonStyle(.plain)
           .accessibilityLabel("Back to exercises")
@@ -304,7 +310,7 @@ struct RepCountView: View {
             .frame(minHeight: 48)
         }
         if let error = counter.error {
-          Text(error).font(.footnote).foregroundStyle(.red)
+          Text(error).font(.footnote).foregroundStyle(WatchPalette.accent)
         }
       }
       .monospacedDigit()

@@ -2,6 +2,8 @@ import React from 'react'
 import { StyleSheet, Text, TextStyle, View } from 'react-native'
 
 import { CircularProgress } from '@/components/common/CircularProgress'
+import { Radii, Spacing, Typography } from '@/constants/DesignSystem'
+import { useTheme } from '@/hooks/useThemeColor'
 
 interface ProgressCardProps {
   title?: string
@@ -19,36 +21,36 @@ export function ProgressCard({
   title = 'Progress',
   subtitle,
   progress = 0,
-  progressColor = '#007AFF',
+  progressColor,
   cardBackgroundColor,
   textColor,
   strokeWidth = 8,
   progressCircleSize = 50,
-  circleBackgroundColor = '#333',
+  circleBackgroundColor,
 }: ProgressCardProps) {
+  const theme = useTheme()
   const percentage = Math.round(progress * 100)
+  const resolvedTextColor = textColor ?? theme.text
 
   const progressTextStyle: TextStyle = {
     ...styles.percentage,
-    ...(textColor ? { color: textColor } : {}),
+    color: resolvedTextColor,
   }
 
   return (
     <View
       style={[
         styles.container,
-        cardBackgroundColor ? { backgroundColor: cardBackgroundColor } : {},
+        { backgroundColor: cardBackgroundColor ?? theme.cardBackground },
       ]}
     >
       <View style={styles.content}>
         <View style={styles.textContainer}>
-          <Text style={[styles.title, textColor ? { color: textColor } : {}]}>
+          <Text style={[styles.title, { color: resolvedTextColor }]}>
             {title}
           </Text>
           {subtitle && (
-            <Text
-              style={[styles.subtitle, textColor ? { color: textColor } : {}]}
-            >
+            <Text style={[styles.subtitle, { color: theme.subtitleText }]}>
               {subtitle}
             </Text>
           )}
@@ -61,8 +63,8 @@ export function ProgressCard({
             activeStrokeWidth={strokeWidth}
             inActiveStrokeWidth={strokeWidth}
             maxValue={100}
-            activeStrokeColor={progressColor}
-            inActiveStrokeColor={circleBackgroundColor}
+            activeStrokeColor={progressColor ?? theme.accent}
+            inActiveStrokeColor={circleBackgroundColor ?? theme.goalTrack}
           >
             <Text style={progressTextStyle}>{percentage}%</Text>
           </CircularProgress>
@@ -74,14 +76,8 @@ export function ProgressCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
   },
   content: {
     flexDirection: 'row',
@@ -92,20 +88,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...Typography.headingSm,
+    marginBottom: Spacing.xxs,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
+    ...Typography.bodySm,
   },
   progressContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   percentage: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.labelMd,
   },
 })

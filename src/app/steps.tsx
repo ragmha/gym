@@ -29,8 +29,6 @@ const ARC_LENGTH = Math.PI * ARC_RADIUS
 const CHART_WIDTH = 350
 const CHART_TOP = 12
 const CHART_BOTTOM = 126
-const SELECTED_DAY_BG = '#F5F5F5'
-const SELECTED_DAY_TEXT = '#090909'
 
 export default function StepsScreen() {
   return (
@@ -527,10 +525,10 @@ function StepWeekChart({
                 style={[
                   styles.chartDayLabel,
                   {
-                    color: selected ? SELECTED_DAY_TEXT : theme.subtitleText,
+                    color: selected ? theme.selectedText : theme.subtitleText,
                   },
                   selected && {
-                    backgroundColor: SELECTED_DAY_BG,
+                    backgroundColor: theme.accent,
                     borderRadius: Radii.pill,
                   },
                 ]}

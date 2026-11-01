@@ -6,9 +6,6 @@ export type SpeakingTopic = {
   id: string
   title: string
   tagline: string
-  /** Top and bottom colours of the topic orb. */
-  /** Orb dot colours: [core, middle, rim]. */
-  colors: [string, string, string]
   /** The three points to speak from in Solo mode. */
   points: string[]
   paragraphs: string[]
@@ -19,7 +16,6 @@ export const TOPICS: SpeakingTopic[] = [
     id: 'agents',
     title: 'What an AI agent actually is',
     tagline: 'A model in a loop, with tools',
-    colors: ['#5B5CFF', '#E0457B', '#FF3B30'],
     points: [
       'An agent is a model in a loop, with tools, working toward a goal.',
       'The model proposes, the program disposes.',
@@ -40,7 +36,6 @@ export const TOPICS: SpeakingTopic[] = [
     id: 'small-prs',
     title: 'Why small pull requests win',
     tagline: 'Real reviews, not rubber stamps',
-    colors: ['#4B3BD6', '#3E8BFF', '#7FF0FF'],
     points: [
       'Small changes get real reviews. Big changes get rubber stamps.',
       'Small means one idea, not few lines.',
@@ -61,7 +56,6 @@ export const TOPICS: SpeakingTopic[] = [
     id: 'web-request',
     title: 'How a web request travels',
     tagline: 'A series of handoffs',
-    colors: ['#8A2BE2', '#FF4F6D', '#FFC24A'],
     points: [
       'A web request is a series of handoffs.',
       'Name, connection, edge, application, and the trip back.',
@@ -83,7 +77,6 @@ export const TOPICS: SpeakingTopic[] = [
     id: 'explain-work',
     title: 'Explaining your work to non-engineers',
     tagline: 'Problem first, system second',
-    colors: ['#2547A8', '#21A6A0', '#9CFF8A'],
     points: [
       'Problem first, system second.',
       'Pain, change, how. Usually you never need the how.',

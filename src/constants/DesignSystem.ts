@@ -12,11 +12,11 @@ export const Spacing = {
 } as const
 
 export const Radii = {
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 24,
-  panel: 28,
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  panel: 16,
   pill: 999,
 } as const
 
@@ -27,11 +27,10 @@ export const Layout = {
 } as const
 
 export const Typography = {
-  /** Weight screen hero only; see DESIGN.md "Weight screen exception". */
   displayXl: {
     fontSize: 88,
     lineHeight: 96,
-    fontWeight: '800',
+    fontWeight: '300',
     letterSpacing: -3,
     fontVariant: ['tabular-nums'],
   },
@@ -40,12 +39,14 @@ export const Typography = {
     lineHeight: 72,
     fontWeight: '300',
     letterSpacing: -2,
+    fontVariant: ['tabular-nums'],
   },
   displayMd: {
     fontSize: 48,
     lineHeight: 56,
     fontWeight: '300',
     letterSpacing: -1.4,
+    fontVariant: ['tabular-nums'],
   },
   headingXl: {
     fontSize: 32,
@@ -99,13 +100,17 @@ export const Typography = {
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '600',
-    letterSpacing: 0,
+    fontFamily: 'SpaceMono',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   labelSm: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '600',
-    letterSpacing: 0,
+    fontFamily: 'SpaceMono',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   numericLg: {
     fontSize: 40,
@@ -124,9 +129,9 @@ export const Typography = {
 
 export const Elevation = {
   soft: {
-    boxShadow: '0 6px 24px rgba(24, 29, 43, 0.06)',
+    boxShadow: 'none',
   },
   floating: {
-    boxShadow: '0 12px 36px rgba(24, 29, 43, 0.09)',
+    boxShadow: 'none',
   },
 } as const satisfies Record<string, ViewStyle>

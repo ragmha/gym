@@ -14,7 +14,7 @@ import {
 } from '@/components/dashboard/GoalGrid'
 import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { HealthReadState } from '@/components/health/HealthReadState'
-import { Layout, Spacing, Typography } from '@/constants/DesignSystem'
+import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useDeepWork, type DeepWork } from '@/hooks/useDeepWork'
 import { useHealthSnapshot } from '@/hooks/useHealthSnapshot'
@@ -162,7 +162,6 @@ function HomeForDate({
             snapshot={status === 'error' ? null : snapshot}
             date={selectedDate}
             reading={reading}
-            deepWork={deepWork}
             ref={goalGrid}
             onPageChange={setPagination}
             editing={editing}
@@ -210,13 +209,14 @@ function HomeForDate({
             }
             style={({ pressed }) => [
               styles.footerButton,
-              { opacity: pressed ? 0.65 : 1 },
+              styles.navigationButton,
+              { borderColor: theme.border, opacity: pressed ? 0.65 : 1 },
             ]}
             accessibilityRole="button"
             accessibilityLabel="Insights"
             accessibilityHint="Opens the calendar to review past days"
           >
-            <Ionicons name="bar-chart-outline" size={22} color={theme.text} />
+            <Ionicons name="bar-chart-outline" size={20} color={theme.icon} />
           </Pressable>
           <View style={styles.pageIndicators}>
             {Array.from({ length: pagination.count }, (_, index) => (
@@ -234,12 +234,13 @@ function HomeForDate({
                 onPress={() => goalGrid.current?.showPage(index)}
               >
                 <View
+                  testID={`home-page-dot-${index}`}
                   style={[
                     styles.pageDot,
                     {
                       backgroundColor:
                         index === pagination.index
-                          ? theme.text
+                          ? theme.accent
                           : theme.goalTrack,
                       opacity: canPage ? 1 : 0.4,
                     },
@@ -258,13 +259,14 @@ function HomeForDate({
             }
             style={({ pressed }) => [
               styles.footerButton,
-              { opacity: pressed ? 0.65 : 1 },
+              styles.navigationButton,
+              { borderColor: theme.border, opacity: pressed ? 0.65 : 1 },
             ]}
             accessibilityRole="button"
             accessibilityLabel="Open coach"
             accessibilityHint="Opens your AI coach chat"
           >
-            <Ionicons name="chatbubble-outline" size={22} color={theme.text} />
+            <Ionicons name="chatbubble-outline" size={20} color={theme.icon} />
           </Pressable>
         </View>
       </View>
@@ -298,8 +300,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerButton: {
-    width: 44,
-    height: 44,
+    width: Layout.controlSize,
+    height: Layout.controlSize,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -309,12 +311,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pageDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: Spacing.xs,
+    height: Spacing.xs,
+    borderRadius: Radii.pill,
+  },
+  navigationButton: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
   },
   demo: {
-    ...Typography.bodySm,
+    ...Typography.labelSm,
+    fontWeight: '400',
     marginHorizontal: Layout.gutter,
   },
 })

@@ -40,7 +40,6 @@ export function buildFitnessRings(
       value: snapshot?.calories ?? null,
       goal: GOALS.calories,
       unit: 'kcal',
-      color: '#FF6B35',
       icon: 'flame',
     },
     {
@@ -48,7 +47,6 @@ export function buildFitnessRings(
       value: round1(snapshot?.waterLiters ?? null),
       goal: GOALS.waterLiters,
       unit: 'L',
-      color: '#2563EB',
       icon: 'water',
     },
     {
@@ -56,7 +54,6 @@ export function buildFitnessRings(
       value: round1(snapshot?.sleepHours ?? null),
       goal: SLEEP_GOAL_HOURS,
       unit: 'hrs',
-      color: '#30D158',
       icon: 'moon',
     },
     {
@@ -64,7 +61,6 @@ export function buildFitnessRings(
       value: snapshot?.steps ?? null,
       goal: GOALS.steps,
       unit: 'steps',
-      color: '#0EA5E9',
       icon: 'footsteps',
     },
     {
@@ -72,7 +68,6 @@ export function buildFitnessRings(
       value: workoutMinutes,
       goal: GOALS.workoutMinutes,
       unit: 'min',
-      color: '#E8707A',
       icon: 'heart-circle',
     },
   ]

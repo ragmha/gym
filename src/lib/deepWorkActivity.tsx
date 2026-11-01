@@ -21,10 +21,12 @@ interface DeepWorkProps {
 // Compiled to a string for the widget extension: use only @expo/ui globals.
 function DeepWorkLayout({ focus, startsAt, endsAt, pausedAt }: DeepWorkProps) {
   'widget'
+  // Isolated widget layouts mirror the shared dark accent.
+  const accent = '#FF4D55'
   const icon = (
     <Image
       systemName={focus ? 'timer' : 'cup.and.saucer.fill'}
-      color="#FF3B30"
+      color={accent}
     />
   )
   const clock = (size: number) => (
@@ -43,7 +45,7 @@ function DeepWorkLayout({ focus, startsAt, endsAt, pausedAt }: DeepWorkProps) {
     <HStack spacing={12}>
       <Image
         systemName={focus ? 'timer' : 'cup.and.saucer.fill'}
-        color="#FF3B30"
+        color={accent}
         size={28}
       />
       <VStack alignment="leading" spacing={2}>

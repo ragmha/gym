@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { StyleSheet, View, useWindowDimensions } from 'react-native'
-import Svg, { Defs, Line, LinearGradient, Rect, Stop } from 'react-native-svg'
+import Svg, { Line, Rect } from 'react-native-svg'
 
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { Radii, Spacing } from '@/constants/DesignSystem'
@@ -38,7 +38,7 @@ function axisLabels(bars: WeightBar[], range: WeightRange) {
   })
 }
 
-/** Warm trend bars fading into the page, the latest highlighted, over a dashed goal line. */
+/** Flat neutral trend bars, the latest highlighted, over a dashed goal line. */
 export function WeightChart({
   bars,
   range,
@@ -72,7 +72,7 @@ export function WeightChart({
   const low = Math.min(...scale)
   const high = Math.max(...scale)
   const span = Math.max(high - low, 2)
-  // Bars rise from well below the lowest value so none sink into the fade.
+  // Leave room below the lowest value so every measured bar remains visible.
   const bottom = low - span * 0.8
   const top = high + span * 0.1
   const y = (kilograms: number) =>
@@ -99,31 +99,6 @@ export function WeightChart({
       {width > 0 && (
         <>
           <Svg width={width} height={CHART_HEIGHT}>
-            <Defs>
-              <LinearGradient
-                id="weight-bars"
-                x1={0}
-                y1={0}
-                x2={width}
-                y2={0}
-                gradientUnits="userSpaceOnUse"
-              >
-                <Stop offset="0" stopColor={theme.weightBarStart} />
-                <Stop offset="1" stopColor={theme.weightBarEnd} />
-              </LinearGradient>
-              <LinearGradient id="weight-fade" x1="0" y1="0" x2="0" y2="1">
-                <Stop
-                  offset="0"
-                  stopColor={theme.homeBackground}
-                  stopOpacity={0}
-                />
-                <Stop
-                  offset="1"
-                  stopColor={theme.homeBackground}
-                  stopOpacity={0.9}
-                />
-              </LinearGradient>
-            </Defs>
             <Rect
               x={latest * slot + (slot - barWidth) / 2}
               y={0}
@@ -142,17 +117,10 @@ export function WeightChart({
                   width={barWidth}
                   height={CHART_HEIGHT - y(bar.kilograms)}
                   rx={radius}
-                  fill={index === latest ? theme.text : 'url(#weight-bars)'}
+                  fill={index === latest ? theme.accent : theme.subtitleText}
                 />
               ),
             )}
-            <Rect
-              x={0}
-              y={CHART_HEIGHT * 0.55}
-              width={width}
-              height={CHART_HEIGHT * 0.45}
-              fill="url(#weight-fade)"
-            />
             {goalKg !== null && (
               <Line
                 x1={0}

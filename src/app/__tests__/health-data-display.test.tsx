@@ -130,14 +130,18 @@ describe('HomeScreen health data', () => {
   })
 
   it('updates priority readings without introducing secondary metrics', () => {
-    const { getByLabelText, queryByText, rerender } = render(<HomeScreen />)
+    const { getByLabelText, queryByTestId, queryByText, rerender } = render(
+      <HomeScreen />,
+    )
     expect(getByLabelText('Steps unavailable')).toBeTruthy()
     expect(queryByText('Sleep')).toBeNull()
 
     mockSnapshot = completeSnapshot
     rerender(<HomeScreen />)
     expect(getByLabelText('Steps 8,000')).toBeTruthy()
-    expect(getByLabelText('Water 2.0 liters recorded')).toBeTruthy()
+    expect(
+      queryByTestId('goal-tile-water', { includeHiddenElements: true }),
+    ).toBeNull()
     expect(queryByText('Sleep')).toBeNull()
 
     mockSnapshot = null

@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons'
 import React, { type ReactNode } from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
+import { Radii } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
 
 interface HeaderProps {
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
   calendarIcon: {
     width: 42,
     height: 42,
-    borderRadius: 14,
+    borderRadius: Radii.md,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,12 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import {
-  type ComponentProps,
-  type ReactNode,
-  useEffect,
-  useId,
-  useState,
-} from 'react'
+import { type ComponentProps, type ReactNode, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -15,14 +9,12 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 
 import { CommuteSetup } from '@/components/dashboard/CommuteSetup'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
-import { summarizeHomeGoals } from '@/components/dashboard/GoalGrid'
-import { Colors, TodayColors } from '@/constants/Colors'
+import { GlyphBar, summarizeHomeGoals } from '@/components/dashboard/GoalGrid'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
-import { useColorScheme } from '@/hooks/useColorScheme'
+import { useTheme } from '@/hooks/useThemeColor'
 import { useDayPlanner } from '@/hooks/useDayPlanner'
 import type { DeepWork } from '@/hooks/useDeepWork'
 import type { ReadingTimer } from '@/hooks/useReadingTimer'
@@ -49,38 +41,6 @@ const time = (milliseconds: number) =>
     minute: '2-digit',
   })
 
-const todayThemes = {
-  light: { ...Colors.light, ...TodayColors.light },
-  dark: { ...Colors.dark, ...TodayColors.dark },
-}
-
-function useTodayTheme() {
-  return todayThemes[useColorScheme() ?? 'light']
-}
-
-function MaterialSurface() {
-  const theme = useTodayTheme()
-  const id = useId()
-  return (
-    <Svg
-      width="100%"
-      height="100%"
-      style={StyleSheet.absoluteFillObject}
-      pointerEvents="none"
-      accessible={false}
-      aria-hidden
-    >
-      <Defs>
-        <LinearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
-          <Stop offset="0%" stopColor={theme.panelTop} />
-          <Stop offset="100%" stopColor={theme.panelBottom} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill={`url(#${id})`} />
-    </Svg>
-  )
-}
-
 function Action({
   label,
   onPress,
@@ -98,7 +58,7 @@ function Action({
   summary?: string
   urgent?: boolean
 }) {
-  const theme = useTodayTheme()
+  const theme = useTheme()
   const { fontScale } = useWindowDimensions()
   return (
     <Pressable
@@ -130,9 +90,9 @@ function Action({
           {icon && <Ionicons name={icon} size={20} color={theme.icon} />}
           <Text
             style={[
-              Typography.labelLg,
+              styles.instrumentLabel,
               styles.actionText,
-              { color: icon ? theme.text : theme.accent },
+              { color: theme.text },
             ]}
           >
             {label}
@@ -141,7 +101,7 @@ function Action({
         {summary && (
           <Text
             style={[
-              Typography.labelMd,
+              styles.instrumentLabel,
               styles.actionSummary,
               { color: urgent ? theme.danger : theme.subtitleText },
             ]}
@@ -153,7 +113,7 @@ function Action({
       <Ionicons
         name={expanded ? 'chevron-up-outline' : 'chevron-forward-outline'}
         size={18}
-        color={theme.accent}
+        color={theme.subtitleText}
       />
     </Pressable>
   )
@@ -162,38 +122,32 @@ function Action({
 function Card({
   title,
   icon,
-  aside,
   children,
-  variant = 'card',
 }: {
   title: string
   icon: ComponentProps<typeof Ionicons>['name']
-  aside?: ReactNode
   children: ReactNode
-  variant?: 'card' | 'priority'
 }) {
-  const theme = useTodayTheme()
+  const theme = useTheme()
   return (
     <View
       style={[
         styles.card,
         { backgroundColor: theme.cardBackground, borderColor: theme.border },
-        variant === 'priority' && [
-          styles.priorityCard,
-          { backgroundColor: theme.cardBackground },
-        ],
       ]}
     >
-      <MaterialSurface />
       <View style={styles.heading}>
         <Ionicons name={icon} size={20} color={theme.icon} />
         <Text
           accessibilityRole="header"
-          style={[Typography.headingSm, styles.flexText, { color: theme.text }]}
+          style={[
+            styles.instrumentLabel,
+            styles.flexText,
+            { color: theme.text },
+          ]}
         >
           {title}
         </Text>
-        {aside}
       </View>
       {children}
     </View>
@@ -201,12 +155,12 @@ function Card({
 }
 
 function Badge({ label, urgent = false }: { label: string; urgent?: boolean }) {
-  const theme = useTodayTheme()
+  const theme = useTheme()
   return (
-    <View style={[styles.badge, { backgroundColor: theme.cardSurface }]}>
+    <View style={[styles.badge, { borderColor: theme.border }]}>
       <Text
         style={[
-          Typography.labelMd,
+          styles.instrumentLabel,
           { color: urgent ? theme.danger : theme.subtitleText },
         ]}
       >
@@ -272,7 +226,7 @@ function AgendaRow({
   editable: boolean
   onChange: (id: string, completed: boolean) => Promise<void>
 }) {
-  const theme = useTodayTheme()
+  const theme = useTheme()
   const completed = entry.kind === 'reminder' && entry.item.completed
   const title =
     entry.item.title ||
@@ -347,7 +301,7 @@ function AgendaRow({
         {detail ? (
           <Text
             style={[
-              Typography.labelMd,
+              styles.instrumentLabel,
               { color: urgency ? theme.danger : theme.subtitleText },
             ]}
           >
@@ -412,7 +366,7 @@ export function TodayPage({
   healthError: string | null
   onRetryHealth: () => void
 }) {
-  const theme = useTodayTheme()
+  const theme = useTheme()
   const router = useRouter()
   const { fontScale } = useWindowDimensions()
   const largeText = fontScale >= 1.4
@@ -529,7 +483,8 @@ export function TodayPage({
         styles.stat,
         icon && styles.metricCard,
         icon && {
-          backgroundColor: highlighted ? theme.highlight : theme.cardBackground,
+          backgroundColor: theme.cardBackground,
+          borderColor: theme.border,
         },
         largeText && styles.fullWidth,
       ]}
@@ -538,40 +493,19 @@ export function TodayPage({
     >
       <View style={styles.heading}>
         {icon && (
-          <View
-            style={[
-              styles.metricIcon,
-              {
-                backgroundColor: highlighted
-                  ? theme.highlightIcon
-                  : theme.cardSurface,
-              },
-            ]}
-          >
+          <View style={styles.metricIcon}>
             <Ionicons
               name={icon}
               size={18}
-              color={highlighted ? theme.onHighlightIcon : theme.text}
+              color={highlighted ? theme.text : theme.subtitleText}
             />
           </View>
         )}
-        <Text
-          style={[
-            icon ? Typography.bodySm : Typography.labelMd,
-            { color: highlighted ? theme.onHighlight : theme.subtitleText },
-          ]}
-        >
+        <Text style={[styles.instrumentLabel, { color: theme.subtitleText }]}>
           {label}
         </Text>
       </View>
-      <Text
-        style={[
-          icon ? Typography.headingLg : Typography.numericMd,
-          { color: highlighted ? theme.onHighlight : theme.text },
-        ]}
-      >
-        {value}
-      </Text>
+      <Text style={[styles.metricValue, { color: theme.text }]}>{value}</Text>
     </View>
   )
   const calendarStatus = !planner.available
@@ -615,19 +549,16 @@ export function TodayPage({
     >
       <View style={styles.heading}>
         <View style={largeText ? styles.fullWidth : styles.flexText}>
-          <Text
-            accessibilityRole="header"
-            style={[
-              largeText ? Typography.headingMd : Typography.headingXl,
-              text,
-            ]}
-          >
+          <Text accessibilityRole="header" style={[styles.greeting, text]}>
             {greeting(now)}
           </Text>
         </View>
         {!largeText && (
           <View
-            style={[styles.dayIcon, { backgroundColor: theme.cardSurface }]}
+            style={styles.dayIcon}
+            aria-hidden
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
           >
             <Ionicons
               name={
@@ -635,72 +566,68 @@ export function TodayPage({
                   ? 'moon-outline'
                   : 'sunny-outline'
               }
-              size={24}
+              size={20}
               color={theme.icon}
             />
           </View>
         )}
       </View>
-      <Card
-        title="Steps + Gym"
-        icon="grid-outline"
-        variant="priority"
-        aside={<Badge label={`${summary.done}/${summary.total} met`} />}
-      >
-        <View style={[styles.overview, largeText && styles.stacked]}>
-          <View style={[styles.overviewText, largeText && styles.stackedText]}>
-            <Text style={[Typography.numericLg, text]}>
-              {percent === null ? '--' : `${percent}%`}
-            </Text>
-          </View>
-          <View
-            style={styles.dots}
-            accessible
-            accessibilityLabel={
-              percent === null
-                ? 'Daily priority progress unavailable'
-                : `${percent}% daily priority progress, Steps and Gym`
-            }
+      <View testID="today-priority" style={styles.priority}>
+        <View style={styles.heading}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.instrumentLabel, styles.flexText, muted]}
           >
-            <Svg
-              width="100%"
-              height="100%"
-              viewBox="0 0 200 200"
-              accessible={false}
-              aria-hidden
-            >
-              {Array.from({ length: 100 }, (_, index) => (
-                <Circle
-                  key={index}
-                  cx={10 + (index % 10) * 20}
-                  cy={10 + Math.floor(index / 10) * 20}
-                  r={4.5}
-                  fill={
-                    percent !== null && index < percent
-                      ? theme.goalComplete
-                      : theme.border
-                  }
-                />
-              ))}
-            </Svg>
-          </View>
+            Steps + Gym
+          </Text>
+          <Badge label={`${summary.done}/${summary.total} met`} />
         </View>
-      </Card>
+        <Text
+          style={[largeText ? styles.metricValue : styles.priorityValue, text]}
+          selectable
+        >
+          {percent === null ? '--' : `${percent}%`}
+        </Text>
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={
+            percent === null
+              ? 'Daily priority progress unavailable'
+              : `${percent}% daily priority progress, Steps and Gym`
+          }
+          accessibilityValue={
+            percent === null
+              ? { text: 'Unavailable' }
+              : { min: 0, max: 100, now: percent }
+          }
+        >
+          <GlyphBar
+            id="today-priority"
+            segments={
+              percent === null
+                ? null
+                : { total: 20, lit: Math.floor(percent / 5) }
+            }
+            done={percent === null ? null : percent === 100}
+          />
+        </View>
+      </View>
       <View style={styles.section}>
-        <Text accessibilityRole="header" style={[Typography.headingMd, text]}>
+        <Text accessibilityRole="header" style={[styles.instrumentLabel, text]}>
           Your agenda
         </Text>
         {planner.available ? (
           <>
-            <Text style={[Typography.labelMd, muted]}>
+            <Text style={[styles.instrumentLabel, muted]}>
               Calendar · {calendarStatus}
             </Text>
-            <Text style={[Typography.labelMd, muted]}>
+            <Text style={[styles.instrumentLabel, muted]}>
               Reminders · {inboxStatus}
             </Text>
           </>
         ) : (
-          <Text style={[Typography.labelMd, muted]}>
+          <Text style={[styles.instrumentLabel, muted]}>
             Calendar & Reminders · iOS 17+ build required
           </Text>
         )}
@@ -720,14 +647,25 @@ export function TodayPage({
               <View
                 key={period}
                 testID={`agenda-${period}`}
-                style={styles.section}
+                style={[styles.period, { borderColor: theme.border }]}
               >
-                <Text
-                  accessibilityRole="header"
-                  style={[Typography.headingLg, text]}
-                >
-                  {period}
-                </Text>
+                <View style={styles.heading}>
+                  <Text
+                    accessibilityRole="header"
+                    style={[styles.instrumentLabel, styles.flexText, text]}
+                  >
+                    {period}
+                  </Text>
+                  {entries.length === 0 && (
+                    <Text
+                      style={[Typography.bodySm, styles.emptyPeriod, muted]}
+                    >
+                      {planner.available && day?.calendarAccess === 'granted'
+                        ? 'No planned items'
+                        : '--'}
+                    </Text>
+                  )}
+                </View>
                 {entries.map((entry) => (
                   <AgendaRow
                     key={`${entry.kind}-${entry.item.id}`}
@@ -742,13 +680,6 @@ export function TodayPage({
                     onChange={planner.setReminderCompleted}
                   />
                 ))}
-                {entries.length === 0 && (
-                  <Text style={[Typography.bodySm, muted]}>
-                    {planner.available && day?.calendarAccess === 'granted'
-                      ? 'No planned items'
-                      : '--'}
-                  </Text>
-                )}
               </View>
             )
           })}
@@ -902,7 +833,7 @@ export function TodayPage({
               <Text style={[Typography.labelMd, muted]}>
                 {transit.direction} · Leave by
               </Text>
-              <Text style={[Typography.numericLg, text]}>
+              <Text style={[styles.metricValue, text]}>
                 {time(transit.leaveMs)}
               </Text>
               <Text style={[Typography.bodySm, muted]}>
@@ -1018,30 +949,49 @@ export function TodayPage({
 const styles = StyleSheet.create({
   content: {
     padding: Layout.gutter,
+    paddingTop: Spacing.md,
     gap: Spacing.md,
     maxWidth: Layout.contentMaxWidth,
     width: '100%',
     alignSelf: 'center',
   },
-  overview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: Spacing.lg,
+  instrumentLabel: {
+    ...Typography.labelMd,
+    fontWeight: '400',
   },
-  dots: { width: 96, height: 96 },
-  overviewText: { flex: 1, minWidth: 120, gap: Spacing.xxs },
+  greeting: {
+    ...Typography.bodyMd,
+    fontFamily: 'SpaceMono',
+  },
+  priority: {
+    gap: Spacing.xs,
+    paddingBottom: Spacing.sm,
+  },
+  priorityValue: {
+    ...Typography.displayMd,
+    fontFamily: 'SpaceMono',
+    fontWeight: '400',
+  },
+  metricValue: {
+    ...Typography.numericMd,
+    fontFamily: 'SpaceMono',
+  },
   stacked: { flexDirection: 'column', alignItems: 'flex-start' },
   stackedText: { flex: 0, alignSelf: 'stretch' },
   fullWidth: { flexBasis: '100%', minWidth: 0 },
   dayIcon: {
-    width: Layout.controlSize,
-    height: Layout.controlSize,
-    borderRadius: Radii.pill,
+    width: Spacing.xxl,
+    height: Spacing.xxl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  agenda: { gap: Spacing.lg, paddingTop: Spacing.sm },
+  agenda: { paddingTop: Spacing.xs },
+  period: {
+    borderTopWidth: 1,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  emptyPeriod: { flexShrink: 1 },
   agendaRow: {
     minHeight: Layout.controlSize,
     flexDirection: 'row',
@@ -1054,26 +1004,26 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
   stat: { flexBasis: '45%', flexGrow: 1, minWidth: 120, gap: Spacing.xxs },
   metricCard: {
-    minHeight: 140,
+    minHeight: 120,
     padding: Spacing.md,
     borderRadius: Radii.xl,
+    borderWidth: 1,
     justifyContent: 'space-between',
     gap: Spacing.lg,
   },
   metricIcon: {
-    width: Spacing.xxl,
-    height: Spacing.xxl,
-    borderRadius: Radii.pill,
+    width: Spacing.xl,
+    height: Spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   card: {
     overflow: 'hidden',
     borderRadius: Radii.panel,
+    borderWidth: 1,
     padding: Spacing.lg,
     gap: Spacing.md,
   },
-  priorityCard: { borderWidth: 0 },
   section: { gap: Spacing.sm },
   heading: {
     flexDirection: 'row',
@@ -1085,6 +1035,7 @@ const styles = StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
     borderRadius: Radii.sm,
+    borderWidth: 1,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
   },

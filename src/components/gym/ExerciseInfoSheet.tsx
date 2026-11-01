@@ -119,7 +119,13 @@ function ExerciseInfoSheet({
               No animation for this exercise yet.
             </Text>
           ) : load.status === 'loading' ? (
-            <View style={[styles.media, styles.centered]}>
+            <View
+              style={[
+                styles.media,
+                styles.centered,
+                { backgroundColor: theme.mediaSurface },
+              ]}
+            >
               <ActivityIndicator color={theme.goalComplete} />
             </View>
           ) : load.status === 'error' ? (
@@ -144,7 +150,7 @@ function ExerciseInfoSheet({
                 source={{ uri: load.info.gifUrl }}
                 accessibilityLabel={`${load.info.name} demonstration`}
                 resizeMode="contain"
-                style={styles.media}
+                style={[styles.media, { backgroundColor: theme.mediaSurface }]}
               />
               <Text style={[styles.mono, { color: theme.subtitleText }]}>
                 Shown: {load.info.name}
@@ -246,7 +252,6 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: Radii.md,
-    backgroundColor: '#FFFFFF',
   },
   centered: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs },
   retry: { padding: Spacing.sm },

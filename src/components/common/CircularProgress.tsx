@@ -7,6 +7,8 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Circle } from 'react-native-svg'
 
+import { useTheme } from '@/hooks/useThemeColor'
+
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
 export interface CircularProgressProps {
@@ -36,15 +38,18 @@ export function CircularProgress({
   radius = 40,
   activeStrokeWidth = 10,
   inActiveStrokeWidth = 10,
-  activeStrokeColor = '#007AFF',
-  inActiveStrokeColor = 'rgba(0,122,255,0.15)',
+  activeStrokeColor,
+  inActiveStrokeColor,
   duration = 1000,
   children,
 }: CircularProgressProps) {
+  const theme = useTheme()
   const stroke = Math.max(activeStrokeWidth, inActiveStrokeWidth)
   const innerRadius = radius - stroke / 2
   const circumference = 2 * Math.PI * innerRadius
   const size = radius * 2
+  const activeColor = activeStrokeColor ?? theme.accent
+  const inactiveColor = inActiveStrokeColor ?? theme.goalTrack
 
   const progress = useSharedValue(0)
 
@@ -66,7 +71,7 @@ export function CircularProgress({
           cx={radius}
           cy={radius}
           r={innerRadius}
-          stroke={inActiveStrokeColor}
+          stroke={inactiveColor}
           strokeWidth={inActiveStrokeWidth}
           fill="none"
         />
@@ -74,7 +79,7 @@ export function CircularProgress({
           cx={radius}
           cy={radius}
           r={innerRadius}
-          stroke={activeStrokeColor}
+          stroke={activeColor}
           strokeWidth={activeStrokeWidth}
           fill="none"
           strokeDasharray={`${circumference}`}

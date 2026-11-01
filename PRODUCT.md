@@ -39,7 +39,10 @@ These exceptions do not authorize additional forms, persistence, or Health write
   Web, Android and incompatible iOS builds show an unavailable explanation.
 
 - **Today** is the first Home pager page for the current day. Swipe to the
-  next page for the existing goal tiles; historical days keep their goal pages.
+  next page for Steps, Gym, Reading, Praying and Speaking; historical days keep
+  those goal tiles. Journal, Achievements, Deep Work, Inbox Zero and Water are
+  not Home grid tiles; their underlying screens, integrations and data are
+  unchanged.
   The reference-style dot grid summarizes the existing Steps and Gym priorities,
   not an invented score for every habit. Activity summaries distinguish Health
   readings, on-device logs, ephemeral timers and activities that are not measured.
@@ -147,8 +150,8 @@ These exceptions do not authorize additional forms, persistence, or Health write
   tap the set to log. Motion and video are never saved or sent to Health/the coach.
   Both are estimates requiring physical-device calibration, not form assessments.
 - Deep Work runs 25-minute focus blocks alternating with 5-minute breaks until
-  ended. Tapping the tile starts or pauses it; tapping it while paused offers
-  Resume or End. On native 1.0.13+ iOS builds a silent Dynamic Island countdown
+  ended. Its Home tile was removed and it has no other start control, so it
+  cannot currently be started. On native 1.0.13+ iOS builds a silent Dynamic Island countdown
   shows the current block; it reaches 0:00 rather than flipping to the next
   block until the app is opened. Sessions stay in memory only: never saved,
   written to Health, or given to the coach.
@@ -158,9 +161,13 @@ These exceptions do not authorize additional forms, persistence, or Health write
 
 ## Visual commitment
 
-The user supplied health-app references with white surfaces, bright-blue
-accents, generous spacing, lighter numeric typography, and softly rounded
-panels, and approved applying that visual language across the whole app.
+The app uses one modified Nothing design system: black/OLED-black, white and
+off-white neutral surfaces, with red as the only chromatic accent. All screens
+share the same tokens, flat controls, instrument-like labels and data-focused
+hierarchy. There are no page-specific palettes, gradients, glows, pastel
+surfaces or decorative display fonts. Support both themes, using accessible
+red tones for active states, alerts and key highlights. Reuse the bundled Space
+Mono for labels and platform system sans-serif for text and readings.
 Reference photos, maps, profile controls, and charts are not evidence that the
 app has those assets, features, or measurements.
 

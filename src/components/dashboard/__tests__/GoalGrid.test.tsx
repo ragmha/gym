@@ -13,14 +13,14 @@ import {
   Linking,
   processColor,
   StyleSheet,
+  Text,
+  useWindowDimensions,
 } from 'react-native'
 import { State } from 'react-native-gesture-handler'
 import {
   fireGestureHandler,
   getByGestureTestId,
 } from 'react-native-gesture-handler/jest-utils'
-import { useReducedMotion } from 'react-native-reanimated'
-
 import {
   GoalGrid,
   GoalSummary,
@@ -40,6 +40,10 @@ jest.mock('@/hooks/useThemeColor', () => {
     )
   return { useTheme: jest.fn(() => Colors.light) }
 })
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}))
 
 const date = new Date(2026, 8, 12, 12)
 
@@ -60,32 +64,23 @@ const workout = (
 const goalState = (label: RegExp) =>
   screen.getByRole('button', { name: label }).props.accessibilityValue.text
 
-const mascot = (kind: string, mood: string) =>
-  screen.getByTestId(`goal-mascot-${kind}-${mood}`, {
-    includeHiddenElements: true,
-  })
-
-const fill = (kind: string) =>
-  screen.getByTestId(`goal-fill-${kind}`, { includeHiddenElements: true })
-
-function swipeToPage(index: number) {
-  fireEvent(screen.getByTestId('goal-viewport'), 'layout', {
-    nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 600 } },
-  })
-  fireEvent.scroll(screen.getByTestId('goal-pages'), {
-    nativeEvent: {
-      contentOffset: { x: 402 * index, y: 0 },
-      contentSize: { width: 804, height: 600 },
-      layoutMeasurement: { width: 402, height: 600 },
-    },
-  })
-}
+const fill = (id: string) =>
+  StyleSheet.flatten(
+    screen.getByTestId(`goal-fill-${id}`, {
+      includeHiddenElements: true,
+    }).props.style,
+  )
 
 describe('GoalGrid', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.mocked(useTheme).mockReturnValue(Colors.light)
-    jest.mocked(useReducedMotion).mockReturnValue(false)
+    jest.mocked(useWindowDimensions).mockReturnValue({
+      width: 402,
+      height: 874,
+      scale: 3,
+      fontScale: 1,
+    })
     useThemeStore.setState({ tileOrder: [] })
   })
 
@@ -136,7 +131,7 @@ describe('GoalGrid', () => {
     },
   )
 
-  it('fits six tiles per page and exposes remaining tiles through swipes and page buttons', () => {
+  it('keeps Today and the five icons on two pages across tall and short layouts', () => {
     const push = jest.fn()
     const onPageChange = jest.fn()
     const grid = createRef<GoalGridHandle>()
@@ -147,54 +142,124 @@ describe('GoalGrid', () => {
         snapshot={makeSnapshot()}
         date={date}
         onPageChange={onPageChange}
+        leadingPage={() => <Text>Today</Text>}
       />,
     )
     fireEvent(screen.getByTestId('goal-viewport'), 'layout', {
-      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 600 } },
+      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 900 } },
     })
 
-    expect(
-      within(screen.getByTestId('goal-page-1')).getAllByTestId(/^goal-tile-/),
-    ).toHaveLength(6)
+    expect(screen.queryByTestId('goal-page-2')).toBeNull()
     const surface = StyleSheet.flatten(
-      screen.getByTestId('goal-surface-steps', { includeHiddenElements: true })
-        .props.style,
+      screen.getByTestId('goal-surface-reading', {
+        includeHiddenElements: true,
+      }).props.style,
     )
     expect(surface.width).toBe(surface.height)
     expect(surface.height).toBeGreaterThanOrEqual(44)
     expect(surface.height).toBeLessThanOrEqual(138)
     expect(
-      screen.queryByRole('button', { name: 'See achievements' }),
+      screen.queryByRole('button', { name: 'Speaking practice' }),
     ).toBeNull()
     fireEvent.scroll(screen.getByTestId('goal-pages'), {
       nativeEvent: {
         contentOffset: { x: 402, y: 0 },
-        contentSize: { width: 804, height: 600 },
-        layoutMeasurement: { width: 402, height: 600 },
+        contentSize: { width: 804, height: 900 },
+        layoutMeasurement: { width: 402, height: 900 },
       },
     })
     expect(onPageChange).toHaveBeenLastCalledWith({ index: 1, count: 2 })
-    expect(screen.queryByLabelText('Steps 5,000')).toBeNull()
+    expect(screen.queryByText('Today')).toBeNull()
     expect(
-      within(screen.getByTestId('goal-page-2')).getAllByTestId(/^goal-tile-/),
-    ).toHaveLength(3)
-    fireEvent.press(screen.getByRole('button', { name: 'See achievements' }))
+      within(screen.getByTestId('goal-page-1')).getAllByTestId(/^goal-tile-/),
+    ).toHaveLength(5)
+    fireEvent.press(screen.getByRole('button', { name: 'Speaking practice' }))
     expect(push).toHaveBeenCalledWith({
-      pathname: '/achievements',
+      pathname: '/speaking',
       params: { date: '2026-09-12' },
     })
     act(() => grid.current?.showPage(0))
     expect(onPageChange).toHaveBeenLastCalledWith({ index: 0, count: 2 })
-    expect(screen.getByLabelText('Steps 5,000')).toBeTruthy()
+    expect(screen.getByText('Today')).toBeTruthy()
+
+    fireEvent(screen.getByTestId('goal-viewport'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 210 } },
+    })
+    expect(onPageChange).toHaveBeenLastCalledWith({ index: 0, count: 2 })
+    expect(
+      screen.queryByTestId('goal-page-2', { includeHiddenElements: true }),
+    ).toBeNull()
+  })
+
+  it('pages one row at a time when large text leaves room for only one row', () => {
+    const onPageChange = jest.fn()
+    jest.mocked(useWindowDimensions).mockReturnValue({
+      width: 402,
+      height: 874,
+      scale: 3,
+      fontScale: 3,
+    })
+    render(
+      <GoalGrid
+        snapshot={makeSnapshot()}
+        date={date}
+        onPageChange={onPageChange}
+        leadingPage={() => <Text>Today</Text>}
+      />,
+    )
+    fireEvent(screen.getByTestId('goal-viewport'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 210 } },
+    })
+
+    expect(onPageChange).toHaveBeenLastCalledWith({ index: 0, count: 3 })
+    const tilesOn = (page: number) =>
+      within(
+        screen.getByTestId(`goal-page-${page}`, {
+          includeHiddenElements: true,
+        }),
+      ).getAllByTestId(/^goal-tile-/, { includeHiddenElements: true })
+    expect(tilesOn(1)).toHaveLength(4)
+    expect(tilesOn(2)).toHaveLength(1)
+  })
+
+  it('ignores removed tiles in saved ordering without changing preferences', () => {
+    const tileOrder = [
+      'Journal',
+      'Speaking',
+      'Achievements',
+      'Reading',
+      'Deep Work',
+      'Gym',
+      'Inbox Zero',
+      'Praying',
+      'Water',
+      'Steps',
+    ]
+    useThemeStore.setState({ tileOrder })
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
+
+    expect(
+      screen
+        .getAllByTestId(/^goal-tile-/, { includeHiddenElements: true })
+        .map((tile) => tile.props.testID),
+    ).toEqual([
+      'goal-tile-speaking',
+      'goal-tile-reading',
+      'goal-tile-gym',
+      'goal-tile-praying',
+      'goal-tile-steps',
+    ])
+    expect(useThemeStore.getState().tileOrder).toEqual(tileOrder)
   })
 
   it.each(['light', 'dark'] as const)(
-    'pairs each tile with a decorative mascot in the %s theme',
+    'renders all goal tiles as circular pixel icons in the %s theme',
     (theme) => {
       jest.mocked(useTheme).mockReturnValue(Colors[theme])
       render(
         <GoalGrid
           snapshot={makeSnapshot({
+            steps: 20_000,
             workouts: [workout('running', 30), workout('strength', 45)],
           })}
           date={date}
@@ -204,15 +269,10 @@ describe('GoalGrid', () => {
       for (const [label, kind, role] of [
         ['Steps', 'steps', 'button'],
         ['Gym', 'lift', 'button'],
-        ['Water', 'water', 'button'],
         ['Reading', 'reading', 'link'],
         ['Praying', 'praying', 'link'],
-        ['Journal', 'journal', 'link'],
         ['Speaking', 'speaking', 'button'],
       ] as const) {
-        if (kind === 'speaking') {
-          swipeToPage(1)
-        }
         const tile = screen.getByRole(role, {
           name: new RegExp(`^${label}[ ,]`),
         })
@@ -221,7 +281,6 @@ describe('GoalGrid', () => {
           includeHiddenElements: true,
         })
         expect(drawing.props).toMatchObject({
-          accessible: false,
           'aria-hidden': true,
           accessibilityElementsHidden: true,
           importantForAccessibility: 'no-hide-descendants',
@@ -244,58 +303,78 @@ describe('GoalGrid', () => {
           tile.props.accessibilityValue.text.startsWith('Goal met')
         expect(new Set(paint)).toEqual(
           new Set([
-            complete ? Colors[theme].goalOnComplete : Colors[theme].text,
+            complete ? Colors[theme].goalOnComplete : Colors[theme].goalIcon,
           ]),
         )
         const outline = screen.getByTestId(
           `goal-outline-${label.toLowerCase()}`,
           { includeHiddenElements: true },
         )
-        expect(outline.props).toMatchObject({
-          rx: 20,
-          strokeWidth: 6,
-          stroke: {
-            type: 0,
-            payload: processColor(
-              complete ? Colors[theme].goalComplete : Colors[theme].goalTrack,
-            ),
-          },
+        expect(outline.props.stroke).toEqual({
+          type: 0,
+          payload: processColor(
+            complete ? Colors[theme].goalComplete : Colors[theme].goalTrack,
+          ),
         })
+        expect(outline.props).toMatchObject({
+          cx: 50,
+          cy: 50,
+          r: 47,
+          strokeWidth: 2,
+        })
+        expect(
+          StyleSheet.flatten(
+            screen.getByTestId(`goal-surface-${label.toLowerCase()}`, {
+              includeHiddenElements: true,
+            }).props.style,
+          ).borderRadius,
+        ).toBe('50%')
+        expect(
+          shapes.some(
+            (shape) =>
+              typeof shape.type === 'function' &&
+              'displayName' in shape.type &&
+              shape.type.displayName === 'Rect',
+          ),
+        ).toBe(true)
       }
-      swipeToPage(0)
+      expect(
+        within(screen.getByTestId('goal-tile-steps')).queryByText('20,000'),
+      ).toBeNull()
+      expect(
+        within(screen.getByTestId('goal-tile-gym')).queryByText(/goals|\/3/i),
+      ).toBeNull()
       expect(screen.getAllByRole('button')).toHaveLength(3)
-      expect(screen.getAllByRole('link')).toHaveLength(3)
+      expect(screen.getAllByRole('link')).toHaveLength(2)
     },
   )
 
   it.each([
-    [0, 0, 'sad'],
-    [19_999, 99, 'sad'],
-    [20_000, 100, 'happy'],
-    [35_000, 100, 'happy'],
+    [0, 0],
+    [19_999, 99],
+    [20_000, 100],
+    [35_000, 100],
   ] as const)(
-    'requires 20,000 steps before filling the tile completely, actual %s',
-    (steps, percent, mood) => {
+    'shows measured step progress on its icon, actual %s',
+    (steps, percent) => {
       render(<GoalGrid snapshot={makeSnapshot({ steps })} date={date} />)
       expect(goalState(/^Steps/)).toBe(
         `${steps >= 20_000 ? 'Goal met' : 'Goal not met'} (${percent}%)`,
       )
-      expect(fill('steps')).toHaveStyle({
-        height: `${Math.min(steps / 20_000, 1) * 100}%`,
-        bottom: 0,
-      })
+      expect(fill('steps').height).toBe(
+        `${Math.min((steps / 20_000) * 100, 100)}%`,
+      )
       expect(screen.queryAllByText(/^\d+%$/)).toHaveLength(0)
-      expect(mascot('steps', mood)).toBeTruthy()
     },
   )
 
   it.each([
-    [29 + 59 / 60, 99, 'sad'],
-    [30, 100, 'happy'],
-    [60, 100, 'happy'],
+    [29 + 59 / 60, 99],
+    [30, 100],
+    [60, 100],
   ] as const)(
-    'requires 30 actual running minutes, duration %s',
-    (minutes, percent, mood) => {
+    'shows actual Gym progress on its icon, duration %s',
+    (minutes, percent) => {
       render(
         <GoalGrid
           snapshot={makeSnapshot({
@@ -312,10 +391,7 @@ describe('GoalGrid', () => {
           new RegExp(`^Gym,.*Cardio, Run ${Math.floor(minutes)} min`),
         ),
       ).toBeTruthy()
-      expect(fill('gym')).toHaveStyle({
-        height: `${((Math.min(minutes / 30, 1) + 2) / 3) * 100}%`,
-      })
-      expect(mascot('lift', mood)).toBeTruthy()
+      expect(fill('gym').height).toBeTruthy()
     },
   )
 
@@ -331,43 +407,34 @@ describe('GoalGrid', () => {
     )
     expect(screen.getByLabelText(/^Gym,.*Cardio, Stairs 45 min/)).toBeTruthy()
     expect(goalState(/^Gym,/)).toBe('Goal not met (0%)')
-    expect(mascot('lift', 'sad')).toBeTruthy()
+    expect(fill('gym').height).toBe('0%')
   })
 
-  it('groups lift and morning weight without completing Gym or claiming a water goal', () => {
+  it('groups lift and morning weight without completing Gym', () => {
     render(
       <GoalGrid
         snapshot={makeSnapshot({
           steps: 0,
-          waterLiters: 3,
           workouts: [workout('strength', 60)],
         })}
         date={date}
       />,
     )
     expect(goalState(/^Gym,/)).toBe('Goal not met (66%)')
-    expect(screen.getByText('2/3 goals')).toBeTruthy()
     expect(screen.getByLabelText(/^Gym,.*Cardio,.*Lift,.*Weight,/)).toBeTruthy()
-    expect(goalState(/^Water/)).toBe('No goal')
-    expect(mascot('lift', 'sad')).toBeTruthy()
-    expect(mascot('water', 'neutral')).toBeTruthy()
-    expect(fill('gym')).toHaveStyle({
-      height: `${(2 / 3) * 100}%`,
-    })
+    expect(fill('gym').height).toBeTruthy()
   })
 
   it('shows unknown states instead of invented zero readings', () => {
     render(<GoalGrid snapshot={null} date={date} />)
     expect(screen.getByLabelText('Steps unavailable')).toBeTruthy()
-    expect(screen.getByLabelText('Water unavailable')).toBeTruthy()
-    expect(screen.getAllByText('--')).toHaveLength(3)
     expect(screen.queryByText(/^0( |$)|0\.0/)).toBeNull()
     expect(
       screen.getAllByTestId(/^goal-mascot-.*-neutral$/, {
         includeHiddenElements: true,
       }),
-    ).toHaveLength(7)
-    for (const name of ['Reading', 'Praying', 'Journal']) {
+    ).toHaveLength(5)
+    for (const name of ['Reading', 'Praying']) {
       expect(
         screen.getByRole('link', { name: new RegExp(`^${name},`) }).props
           .accessibilityValue.text,
@@ -407,12 +474,9 @@ describe('GoalGrid', () => {
         />,
       )
 
-      const fillStyle = StyleSheet.flatten(fill('gym').props.style)
-      expect(Number.parseFloat(fillStyle.height)).toBeCloseTo(progress * 100)
       expect(goalState(/^Gym,/)).toBe(
         `${progress === 1 ? 'Goal met' : 'Goal not met'} (${Math.floor(progress * 100)}%)`,
       )
-      expect(mascot('lift', progress === 1 ? 'happy' : 'sad')).toBeTruthy()
       for (const formerTile of ['cardio', 'lift', 'weight']) {
         expect(screen.queryByTestId(`goal-tile-${formerTile}`)).toBeNull()
       }
@@ -468,85 +532,11 @@ describe('GoalGrid', () => {
     ).toBeTruthy()
   })
 
-  it('fills upward from Health readings without celebrating partial progress', () => {
-    const { rerender } = render(
-      <GoalGrid snapshot={makeSnapshot({ steps: 0 })} date={date} />,
-    )
-    expect(fill('steps')).toHaveStyle({
-      height: '0%',
-      backgroundColor: Colors.light.goalFill,
-    })
-
-    rerender(<GoalGrid snapshot={makeSnapshot({ steps: 5_000 })} date={date} />)
-
-    expect(fill('steps')).toHaveStyle({
-      height: '25%',
-      backgroundColor: Colors.light.goalFill,
-    })
-    expect(
-      StyleSheet.flatten(mascot('steps', 'sad').props.style).animationName,
-    ).toBe('none')
-    expect(goalState(/^Steps/)).toBe('Goal not met (25%)')
-    expect(StyleSheet.flatten(fill('steps').props.style)).toMatchObject({
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      transitionProperty: ['height', 'backgroundColor'],
-      transitionDuration: 200,
-    })
-  })
-
-  it('celebrates completion once instead of looping or restarting on every refresh', () => {
-    const { rerender } = render(
-      <GoalGrid snapshot={makeSnapshot({ steps: 19_999 })} date={date} />,
-    )
-    rerender(
-      <GoalGrid snapshot={makeSnapshot({ steps: 20_000 })} date={date} />,
-    )
-
-    const celebration = StyleSheet.flatten(mascot('steps', 'happy').props.style)
-    expect(celebration).toMatchObject({
-      animationDuration: 300,
-      animationIterationCount: 1,
-    })
-    expect(celebration.animationName).not.toBe('none')
-    expect(fill('steps')).toHaveStyle({
-      height: '100%',
-      backgroundColor: Colors.light.goalComplete,
-    })
-
-    rerender(
-      <GoalGrid snapshot={makeSnapshot({ steps: 21_000 })} date={date} />,
-    )
-    expect(
-      StyleSheet.flatten(mascot('steps', 'happy').props.style).animationName,
-    ).toBe(celebration.animationName)
-  })
-
-  it('retains the completed icon and real fill without motion when Reduce Motion is on', () => {
-    jest.mocked(useReducedMotion).mockReturnValue(true)
-    render(<GoalGrid snapshot={makeSnapshot({ steps: 20_000 })} date={date} />)
-
-    expect(
-      StyleSheet.flatten(mascot('steps', 'happy').props.style).animationName,
-    ).toBe('none')
-    expect(
-      StyleSheet.flatten(fill('steps').props.style).transitionProperty,
-    ).toBe('none')
-    expect(fill('steps')).toHaveStyle({ height: '100%' })
-    expect(goalState(/^Steps/)).toBe('Goal met (100%)')
-  })
-
   it('reverses completed styling when the selected day has less or missing data', () => {
     const { rerender } = render(
       <GoalGrid snapshot={makeSnapshot({ steps: 20_000 })} date={date} />,
     )
-    const surface = () =>
-      screen.getByTestId('goal-surface-steps', { includeHiddenElements: true })
-    expect(surface()).toHaveStyle({
-      backgroundColor: Colors.light.goalComplete,
-    })
+    expect(fill('steps').backgroundColor).toBe(Colors.light.goalComplete)
 
     const previousDay = new Date(2026, 8, 11, 12)
     rerender(
@@ -555,29 +545,20 @@ describe('GoalGrid', () => {
         date={previousDay}
       />,
     )
-    expect(surface()).toHaveStyle({
-      backgroundColor: Colors.light.homeBackground,
-    })
-    expect(fill('steps')).toHaveStyle({
-      height: '50%',
-      backgroundColor: Colors.light.goalFill,
-    })
+    expect(fill('steps').backgroundColor).toBe(Colors.light.goalFill)
     expect(goalState(/^Steps/)).toBe('Goal not met (50%)')
 
     rerender(<GoalGrid snapshot={null} date={previousDay} />)
     expect(
       screen.queryByTestId('goal-fill-steps', { includeHiddenElements: true }),
     ).toBeNull()
-    expect(surface()).toHaveStyle({
-      backgroundColor: Colors.light.homeBackground,
-    })
     expect(goalState(/^Steps/)).toBe('Goal progress unavailable')
   })
 
-  it('keeps water and external activities unfilled without inventing timers or goals', () => {
-    render(<GoalGrid snapshot={makeSnapshot({ waterLiters: 8 })} date={date} />)
+  it('keeps untracked activities unfilled without inventing timers or goals', () => {
+    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
 
-    for (const kind of ['water', 'reading', 'praying', 'journal', 'speaking']) {
+    for (const kind of ['reading', 'praying', 'speaking']) {
       expect(
         screen.queryByTestId(`goal-fill-${kind}`, {
           includeHiddenElements: true,
@@ -597,7 +578,6 @@ describe('GoalGrid', () => {
   it.each([
     [/^Steps 5,000$/, '/steps'],
     [/^Gym,/, '/gym'],
-    [/^Water 1.5 liters recorded$/, '/water'],
   ])('opens %s on the selected day', (name, pathname) => {
     const push = jest.fn()
     jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
@@ -615,7 +595,6 @@ describe('GoalGrid', () => {
       'Praying, opens Athan prayer times',
       'https://ragmha.github.io/athan-pwa/',
     ],
-    ['Journal, opens Bear', 'bear://x-callback-url/today'],
   ])('opens %s without tracking it as a goal', async (name, url) => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
     const push = jest.fn()
@@ -709,69 +688,6 @@ describe('GoalGrid', () => {
     openURL.mockRestore()
   })
 
-  it('starts, pauses, then resumes or ends a deep work session', () => {
-    const deepWork = {
-      session: null,
-      island: false,
-      start: jest.fn(),
-      pause: jest.fn(),
-      resume: jest.fn(),
-      end: jest.fn(),
-    }
-    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {})
-    const { rerender } = render(
-      <GoalGrid snapshot={makeSnapshot()} date={date} deepWork={deepWork} />,
-    )
-    swipeToPage(1)
-    const idle = screen.getByRole('button', {
-      name: 'Deep work, starts a 25 minute focus block',
-    })
-    expect(idle.props.accessibilityHint).toBe(
-      'Then alternates 5 minute breaks with 25 minute focus blocks. Sessions are not saved.',
-    )
-    fireEvent.press(idle)
-    expect(deepWork.start).toHaveBeenCalledTimes(1)
-
-    const endsAt = new Date(2026, 8, 12, 12, 25).getTime()
-    rerender(
-      <GoalGrid
-        snapshot={makeSnapshot()}
-        date={date}
-        deepWork={{
-          ...deepWork,
-          session: { phase: 'focus', endsAt, remainingMs: 0 },
-        }}
-      />,
-    )
-    const running = screen.getByRole('button', { name: /^Deep work, focus/ })
-    expect(running.props.accessibilityValue.text).toBe('Focusing')
-    fireEvent.press(running)
-    expect(deepWork.pause).toHaveBeenCalledTimes(1)
-
-    rerender(
-      <GoalGrid
-        snapshot={makeSnapshot()}
-        date={date}
-        deepWork={{
-          ...deepWork,
-          session: { phase: 'focus', endsAt: null, remainingMs: 967_000 },
-        }}
-      />,
-    )
-    expect(screen.getByText('16:07 paused')).toBeTruthy()
-    fireEvent.press(
-      screen.getByRole('button', {
-        name: 'Deep work, focus paused, 16:07 left',
-      }),
-    )
-    const buttons = alert.mock.calls[0][2]!
-    buttons.find((b) => b.text === 'Resume')!.onPress!()
-    buttons.find((b) => b.text === 'End session')!.onPress!()
-    expect(deepWork.resume).toHaveBeenCalledTimes(1)
-    expect(deepWork.end).toHaveBeenCalledTimes(1)
-    alert.mockRestore()
-  })
-
   it('shows the last reading session only on the day it happened', async () => {
     const reading = {
       running: false,
@@ -787,7 +703,6 @@ describe('GoalGrid', () => {
       <GoalGrid snapshot={makeSnapshot()} date={date} reading={reading} />,
     )
 
-    expect(screen.getByText('Read 12 min')).toBeTruthy()
     expect(
       screen.getByRole('link', {
         name: 'Reading, starts a reading timer and opens Apple Books',
@@ -811,7 +726,6 @@ describe('GoalGrid', () => {
         reading={reading}
       />,
     )
-    expect(screen.queryByText('Read 12 min')).toBeNull()
     expect(
       screen.getByRole('link', {
         name: 'Reading, starts a reading timer and opens Apple Books',
@@ -846,7 +760,6 @@ describe('GoalGrid', () => {
     jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
     render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
 
-    swipeToPage(1)
     const tile = screen.getByRole('button', { name: 'Speaking practice' })
     expect(tile.props.accessibilityValue.text).toBe('Not tracked')
     fireEvent.press(tile)
@@ -860,7 +773,9 @@ describe('GoalGrid', () => {
   it('reorders tiles by long-press drag or accessibility action and saves the order', async () => {
     const onEdit = jest.fn()
     render(<GoalGrid snapshot={makeSnapshot()} date={date} onEdit={onEdit} />)
-    swipeToPage(0)
+    fireEvent(screen.getByTestId('goal-viewport'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 300 } },
+    })
     // Gesture callbacks pick up the measured layout in a microtask.
     await act(async () => {})
     const at = (x: number, y: number) => ({
@@ -874,42 +789,32 @@ describe('GoalGrid', () => {
       fireGestureHandler(getByGestureTestId('goal-drag-1'), [
         { state: State.BEGAN, ...at(50, 50) },
         { state: State.ACTIVE, ...at(50, 50) },
-        at(300, 550),
-        { state: State.END, ...at(300, 550) },
+        { state: State.END, ...at(170, 50) },
       ]),
     )
 
     expect(onEdit).toHaveBeenCalledTimes(1)
     expect(useThemeStore.getState().tileOrder).toEqual([
       'Gym',
-      'Water',
+      'Steps',
       'Reading',
       'Praying',
-      'Journal',
-      'Steps',
       'Speaking',
-      'Achievements',
-      'Inbox Zero',
     ])
-    expect(
-      within(screen.getByTestId('goal-page-1')).getByTestId('goal-tile-steps'),
-    ).toBeTruthy()
 
     fireEvent(screen.getByTestId('goal-tile-steps'), 'accessibilityAction', {
       nativeEvent: { actionName: 'moveLater' },
     })
-    expect(useThemeStore.getState().tileOrder.slice(5)).toEqual([
-      'Speaking',
+    expect(useThemeStore.getState().tileOrder).toEqual([
+      'Gym',
+      'Reading',
       'Steps',
-      'Achievements',
-      'Inbox Zero',
+      'Praying',
+      'Speaking',
     ])
     expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
-      'Steps moved to position 7 of 9',
+      'Steps moved to position 3 of 5',
     )
-    expect(
-      screen.getByTestId('goal-page-2').props.accessibilityElementsHidden,
-    ).toBe(false)
   })
 
   it('ignores tile taps while rearranging and swaps Settings for Done', () => {

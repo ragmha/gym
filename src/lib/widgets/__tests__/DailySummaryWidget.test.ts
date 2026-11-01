@@ -1,5 +1,6 @@
 import { createContext, runInContext } from 'vm'
 
+import { Colors } from '@/constants/Colors'
 import DailySummaryWidget from '@/lib/widgets/DailySummaryWidget'
 import type { DailySummaryProps } from '@/lib/widgets/dailySummary'
 
@@ -73,13 +74,25 @@ function ringCenters(tree: WidgetNode) {
 
 const reading = {
   target: '20,000',
-  color: '#83D7AB',
   value: '0',
   available: true,
   progress: 0,
 }
 
 describe('DailySummaryWidget', () => {
+  it('mirrors the shared dark palette in the isolated layout', () => {
+    const { layout } = DailySummaryWidget as unknown as { layout: string }
+    for (const token of [
+      'background',
+      'text',
+      'subtitleText',
+      'goalTrack',
+      'accent',
+    ] as const) {
+      expect(layout).toContain(Colors.dark[token])
+    }
+  })
+
   it('overlays each ring percentage outside the Gauge', () => {
     const tree = renderWidget({
       updatedAt: '09:00',

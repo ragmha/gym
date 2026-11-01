@@ -66,8 +66,14 @@ export function useTileReorder<T>({
 }) {
   const reducedMotion = useReducedMotion()
   const [drag, setDrag] = useState<{ from: number; over: number } | null>(null)
-  const active = useRef<{ from: number | null; x: number; y: number }>({
+  const active = useRef<{
+    from: number | null
+    over: number
+    x: number
+    y: number
+  }>({
     from: null,
+    over: 0,
     x: 0,
     y: 0,
   })
@@ -87,10 +93,13 @@ export function useTileReorder<T>({
     if (from !== to) save(moveTile(items, from, to).map(keyOf))
   }
 
-  /** `slotAt` hit-tests a gesture point; `onMove` gets the ghost's x in the gesture view. */
+  /**
+   * `slotAt` hit-tests a gesture point; `onMove` gets the ghost's x in the
+   * gesture view.
+   */
   const gesture = (
     testID: string,
-    slotAt: (point: Point) => number,
+    slotAt: (point: Point) => number | null,
     onMove?: (x: number) => void,
   ) =>
     Gesture.Pan()
@@ -99,8 +108,13 @@ export function useTileReorder<T>({
       .runOnJS(true)
       .onStart((e) => {
         const from = slotAt(e)
-        if (from > last) return
-        active.current = { from, x: e.absoluteX - e.x, y: e.absoluteY - e.y }
+        if (from === null || from > last) return
+        active.current = {
+          from,
+          over: from,
+          x: e.absoluteX - e.x,
+          y: e.absoluteY - e.y,
+        }
         ghostX.value = e.x - tileSize / 2
         ghostY.value = e.y - tileSize / 2
         setDrag({ from, over: from })
@@ -112,13 +126,19 @@ export function useTileReorder<T>({
         if (from === null) return
         ghostX.value = e.absoluteX - x - tileSize / 2
         ghostY.value = e.absoluteY - y - tileSize / 2
-        const over = Math.min(last, slotAt(e))
-        setDrag((d) => (d && d.over !== over ? { ...d, over } : d))
         onMove?.(e.absoluteX - x)
+        const slot = slotAt(e)
+        if (slot === null) return
+        const over = Math.min(last, slot)
+        active.current.over = over
+        setDrag((d) => (d && d.over !== over ? { ...d, over } : d))
       })
       .onEnd((e, success) => {
-        const { from } = active.current
-        if (success && from !== null) moveTo(from, Math.min(last, slotAt(e)))
+        const { from, over } = active.current
+        const slot = slotAt(e)
+        if (success && from !== null) {
+          moveTo(from, slot === null ? over : Math.min(last, slot))
+        }
       })
       .onFinalize(() => {
         active.current.from = null
