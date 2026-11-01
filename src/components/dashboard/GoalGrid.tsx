@@ -58,7 +58,6 @@ const FLIP_COOLDOWN_MS = 800
 // on one page).
 const COLUMNS = 4
 const ROOMY_COLUMNS = 3
-const MIN_ROWS = 2
 const ICON_SIZE = 96
 const SEGMENT_HEIGHT = 8
 const SEGMENT_STAGGER_MS = 40
@@ -447,7 +446,7 @@ export function GoalTileSurface({
       <GoalMascot
         kind={icon}
         mood={mood}
-        color={complete ? theme.goalOnComplete : theme.text}
+        color={complete ? theme.goalOnComplete : theme.goalIcon}
         pixel={pixel}
       />
       {badge && (
@@ -455,7 +454,7 @@ export function GoalTileSurface({
           testID={`goal-badge-${id}-${badge}`}
           name={BADGE_ICONS[badge]}
           size={size * 0.2}
-          color={theme.text}
+          color={complete ? theme.goalOnComplete : theme.goalIcon}
           style={[styles.badge, { top: size * 0.1, right: size * 0.1 }]}
         />
       )}
@@ -571,7 +570,7 @@ export function GoalGrid({
     : metrics(COLUMNS)
   // Before layout, one page holds everything.
   const rows = Math.max(
-    MIN_ROWS,
+    1,
     !layout.height || onePage ? used : Math.floor(layout.height / minRowH),
   )
   // Spread the rows down the whole page, as iOS does.

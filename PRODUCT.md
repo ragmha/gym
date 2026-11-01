@@ -150,8 +150,8 @@ These exceptions do not authorize additional forms, persistence, or Health write
   tap the set to log. Motion and video are never saved or sent to Health/the coach.
   Both are estimates requiring physical-device calibration, not form assessments.
 - Deep Work runs 25-minute focus blocks alternating with 5-minute breaks until
-  ended. Tapping the tile starts or pauses it; tapping it while paused offers
-  Resume or End. On native 1.0.13+ iOS builds a silent Dynamic Island countdown
+  ended. Its Home tile was removed and it has no other start control, so it
+  cannot currently be started. On native 1.0.13+ iOS builds a silent Dynamic Island countdown
   shows the current block; it reaches 0:00 rather than flipping to the next
   block until the app is opened. Sessions stay in memory only: never saved,
   written to Health, or given to the coach.

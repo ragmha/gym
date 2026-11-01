@@ -53,6 +53,8 @@ export const Colors = {
     goalFill: lightAccent,
     goalComplete: lightAccent,
     goalOnComplete: '#FFFFFF',
+    // Icon over partial fill and empty surface: theme.text is under 3:1 on the red.
+    goalIcon: '#000000',
     goalProgressText: '#404040',
     progress: lightAccent,
     heatmapLow: '#E5E5E5',
@@ -111,6 +113,7 @@ export const Colors = {
     goalFill: darkAccent,
     goalComplete: darkAccent,
     goalOnComplete: '#000000',
+    goalIcon: '#FFFFFF',
     goalProgressText: '#BDBDBD',
     progress: darkAccent,
     heatmapLow: '#222222',
@@ -121,7 +124,8 @@ export const Colors = {
 } as const
 
 export const ChartColors = {
-  zones: ['#D0D0D0', '#B0B0B0', '#909090', '#707070', '#5A5A5A'],
+  // Dark zones; light mode uses zoneStrokesLight. Both keep 3:1 on goalTrack.
+  zones: ['#E8E8E8', '#CCCCCC', '#B3B3B3', '#999999', '#808080'],
   zoneStrokesLight: ['#707070', '#666666', '#555555', '#444444', '#333333'],
 } as const
 

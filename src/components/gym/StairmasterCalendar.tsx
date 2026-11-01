@@ -440,6 +440,7 @@ export function StairSession({
 }) {
   const theme = useTheme()
   const scheme = useColorScheme()
+  const zoneColors = scheme === 'dark' ? ZONE_COLORS : ZONE_STROKES_LIGHT
   const { width: window } = useWindowDimensions()
   const width = window - Layout.gutter * 2
   const mono = [styles.mono, { color: theme.subtitleText }]
@@ -515,7 +516,7 @@ export function StairSession({
           max={max}
           track={theme.goalTrack}
           line={theme.subtitleText}
-          strokes={scheme === 'dark' ? ZONE_COLORS : ZONE_STROKES_LIGHT}
+          strokes={zoneColors}
         />
       )}
       {min !== null && (
@@ -570,7 +571,7 @@ export function StairSession({
                     styles.zoneFill,
                     {
                       width: `${(zones[z] / total) * 100}%`,
-                      backgroundColor: ZONE_COLORS[z],
+                      backgroundColor: zoneColors[z],
                     },
                   ]}
                 />

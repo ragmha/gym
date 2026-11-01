@@ -14,6 +14,7 @@ import {
   processColor,
   StyleSheet,
   Text,
+  useWindowDimensions,
 } from 'react-native'
 import { State } from 'react-native-gesture-handler'
 import {
@@ -39,6 +40,10 @@ jest.mock('@/hooks/useThemeColor', () => {
     )
   return { useTheme: jest.fn(() => Colors.light) }
 })
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}))
 
 const date = new Date(2026, 8, 12, 12)
 
@@ -70,6 +75,12 @@ describe('GoalGrid', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.mocked(useTheme).mockReturnValue(Colors.light)
+    jest.mocked(useWindowDimensions).mockReturnValue({
+      width: 402,
+      height: 874,
+      scale: 3,
+      fontScale: 1,
+    })
     useThemeStore.setState({ tileOrder: [] })
   })
 
@@ -180,6 +191,37 @@ describe('GoalGrid', () => {
     ).toBeNull()
   })
 
+  it('pages one row at a time when large text leaves room for only one row', () => {
+    const onPageChange = jest.fn()
+    jest.mocked(useWindowDimensions).mockReturnValue({
+      width: 402,
+      height: 874,
+      scale: 3,
+      fontScale: 3,
+    })
+    render(
+      <GoalGrid
+        snapshot={makeSnapshot()}
+        date={date}
+        onPageChange={onPageChange}
+        leadingPage={() => <Text>Today</Text>}
+      />,
+    )
+    fireEvent(screen.getByTestId('goal-viewport'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 402, height: 210 } },
+    })
+
+    expect(onPageChange).toHaveBeenLastCalledWith({ index: 0, count: 3 })
+    const tilesOn = (page: number) =>
+      within(
+        screen.getByTestId(`goal-page-${page}`, {
+          includeHiddenElements: true,
+        }),
+      ).getAllByTestId(/^goal-tile-/, { includeHiddenElements: true })
+    expect(tilesOn(1)).toHaveLength(4)
+    expect(tilesOn(2)).toHaveLength(1)
+  })
+
   it('ignores removed tiles in saved ordering without changing preferences', () => {
     const tileOrder = [
       'Journal',
@@ -261,7 +303,7 @@ describe('GoalGrid', () => {
           tile.props.accessibilityValue.text.startsWith('Goal met')
         expect(new Set(paint)).toEqual(
           new Set([
-            complete ? Colors[theme].goalOnComplete : Colors[theme].text,
+            complete ? Colors[theme].goalOnComplete : Colors[theme].goalIcon,
           ]),
         )
         const outline = screen.getByTestId(

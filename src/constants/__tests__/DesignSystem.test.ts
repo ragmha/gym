@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/Colors'
+import { ChartColors, Colors } from '@/constants/Colors'
 import { Elevation, Layout, Typography } from '@/constants/DesignSystem'
 
 function luminance(hex: string) {
@@ -65,6 +65,27 @@ describe.each(['light', 'dark'] as const)('%s visual system', (mode) => {
     expect(
       contrast(theme.goalOnComplete, theme.goalComplete),
     ).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(theme.goalIcon, theme.goalFill)).toBeGreaterThanOrEqual(3)
+    expect(
+      contrast(theme.goalIcon, theme.homeBackground),
+    ).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(theme.goalIcon, theme.homeSurface)).toBeGreaterThanOrEqual(
+      4.5,
+    )
+  })
+
+  it('keeps every heart-rate zone colour distinct from its track and canvas', () => {
+    const zones =
+      mode === 'dark' ? ChartColors.zones : ChartColors.zoneStrokesLight
+    for (const zone of zones) {
+      for (const surface of [
+        theme.goalTrack,
+        theme.background,
+        theme.cardBackground,
+      ]) {
+        expect(contrast(zone, surface)).toBeGreaterThanOrEqual(3)
+      }
+    }
   })
 
   it('uses red as the only chromatic accent with no screen palettes', () => {
