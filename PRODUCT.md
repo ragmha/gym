@@ -141,6 +141,14 @@ These exceptions do not authorize additional forms, persistence, or Health write
   Reading starts a Dynamic Island timer and opens Apple Books; tapping it again
   (or the island's Stop) ends it. The tile shows that day's last session in
   whole minutes until the app closes. Minutes are never saved or sent to Health.
+- **Praying** shows a selected city's local clock, prayer schedule, next-prayer
+  countdown, Qibla direction, and a decorative sunrise/sunset/night strip.
+  Prayer method, madhab, high-latitude rule, city, and clock format are
+  configurable; optional location, city search, and opt-in local reminders are
+  available in Prayer Settings. Marks, preferences, and the complete-day
+  streak stay on the device; the tile shows that day's count but prayer is not
+  a Home goal. History can be imported only through a validated user-confirmed
+  transfer link; Gym cannot read the Athan PWA's browser storage directly.
 - **Apple Watch** shows today's lifting day and logs or undoes sets in the
   iPhone's on-device lifting log. It needs the iPhone reachable and saves
   nothing on the watch or to Health.

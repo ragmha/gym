@@ -802,8 +802,9 @@ export function TodayPage({
         />
         {allActivities && (
           <Text style={[Typography.labelMd, muted]}>
-            Reading: last session only. Deep Work: current timer only. Prayer
-            and journaling: not measured. Missing Health readings: --.
+            Reading: last session only. Deep Work: current timer only. Prayer:
+            your Praying checklist. Journaling: not measured. Missing Health
+            readings: --.
           </Text>
         )}
       </Disclosure>

@@ -141,6 +141,22 @@ Speaking uses a static outline microphone, not topic-specific colorful orbs.
 Achievement categories remain distinct through their silhouettes and linework,
 with flat neutral fills and red earned outlines, not gradients or glossy medals.
 
+### Prayer screen exception
+
+The Prayer, Prayer Settings, and Qibla screens are the one user-approved
+exception to the shared fonts and palette: they follow the Nothing design
+reference with a monochrome OLED black/warm off-white palette, bundled Doto
+hero numerals, Space Grotesk body text, Space Mono metadata, and flat ruled
+rows. Keep theme behavior, accessible 48pt controls, and responsive numeric
+hierarchy. The selected city's local clock sits on the flat theme background:
+an Orbitron city name above three stacked Orbitron Black hour, minute, and
+second rows at 30/60/100% opacity, with small `h`/`min`/`sec` labels
+top-right. The clock stays compact so the countdown and prayer list follow on
+the first screen; rows are shorter than the numerals, so each rule cuts the
+digits. A sunrise/sunset/night landscape follows the calculated current phase
+below the top bar, behind the prayer schedule; solar event times follow the
+list as a compact ruled row. Do not spread these fonts or tokens elsewhere.
+
 ## Native surfaces
 
 Widgets, Live Activities and the Watch remote follow the same black/neutral/red
