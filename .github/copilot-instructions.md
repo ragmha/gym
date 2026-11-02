@@ -23,9 +23,11 @@ The user also approved an on-device lifting log (`GymLogStore`, `/gym`): sets,
 reps, optional kilograms, and a workout rating for the bundled programme in
 `src/lib/gymProgramme/programme.json`, or for StrongLifts 5×5 A/B on short days
 (`FIVE_BY_FIVE`, with a rule-based next-weight hint), because HealthKit cannot
-store sets or reps. It stays on the device, never writes to Health, never
-caches Health readings, and is not coach input. Cardio on `/gym` is read from
-HealthKit.
+store sets or reps. It also keeps which Active Rest Days the user marked
+complete (`completedRestDays`), because a rest day has no sets; together with
+finished workouts these decide the overview's next day. It stays on the device,
+never writes to Health, never caches Health readings, and is not coach input.
+Cardio on `/gym` is read from HealthKit.
 Each lifting exercise's info sheet fetches a reference demo (animation, muscles,
 steps) from ExerciseDB only on tap, using a curated ID in `exerciseMedia.json`.
 That read-only lookup sends only the ID, stores nothing, and is not coach input;
@@ -273,8 +275,9 @@ This project targets **iOS as the primary platform**.
   food calorie goal (`foodGoalKcal`), the Weight goal (`weightGoalKg`), and
   the approved commute preferences
   (stations, work hours and walking minutes). The transit key is Keychain-only.
-- `GymLogStore` is the approved on-device lifting log: programme start date and
-  per-day sets, rating, and notes. Do not add Health readings to it.
+- `GymLogStore` is the approved on-device lifting log: programme start date,
+  per-day sets, rating, and notes, and completed Active Rest Day ids. Do not add
+  Health readings to it.
 - `SpeakingLogStore` is the approved speaking post-mortem log: raw session
   inputs only; scores are recomputed by `postMortem`.
 - Health data is not state to be managed. It is read per-day through
