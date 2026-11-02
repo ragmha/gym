@@ -19,6 +19,7 @@ import { prayerNativeSupport } from '@/lib/prayerLocation'
 import { useThemeStore } from '@/stores/ThemeStore'
 
 const ALIGNED_DEGREES = 3
+const CALIBRATE = 'move the phone in a figure eight to calibrate'
 
 /** Live compass heading in whole degrees; kept in memory only. */
 function useHeading(): { heading: number | null; message: string | null } {
@@ -44,9 +45,18 @@ function useHeading(): { heading: number | null; message: string | null } {
       if (cancelled) return
       if (!granted) return fail('Allow location access to use the compass')
       const watch = await Location.watchHeadingAsync(
-        ({ trueHeading, magHeading }) => {
-          const heading =
-            Math.round(trueHeading >= 0 ? trueHeading : magHeading) % 360
+        ({ trueHeading }) => {
+          // The Qibla bearing is from true north; a magnetic fallback could
+          // falsely report alignment, so wait for a true heading instead.
+          if (trueHeading < 0) {
+            setState((current) =>
+              current.message === CALIBRATE
+                ? current
+                : { heading: null, message: CALIBRATE },
+            )
+            return
+          }
+          const heading = Math.round(trueHeading) % 360
           setState((current) =>
             current.heading === heading ? current : { heading, message: null },
           )

@@ -135,15 +135,31 @@ describe('PrayerScreen', () => {
   })
 
   it('does not mark prayers on a future day', () => {
+    // Noon UTC keeps the device day and Helsinki's day the same.
+    jest.useFakeTimers({ now: new Date('2026-09-12T12:00:00.000Z') })
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
-    const pad = (n: number) => String(n).padStart(2, '0')
     jest.mocked(useLocalSearchParams).mockReturnValue({
-      date: `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`,
+      date: localDateKey(tomorrow),
     })
     render(<PrayerScreen />)
 
     fireEvent.press(screen.getByRole('checkbox', { name: /^Isha,/ }))
     expect(usePrayerLogStore.getState().prayed).toEqual({})
+  })
+
+  it("labels only today's upcoming row as next", () => {
+    const isha = prayerTimes(new Date(2026, 8, 12, 12)).isha
+    if (!isha) throw new Error('Isha should be computable')
+    jest.mocked(useLocalSearchParams).mockReturnValue({})
+    jest.useFakeTimers({ now: new Date(isha.getTime() - 60_000) })
+    const { unmount } = render(<PrayerScreen />)
+    expect(screen.getByText(/· next$/)).toBeTruthy()
+    unmount()
+
+    // A minute after Isha, the next prayer is tomorrow's Fajr.
+    jest.setSystemTime(new Date(isha.getTime() + 60_000))
+    render(<PrayerScreen />)
+    expect(screen.queryByText(/· next$/)).toBeNull()
   })
 })

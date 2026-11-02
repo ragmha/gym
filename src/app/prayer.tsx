@@ -197,6 +197,10 @@ function PrayerForDate({ date }: { date: Date }) {
               const spoken = time.period
                 ? `${time.time} ${time.period}`
                 : time.time
+              // After Isha the next prayer is tomorrow's Fajr, not this row.
+              const isNext =
+                next?.prayer === prayer &&
+                next.time.getTime() === times[prayer]?.getTime()
               return (
                 <View key={prayer}>
                   <Divider />
@@ -215,12 +219,8 @@ function PrayerForDate({ date }: { date: Date }) {
                     ]}
                   >
                     <View style={styles.name}>
-                      <Label
-                        color={next?.prayer === prayer ? p.accent : undefined}
-                      >
-                        {next?.prayer === prayer
-                          ? `${label.ar} · next`
-                          : label.ar}
+                      <Label color={isNext ? p.accent : undefined}>
+                        {isNext ? `${label.ar} · next` : label.ar}
                       </Label>
                       <Text style={[styles.prayer, { color: p.primary }]}>
                         {label.en}

@@ -97,6 +97,27 @@ describe('syncPrayerReminders', () => {
     expect(Notifications.getPermissionsAsync).not.toHaveBeenCalled()
   })
 
+  it('cancels a partial schedule when scheduling fails', async () => {
+    jest
+      .mocked(Notifications.getPermissionsAsync)
+      .mockResolvedValue({ granted: true } as never)
+    jest
+      .mocked(Notifications.scheduleNotificationAsync)
+      .mockResolvedValueOnce('prayer-first')
+      .mockRejectedValueOnce(new Error('schedule failed'))
+    jest
+      .mocked(Notifications.getAllScheduledNotificationsAsync)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ identifier: 'prayer-first' }] as never)
+
+    await expect(syncPrayerReminders(on, { now })).rejects.toThrow(
+      'schedule failed',
+    )
+    expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith(
+      'prayer-first',
+    )
+  })
+
   it('fails closed on builds without the native modules', async () => {
     jest.mocked(prayerNativeSupport).mockReturnValueOnce({
       available: false,

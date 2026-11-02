@@ -64,6 +64,11 @@ export default function PrayerSettingsScreen() {
     const name = query.trim()
     if (name.length < 2) {
       setResults([])
+      setLocationStatus((status) =>
+        status?.kind === 'loading' && status.text === 'Searching'
+          ? null
+          : status,
+      )
       return
     }
     const controller = new AbortController()

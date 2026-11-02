@@ -6,13 +6,12 @@ import { syncPrayerReminders } from '@/lib/prayerReminders'
 import { useThemeStore } from '@/stores/ThemeStore'
 
 /**
- * Keeps the rolling 12-day window of prayer reminders scheduled while they are
- * on. Turning them off is handled by the settings screen, which cancels them.
+ * Keeps the rolling 12-day window of prayer reminders in step with the saved
+ * settings. Syncing while off cancels any reminders a stale queued sync left.
  */
 export function usePrayerReminders() {
   const settings = useThemeStore((state) => state.prayer)
   useEffect(() => {
-    if (!settings.reminders) return
     if (!prayerNativeSupport('Schedule prayer reminders').available) return
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Notifications: typeof import('expo-notifications') = require('expo-notifications')

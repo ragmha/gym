@@ -69,14 +69,17 @@ async function sync(
   }
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Notifications: typeof import('expo-notifications') = require('expo-notifications')
-  const pending = await Notifications.getAllScheduledNotificationsAsync()
-  await Promise.all(
-    pending
-      .filter(({ identifier }) => identifier.startsWith(ID_PREFIX))
-      .map(({ identifier }) =>
-        Notifications.cancelScheduledNotificationAsync(identifier),
-      ),
-  )
+  const cancelPending = async () => {
+    const pending = await Notifications.getAllScheduledNotificationsAsync()
+    await Promise.all(
+      pending
+        .filter(({ identifier }) => identifier.startsWith(ID_PREFIX))
+        .map(({ identifier }) =>
+          Notifications.cancelScheduledNotificationAsync(identifier),
+        ),
+    )
+  }
+  await cancelPending()
   if (!settings.reminders) return 'off'
 
   let { granted } = await Notifications.getPermissionsAsync()
@@ -87,19 +90,25 @@ async function sync(
   }
   if (!granted) return 'denied'
 
-  for (const reminder of reminderSchedule(now, settings)) {
-    await Notifications.scheduleNotificationAsync({
-      identifier: reminder.id,
-      content: {
-        title: reminder.title,
-        body: `Time to pray · ${settings.location.name}`,
-        sound: 'default',
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: reminder.date,
-      },
-    })
+  try {
+    for (const reminder of reminderSchedule(now, settings)) {
+      await Notifications.scheduleNotificationAsync({
+        identifier: reminder.id,
+        content: {
+          title: reminder.title,
+          body: `Time to pray · ${settings.location.name}`,
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: reminder.date,
+        },
+      })
+    }
+  } catch (error) {
+    // Never leave a partial schedule behind a failed opt-in.
+    await cancelPending()
+    throw error
   }
   return 'on'
 }
