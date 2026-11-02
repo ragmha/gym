@@ -9,6 +9,8 @@ interface PrayerLogState {
   /** Local YYYY-MM-DD → prayers marked that day, in prayer order. */
   prayed: Record<string, Prayer[]>
   toggle: (day: string, prayer: Prayer) => void
+  /** Adds imported days; never unmarks a prayer already logged here. */
+  merge: (days: Record<string, readonly Prayer[]>) => void
 }
 
 export const usePrayerLogStore = create<PrayerLogState>()(
@@ -24,6 +26,18 @@ export const usePrayerLogStore = create<PrayerLogState>()(
           const prayed = { ...state.prayed }
           if (next.length) prayed[day] = next
           else delete prayed[day]
+          return { prayed }
+        }),
+      merge: (days) =>
+        set((state) => {
+          const prayed = { ...state.prayed }
+          for (const [day, imported] of Object.entries(days)) {
+            const marked = prayed[day] ?? []
+            const next = PRAYERS.filter(
+              (p) => marked.includes(p) || imported.includes(p),
+            )
+            if (next.length) prayed[day] = next
+          }
           return { prayed }
         }),
     }),

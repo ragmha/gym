@@ -606,23 +606,26 @@ describe('GoalGrid', () => {
     ).toBeNull()
   })
 
-  it.each([
-    ['Reading, opens Apple Books', 'ibooks://'],
-  ])('opens %s without tracking it as a goal', async (name, url) => {
-    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined)
-    const push = jest.fn()
-    jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
-    render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
+  it.each([['Reading, opens Apple Books', 'ibooks://']])(
+    'opens %s without tracking it as a goal',
+    async (name, url) => {
+      const openURL = jest
+        .spyOn(Linking, 'openURL')
+        .mockResolvedValue(undefined)
+      const push = jest.fn()
+      jest.mocked(useRouter).mockReturnValue({ ...useRouter(), push })
+      render(<GoalGrid snapshot={makeSnapshot()} date={date} />)
 
-    const tile = screen.getByRole('link', { name })
-    expect(tile.props.accessibilityValue.text).toBe('Not tracked')
-    fireEvent.press(tile)
-    await Promise.resolve()
+      const tile = screen.getByRole('link', { name })
+      expect(tile.props.accessibilityValue.text).toBe('Not tracked')
+      fireEvent.press(tile)
+      await Promise.resolve()
 
-    expect(openURL).toHaveBeenCalledWith(url)
-    expect(push).not.toHaveBeenCalled()
-    openURL.mockRestore()
-  })
+      expect(openURL).toHaveBeenCalledWith(url)
+      expect(push).not.toHaveBeenCalled()
+      openURL.mockRestore()
+    },
+  )
 
   it('explains failed app launches without silently ignoring the tap', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {})

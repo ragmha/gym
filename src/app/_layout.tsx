@@ -1,3 +1,12 @@
+import { Doto_700Bold } from '@expo-google-fonts/doto'
+import {
+  Orbitron_500Medium,
+  Orbitron_900Black,
+} from '@expo-google-fonts/orbitron'
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+} from '@expo-google-fonts/space-grotesk'
 import {
   DarkTheme,
   DefaultTheme,
@@ -15,6 +24,7 @@ import 'react-native-reanimated'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { Colors } from '@/constants/Colors'
 import { useColorScheme } from '@/hooks/useColorScheme'
+import { usePrayerReminders } from '@/hooks/usePrayerReminders'
 import { useWatchSync } from '@/hooks/useWatchSync'
 
 // Show JS errors as alerts in Release mode (no red screen)
@@ -38,8 +48,14 @@ export default function RootLayout() {
   const colorScheme = useColorScheme()
   // Root level so sets tapped on the watch apply even on a background launch.
   useWatchSync()
+  usePrayerReminders()
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Doto_700Bold,
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    Orbitron_500Medium,
+    Orbitron_900Black,
   })
 
   useEffect(() => {
@@ -131,6 +147,14 @@ export default function RootLayout() {
                 headerShown: false,
                 presentation: 'modal',
               }}
+            />
+            <Stack.Screen
+              name="prayer-settings"
+              options={{ headerShown: false, presentation: 'modal' }}
+            />
+            <Stack.Screen
+              name="qibla"
+              options={{ headerShown: false, presentation: 'modal' }}
             />
             <Stack.Screen
               name="coach"

@@ -2,7 +2,7 @@
   "expo": {
     "name": "gym",
     "slug": "gym",
-    "version": "1.0.22",
+    "version": "1.0.23",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": [
@@ -115,7 +115,17 @@
           "root": "./modules/gym-watch"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Find your city to calculate prayer times and the Qibla direction on this device.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      "expo-notifications"
     ],
     "runtimeVersion": {
       "policy": "appVersion"

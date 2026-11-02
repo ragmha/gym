@@ -4,6 +4,11 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { DASHBOARD_GOALS } from '@/lib/fitnessMetrics/presenter'
 import { commuteSchema, type Commute } from '@/lib/planner'
+import {
+  DEFAULT_PRAYER_SETTINGS,
+  prayerSettingsSchema,
+  type PrayerSettings,
+} from '@/lib/prayer'
 
 export type ThemePreference = 'system' | 'light' | 'dark'
 
@@ -25,6 +30,9 @@ interface ThemeState {
   setWeightGoalKg: (weightGoalKg: number | null) => void
   commute: Commute | null
   setCommute: (commute: Commute | null) => void
+  /** Prayer calculation, city (coarse coordinates) and reminder preferences. */
+  prayer: PrayerSettings
+  setPrayer: (update: Partial<PrayerSettings>) => void
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -45,6 +53,11 @@ export const useThemeStore = create<ThemeState>()(
         set({
           commute: commute === null ? null : commuteSchema.parse(commute),
         }),
+      prayer: DEFAULT_PRAYER_SETTINGS,
+      setPrayer: (update) =>
+        set((state) => ({
+          prayer: prayerSettingsSchema.parse({ ...state.prayer, ...update }),
+        })),
     }),
     {
       name: 'theme-preference',
