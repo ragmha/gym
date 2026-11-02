@@ -73,8 +73,27 @@ function renderLifting(initialUrl = '/gym/lifting?date=2026-10-19') {
   )
 }
 
+function finishDays(...days: number[]) {
+  days.forEach((day, i) => {
+    const store = useGymLogStore.getState()
+    const dateKey = `2026-10-${String(10 + i).padStart(2, '0')}`
+    store.logSet(dateKey, String(day), 'exercise-1', {
+      reps: 10,
+      kilograms: null,
+    })
+    store.finishWorkout(dateKey, {
+      rating: 7,
+      finishedAt: new Date(2026, 9, 10 + i, 9),
+    })
+  })
+}
+
 beforeEach(() => {
-  useGymLogStore.setState({ programmeStart: '2026-10-17', logs: {} })
+  useGymLogStore.setState({
+    programmeStart: '2026-10-17',
+    logs: {},
+    completedRestDays: [],
+  })
 })
 
 it('starts on the overview and requires an explicit programme start', () => {
@@ -105,48 +124,63 @@ it('starts on the overview and requires an explicit programme start', () => {
   expect(useGymLogStore.getState().logs).toEqual({})
 })
 
-it.each([1, 6, 54])(
-  'opens day %i from the grid and returns to the overview',
-  (number) => {
-    useGymLogStore.setState({ programmeStart: '2026-08-27' })
-    const router = renderLifting()
-    fireEvent.press(screen.getByTestId(`gym-programme-day-${number}`))
-    const day = PROGRAMME[number - 1]
-    expect(router.getPathname()).toBe('/gym/lifting/workout')
-    expect(
-      screen.getByText(
-        `Week ${day.week} · Day ${String(number).padStart(2, '0')}`,
-      ),
-    ).toBeTruthy()
-    expect(screen.getByText(day.title)).toBeTruthy()
-    if (day.exercises.length === 0) {
-      expect(screen.getByText('Active rest day. Cardio only.')).toBeTruthy()
-    } else {
-      expect(
-        screen.getByLabelText(`${day.exercises[0].title} reps`),
-      ).toBeTruthy()
-    }
-
-    fireEvent.press(screen.getByLabelText('Back to programme overview'))
-    expect(router.getPathname()).toBe('/gym/lifting')
-    expect(
-      screen.getByLabelText(`Day 54: ${PROGRAMME[53].title}, selected day`),
-    ).toBeTruthy()
-    expect(useGymLogStore.getState().logs).toEqual({})
-  },
-)
-
-it('keeps days after the selected date unavailable', () => {
+it('opens the next day on the viewed date and returns to the overview', () => {
   const router = renderLifting()
-  expect(screen.getByTestId('gym-programme-day-3')).toBeEnabled()
-  for (const number of [4, 54]) {
+  const day = PROGRAMME[0]
+  fireEvent.press(screen.getByTestId('gym-programme-day-1'))
+  expect(router.getPathname()).toBe('/gym/lifting/workout')
+  expect(screen.getByText(`Week ${day.week} · Day 01`)).toBeTruthy()
+  expect(screen.getByText(day.title)).toBeTruthy()
+  expect(screen.getByLabelText(`${day.exercises[0].title} reps`)).toBeTruthy()
+
+  fireEvent.press(screen.getByLabelText('Back to programme overview'))
+  expect(router.getPathname()).toBe('/gym/lifting')
+  expect(screen.getByLabelText(`Day 1: ${day.title}, next day`)).toBeTruthy()
+  expect(useGymLogStore.getState().logs).toEqual({})
+})
+
+it('keeps days after the next day locked', () => {
+  const router = renderLifting()
+  expect(screen.getByTestId('gym-programme-day-1')).toBeEnabled()
+  for (const number of [2, 54]) {
     const card = screen.getByTestId(`gym-programme-day-${number}`)
     expect(card).toBeDisabled()
-    expect(card.props.accessibilityHint).toMatch(/^Available on /)
+    expect(card.props.accessibilityHint).toBe(
+      'Finish the earlier days to unlock this one',
+    )
     fireEvent.press(card)
     expect(router.getPathname()).toBe('/gym/lifting')
   }
   expect(useGymLogStore.getState().logs).toEqual({})
+})
+
+it('completes active rest days to unlock the next workout', () => {
+  finishDays(1, 2, 3, 4, 5)
+  const router = renderLifting()
+  expect(screen.getByLabelText('Day 6: Active Rest Day, next day')).toBeTruthy()
+  expect(screen.getByTestId('gym-programme-day-7')).toBeDisabled()
+  expect(screen.getByTestId('gym-programme-day-8')).toBeDisabled()
+
+  fireEvent.press(screen.getByTestId('gym-programme-day-6'))
+  expect(router.getPathname()).toBe('/gym/lifting')
+  expect(
+    screen.getByLabelText('Day 6: Active Rest Day, completed'),
+  ).toBeTruthy()
+  expect(screen.getByLabelText('Day 7: Active Rest Day, next day')).toBeTruthy()
+
+  fireEvent.press(screen.getByTestId('gym-programme-day-7'))
+  expect(useGymLogStore.getState().completedRestDays).toEqual(['6', '7'])
+  expect(
+    screen.getByLabelText(`Day 8: ${PROGRAMME[7].title}, next day`),
+  ).toBeTruthy()
+
+  fireEvent.press(screen.getByTestId('gym-programme-day-8'))
+  expect(router.getPathname()).toBe('/gym/lifting/workout')
+  expect(screen.getByText('Week 2 · Day 08')).toBeTruthy()
+  expect(
+    screen.getByLabelText(`${PROGRAMME[7].exercises[0].title} reps`),
+  ).toBeTruthy()
+  expect(Object.keys(useGymLogStore.getState().logs)).toHaveLength(5)
 })
 
 it('reopens a completed saved day and keeps its badge when returning', () => {
@@ -175,25 +209,53 @@ it('reopens a completed saved day and keeps its badge when returning', () => {
   expect(useGymLogStore.getState().logs).toEqual(savedLogs)
 })
 
-it('keeps the selected date available when repeating a completed day', () => {
-  const store = useGymLogStore.getState()
-  store.logSet('2026-10-02', '2', 'exercise-1', { reps: 15, kilograms: null })
-  store.finishWorkout('2026-10-02', {
-    rating: 8,
-    finishedAt: new Date(2026, 9, 2, 9),
-  })
-  store.startProgramme('2026-10-18')
-  renderLifting()
+it('opens a saved workout from any viewed date', () => {
+  finishDays(1, 2)
+  const router = renderLifting('/gym/lifting?date=2026-10-01')
+  fireEvent.press(screen.getByTestId('gym-programme-day-2'))
+  expect(router.getPathname()).toBe('/gym/lifting/workout')
+  expect(screen.getByTestId('gym-finished')).toHaveTextContent(/rated 7\/10/)
+})
+
+it('still opens a saved workout before the programme is started', () => {
+  finishDays(1, 2)
+  useGymLogStore.setState({ programmeStart: null })
+  const router = renderLifting()
+  expect(screen.getByTestId('gym-programme-day-3')).toBeDisabled()
+  fireEvent.press(screen.getByTestId('gym-programme-day-2'))
+  expect(router.getPathname()).toBe('/gym/lifting/workout')
+  expect(screen.getByTestId('gym-finished')).toHaveTextContent(/rated 7\/10/)
+})
+
+it('opens the picked day on a date outside the programme schedule', () => {
+  renderLifting('/gym/lifting/workout?date=2026-10-01&day=8')
+  expect(screen.getByText(PROGRAMME[7].title)).toBeTruthy()
+  expect(screen.queryByText('Before your programme starts.')).toBeNull()
+})
+
+it('keeps a day closed when another workout is saved on the viewed date', () => {
+  useGymLogStore
+    .getState()
+    .logSet('2026-10-19', '3', 'exercise-1', { reps: 12, kilograms: null })
+  const router = renderLifting()
+  const card = screen.getByTestId('gym-programme-day-1')
+  expect(card).toBeDisabled()
+  expect(card.props.accessibilityHint).toBe(
+    'Another workout is saved on this date',
+  )
+  fireEvent.press(card)
+  expect(router.getPathname()).toBe('/gym/lifting')
+  expect(screen.getByTestId('gym-programme-day-3')).toBeEnabled()
+})
+
+it('ignores a picked day until the programme is started', () => {
+  useGymLogStore.setState({ programmeStart: null })
+  renderLifting('/gym/lifting/workout?date=2026-10-19&day=8')
   expect(
-    screen.getByLabelText(
-      `Day 2: ${PROGRAMME[1].title}, completed, selected day`,
+    screen.getByText(
+      'Start the programme from the overview to open a workout.',
     ),
   ).toBeTruthy()
-  fireEvent.press(screen.getByTestId('gym-programme-day-2'))
-  expect(screen.queryByTestId('gym-finished')).toBeNull()
-  fireEvent.press(screen.getByTestId('gym-save-set-exercise-1'))
-  expect(useGymLogStore.getState().logs['2026-10-19'].day).toBe('2')
-  expect(useGymLogStore.getState().logs['2026-10-02'].finishedAt).not.toBeNull()
 })
 
 it('reflects a newly finished workout on the overview', () => {

@@ -5,7 +5,11 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { DashboardText as Text } from '@/components/dashboard/DashboardText'
 import { Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useTheme } from '@/hooks/useThemeColor'
-import { PROGRAMME } from '@/lib/gymProgramme'
+import {
+  PROGRAMME,
+  savedWorkoutDates,
+  type ProgrammeDay,
+} from '@/lib/gymProgramme'
 import { useGymLogStore } from '@/stores/GymLogStore'
 
 const weeks = [...new Set(PROGRAMME.map((day) => day.week))].map((week) => ({
@@ -14,28 +18,67 @@ const weeks = [...new Set(PROGRAMME.map((day) => day.week))].map((week) => ({
 }))
 
 export function ProgrammeOverview({
-  selectedDay,
-  workoutDates,
-  availableThrough,
-  onSelectWorkout,
+  dateKey,
+  onOpenWorkout,
 }: {
-  selectedDay?: string
-  workoutDates: ReadonlyMap<string, string>
-  availableThrough: string
-  onSelectWorkout: (dateKey: string) => void
+  /** The viewed date; a workout with no saved log opens on it. */
+  dateKey: string
+  onOpenWorkout: (dateKey: string, day: string) => void
 }) {
   const theme = useTheme()
   const { width, fontScale } = useWindowDimensions()
+  const started = useGymLogStore((s) => s.programmeStart !== null)
   const logs = useGymLogStore((s) => s.logs)
-  const completedDays = useMemo(
-    () =>
-      new Set(
-        Object.values(logs)
-          .filter((log) => log.finishedAt)
-          .map((log) => log.day),
-      ),
-    [logs],
-  )
+  const completedRestDays = useGymLogStore((s) => s.completedRestDays)
+  const completeRestDay = useGymLogStore((s) => s.completeRestDay)
+  const progress = useMemo(() => {
+    const completed = new Set(completedRestDays)
+    for (const log of Object.values(logs)) {
+      if (log.finishedAt) completed.add(log.day)
+    }
+    // The day after the furthest completed one is next; earlier days stay open.
+    const next = PROGRAMME.reduce(
+      (index, day, i) => (completed.has(day.day) ? i + 1 : index),
+      0,
+    )
+    return {
+      completed,
+      saved: savedWorkoutDates(logs),
+      open: new Set(PROGRAMME.slice(0, next + 1).map((day) => day.day)),
+      next: PROGRAMME[next]?.day,
+    }
+  }, [logs, completedRestDays])
+
+  const describe = (
+    day: ProgrammeDay,
+  ): { hint?: string; press?: () => void } => {
+    const saved = progress.saved.get(day.day)
+    if (saved) {
+      return {
+        hint: 'Opens this workout',
+        press: () => onOpenWorkout(saved, day.day),
+      }
+    }
+    if (!started) return { hint: 'Start the programme to open this workout' }
+    if (!progress.open.has(day.day)) {
+      return { hint: 'Finish the earlier days to unlock this one' }
+    }
+    if (day.exercises.length === 0) {
+      return progress.completed.has(day.day)
+        ? {}
+        : {
+            hint: 'Marks this rest day complete',
+            press: () => completeRestDay(day.day),
+          }
+    }
+    return logs[dateKey]
+      ? { hint: 'Another workout is saved on this date' }
+      : {
+          hint: 'Opens this workout',
+          press: () => onOpenWorkout(dateKey, day.day),
+        }
+  }
+
   return (
     <View testID="gym-programme-overview" style={styles.content}>
       {weeks.map(({ week, days }) => (
@@ -48,34 +91,19 @@ export function ProgrammeOverview({
           </Text>
           <View style={styles.grid}>
             {days.map((day) => {
-              const selected = day.day === selectedDay
-              const completed = completedDays.has(day.day)
-              const scheduledKey = workoutDates.get(day.day)
-              const dateKey =
-                scheduledKey && scheduledKey <= availableThrough
-                  ? scheduledKey
-                  : undefined
+              const next = day.day === progress.next
+              const completed = progress.completed.has(day.day)
+              const { hint, press } = describe(day)
               return (
                 <Pressable
                   key={day.day}
                   testID={`gym-programme-day-${day.day}`}
                   accessibilityRole="button"
-                  accessibilityLabel={`Day ${day.day}: ${day.title}${completed ? ', completed' : ''}${selected ? ', selected day' : ''}`}
-                  accessibilityState={{ disabled: !dateKey }}
-                  accessibilityHint={
-                    dateKey
-                      ? 'Opens this workout'
-                      : scheduledKey
-                        ? `Available on ${new Date(
-                            `${scheduledKey}T12:00:00`,
-                          ).toLocaleDateString(undefined, {
-                            month: 'long',
-                            day: 'numeric',
-                          })}`
-                        : 'No available workout date. Start or restart the programme to schedule this day.'
-                  }
-                  disabled={!dateKey}
-                  onPress={dateKey ? () => onSelectWorkout(dateKey) : undefined}
+                  accessibilityLabel={`Day ${day.day}: ${day.title}${completed ? ', completed' : ''}${next ? ', next day' : ''}`}
+                  accessibilityState={{ disabled: !press }}
+                  accessibilityHint={hint}
+                  disabled={!press}
+                  onPress={press}
                   style={({ pressed }) => [
                     styles.card,
                     {
@@ -85,13 +113,13 @@ export function ProgrammeOverview({
                           : width >= 600 && fontScale <= 1
                             ? '23.5%'
                             : '49%',
-                      opacity: !dateKey ? 0.5 : pressed ? 0.7 : 1,
-                      borderColor: selected
+                      opacity: !press && !completed ? 0.5 : pressed ? 0.7 : 1,
+                      borderColor: next
                         ? theme.accent
                         : completed
                           ? theme.success
                           : theme.border,
-                      backgroundColor: selected
+                      backgroundColor: next
                         ? theme.accentInactive
                         : completed
                           ? theme.successInactive
@@ -123,9 +151,9 @@ export function ProgrammeOverview({
                       </Text>
                     </View>
                   )}
-                  {selected && (
+                  {next && (
                     <Text style={[Typography.labelMd, { color: theme.accent }]}>
-                      Selected day
+                      Next day
                     </Text>
                   )}
                 </Pressable>

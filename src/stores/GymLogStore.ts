@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { PROGRAMME } from '@/lib/gymProgramme'
+
 export const MAX_REPS = 500
 export const MAX_SET_KILOGRAMS = 1000
 
@@ -23,7 +25,10 @@ interface GymLogState {
   /** Local YYYY-MM-DD the programme's day 1 falls on. */
   programmeStart: string | null
   logs: Record<string, GymDayLog>
+  /** Programme active-rest days (no exercises) the user marked complete. */
+  completedRestDays: string[]
   startProgramme: (dateKey: string) => void
+  completeRestDay: (day: string) => void
   logSet: (
     dateKey: string,
     day: string,
@@ -54,7 +59,16 @@ export const useGymLogStore = create<GymLogState>()(
     (set) => ({
       programmeStart: null,
       logs: {},
+      completedRestDays: [],
       startProgramme: (dateKey) => set({ programmeStart: dateKey }),
+      completeRestDay: (day) =>
+        set((state) =>
+          PROGRAMME.some(
+            (entry) => entry.day === day && entry.exercises.length === 0,
+          ) && !state.completedRestDays.includes(day)
+            ? { completedRestDays: [...state.completedRestDays, day] }
+            : state,
+        ),
       logSet: (dateKey, day, exerciseId, entry) =>
         set((state) => {
           const log = state.logs[dateKey]
@@ -122,7 +136,11 @@ export const useGymLogStore = create<GymLogState>()(
     {
       name: 'gym-log',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: ({ programmeStart, logs }) => ({ programmeStart, logs }),
+      partialize: ({ programmeStart, logs, completedRestDays }) => ({
+        programmeStart,
+        logs,
+        completedRestDays,
+      }),
     },
   ),
 )

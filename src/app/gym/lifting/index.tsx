@@ -1,6 +1,5 @@
 import { useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useMemo } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -11,12 +10,7 @@ import { HealthDateRoute } from '@/components/health/HealthDateRoute'
 import { Layout, Radii, Spacing, Typography } from '@/constants/DesignSystem'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { useTheme } from '@/hooks/useThemeColor'
-import {
-  findProgrammeDay,
-  PROGRAMME,
-  programmeDayFor,
-  programmeWorkoutDates,
-} from '@/lib/gymProgramme'
+import { PROGRAMME } from '@/lib/gymProgramme'
 import { localDateKey } from '@/lib/healthSnapshot/dateKey'
 import { useGymLogStore } from '@/stores/GymLogStore'
 
@@ -34,23 +28,8 @@ function ProgrammeForDate({ date }: { date: Date }) {
   const router = useRouter()
   const dateKey = localDateKey(date)
   const programmeStart = useGymLogStore((s) => s.programmeStart)
-  const logs = useGymLogStore((s) => s.logs)
+  const log = useGymLogStore((s) => s.logs[dateKey])
   const startProgramme = useGymLogStore((s) => s.startProgramme)
-  const log = logs[dateKey]
-  const scheduled =
-    !log && programmeStart ? programmeDayFor(programmeStart, dateKey) : null
-  const day = log
-    ? findProgrammeDay(log.day)
-    : scheduled && 'day' in scheduled
-      ? scheduled.day
-      : null
-  const selectedDay = day?.day
-  const workoutDates = useMemo(() => {
-    const dates = programmeWorkoutDates(programmeStart, logs)
-    // Keep the selected date available when repeating a previously logged day.
-    if (selectedDay) dates.set(selectedDay, dateKey)
-    return dates
-  }, [programmeStart, logs, selectedDay, dateKey])
   const dateLabel = date.toLocaleDateString(undefined, {
     month: 'long',
     day: 'numeric',
@@ -86,7 +65,7 @@ function ProgrammeForDate({ date }: { date: Date }) {
           </Text>
           <Text style={[Typography.bodySm, { color: theme.subtitleText }]}>
             {programmeStart
-              ? 'Choose a day to open its workout.'
+              ? 'Open the next day, or tap a rest day to mark it complete.'
               : 'Start the programme to open a workout.'}
           </Text>
         </View>
@@ -121,13 +100,11 @@ function ProgrammeForDate({ date }: { date: Date }) {
           </Pressable>
         )}
         <ProgrammeOverview
-          selectedDay={selectedDay}
-          workoutDates={workoutDates}
-          availableThrough={dateKey}
-          onSelectWorkout={(workoutDate) =>
+          dateKey={dateKey}
+          onOpenWorkout={(workoutDate, day) =>
             router.push({
               pathname: '/gym/lifting/workout',
-              params: { date: workoutDate },
+              params: { date: workoutDate, day },
             })
           }
         />

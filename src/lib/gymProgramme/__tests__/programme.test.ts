@@ -1,7 +1,7 @@
 import {
   PROGRAMME,
   programmeDayFor,
-  programmeWorkoutDates,
+  savedWorkoutDates,
 } from '@/lib/gymProgramme'
 
 describe('programmeDayFor', () => {
@@ -31,42 +31,24 @@ describe('programmeDayFor', () => {
   })
 })
 
-describe('programmeWorkoutDates', () => {
-  it('maps each day to a calendar date, including across month boundaries', () => {
-    const dates = programmeWorkoutDates('2026-10-17', {})
-    expect(dates.size).toBe(54)
-    expect(dates.get('1')).toBe('2026-10-17')
-    expect(dates.get('2')).toBe('2026-10-18')
-    expect(dates.get('54')).toBe('2026-12-09')
-    for (const day of PROGRAMME) {
-      expect(programmeDayFor('2026-10-17', dates.get(day.day)!)).toEqual({
-        day,
-      })
-    }
-  })
-
-  it('opens the latest saved workout for a day after a restart', () => {
-    const dates = programmeWorkoutDates('2026-10-19', {
+describe('savedWorkoutDates', () => {
+  it('maps each saved day to its latest date', () => {
+    const dates = savedWorkoutDates({
       '2026-10-18': { day: '2' },
       '2026-10-02': { day: '2' },
+      '2026-10-17': { day: '1' },
     })
-    expect(dates.get('2')).toBe('2026-10-18')
-    expect(dates.get('3')).toBe('2026-10-21')
+    expect([...dates]).toEqual(
+      expect.arrayContaining([
+        ['1', '2026-10-17'],
+        ['2', '2026-10-18'],
+      ]),
+    )
+    expect(dates.size).toBe(2)
   })
 
-  it('does not route a scheduled day to a different pinned workout', () => {
-    const dates = programmeWorkoutDates('2026-10-17', {
-      '2026-10-18': { day: '10' },
-    })
-    expect(dates.has('2')).toBe(false)
-    expect(dates.get('10')).toBe('2026-10-18')
-  })
-
-  it('only opens saved workouts before a programme has been started', () => {
-    expect(programmeWorkoutDates(null, {}).size).toBe(0)
-    expect([
-      ...programmeWorkoutDates(null, { '2026-10-18': { day: '2' } }),
-    ]).toEqual([['2', '2026-10-18']])
+  it('is empty without saved workouts', () => {
+    expect(savedWorkoutDates({}).size).toBe(0)
   })
 })
 

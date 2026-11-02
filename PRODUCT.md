@@ -107,9 +107,12 @@ These exceptions do not authorize additional forms, persistence, or Health write
   remain visible. Workout duration and average heart rate do not prove time in
   a heart-rate zone.
 - Lifting opens on **Programme overview**, a week-grouped grid of workout and
-  rest days. Tap a day to open its saved workout or scheduled date; Back returns
-  to the overview. Starting or restarting the programme is an explicit action
-  on the overview, never a side effect of browsing.
+  rest days. Progress, not the calendar, decides what is open: the day after
+  your last completed day is the **next day**, skipped earlier days and saved
+  workouts stay open, and later days are locked. A workout opens on the date
+  being viewed; Back returns to the overview. Starting or restarting the
+  programme is an explicit action on the overview, never a side effect of
+  browsing.
 - **Running out of time? 5×5** on the overview opens a StrongLifts 5×5 short
   day for the same date, alternating Workout A and B with a next-weight hint.
   It needs no programme start and is hidden once a programme workout is logged
@@ -121,11 +124,12 @@ These exceptions do not authorize additional forms, persistence, or Health write
   Spotify handles authorization and playback. Artwork stays in memory after
   the SDK's temporary image files are deleted; Gym does not save music data or
   send it to Health or the coach. Web and Android only offer **Open Spotify**.
-- The overview marks the selected day and shows saved finished workouts as
-  **Completed** across dates and restarts. Unfinished sets and elapsed days do
-  not imply completion. Days without an available workout date stay disabled
-  rather than opening or overwriting a different saved workout, and days
-  scheduled after the selected date stay disabled until that date arrives.
+- The overview marks the next day and shows finished workouts as **Completed**
+  across dates and restarts. Unfinished sets and elapsed days do not imply
+  completion. Tapping an open active rest day marks it **Completed** on the
+  device, with no undo and no Health write; that unlocks the day after it. A
+  workout day stays disabled rather than overwriting a different workout
+  already saved on the viewed date.
 - Morning weight comparisons show measured coverage, not diet advice.
 - Gym **Weight** shows the latest morning weigh-in and its distance to an
   optional goal weight, 2W daily or 3M/6M weekly-average morning bars,

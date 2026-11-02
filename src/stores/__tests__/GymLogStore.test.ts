@@ -3,7 +3,13 @@ import { useGymLogStore } from '@/stores/GymLogStore'
 const key = '2026-10-17'
 const state = () => useGymLogStore.getState()
 
-beforeEach(() => useGymLogStore.setState({ programmeStart: null, logs: {} }))
+beforeEach(() =>
+  useGymLogStore.setState({
+    programmeStart: null,
+    logs: {},
+    completedRestDays: [],
+  }),
+)
 
 describe('GymLogStore', () => {
   it('logs, undoes and finishes sets for a programme day', () => {
@@ -52,11 +58,22 @@ describe('GymLogStore', () => {
     expect(state().logs[key]?.sets['exercise-1']).toHaveLength(1)
   })
 
-  it('persists only the programme start and logs', () => {
+  it('persists only the programme start, logs and completed rest days', () => {
     expect(useGymLogStore.persist.getOptions().partialize?.(state())).toEqual({
       programmeStart: null,
       logs: {},
+      completedRestDays: [],
     })
+  })
+
+  it('marks a programme rest day complete once and ignores workout days', () => {
+    state().completeRestDay('6')
+    state().completeRestDay('6')
+    state().completeRestDay('7')
+    state().completeRestDay('8')
+    state().completeRestDay('99')
+
+    expect(state().completedRestDays).toEqual(['6', '7'])
   })
 
   it('drops a log once every set is undone so the date can move to another day', () => {

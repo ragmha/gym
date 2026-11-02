@@ -12,6 +12,7 @@ import {
   type ContentItem,
 } from '@wwdrew/expo-spotify-sdk'
 import { File } from 'expo-file-system'
+import { useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -49,6 +50,7 @@ import {
   findProgrammeDay,
   nextFiveByFive,
   nextWeight,
+  PROGRAMME,
   programmeDayFor,
   type ExerciseSession,
   type FiveByFiveExercise,
@@ -73,20 +75,29 @@ type OnRest = (exercise: ProgrammeExercise, set: LoggedSet | null) => void
 const pad = (n: number) => String(n).padStart(2, '0')
 
 export default function LiftingWorkoutScreen() {
+  const { day } = useLocalSearchParams<{ day?: string | string[] }>()
   return (
     <HealthDateRoute>
-      {(date) => <LiftingForDate date={date} />}
+      {(date) => (
+        <LiftingForDate
+          date={date}
+          programmeDay={typeof day === 'string' ? day : undefined}
+        />
+      )}
     </HealthDateRoute>
   )
 }
 
 // `quick` is the StrongLifts 5×5 short-day screen; a saved log pins its workout.
+// `programmeDay` is the day picked in the overview for a date with no saved log.
 export function LiftingForDate({
   date,
   quick = false,
+  programmeDay,
 }: {
   date: Date
   quick?: boolean
+  programmeDay?: string
 }) {
   const theme = useTheme()
   const colorScheme = useColorScheme()
@@ -119,13 +130,14 @@ export function LiftingForDate({
   // A saved log keeps its programme day even if the start date changes later.
   const scheduled =
     !log && programmeStart ? programmeDayFor(programmeStart, dateKey) : null
+  const picked = programmeStart
+    ? PROGRAMME.find((entry) => entry.day === programmeDay)
+    : undefined
   const day: LiftingWorkout | null = log
     ? findProgrammeDay(log.day)
     : quick
       ? fiveByFive
-      : scheduled && 'day' in scheduled
-        ? scheduled.day
-        : null
+      : (picked ?? (scheduled && 'day' in scheduled ? scheduled.day : null))
   const outside = scheduled && 'reason' in scheduled ? scheduled.reason : null
   // Full screen only applies while an exercise card (with its exit button) shows.
   const fullScreen = focus && Boolean(day?.exercises.length)
