@@ -1,110 +1,89 @@
 # gym
 
-My personal gym app.
+An iOS-first daily dashboard for Apple Health, workouts, and the rest of your routine.
 
-## Getting started
+![Expo SDK 55](https://img.shields.io/badge/Expo-SDK%2055-000020?logo=expo)
+![React Native 0.83](https://img.shields.io/badge/React%20Native-0.83-61DAFB?logo=react)
+![Bun 1.3.5](https://img.shields.io/badge/Bun-1.3.5-f9f1e1?logo=bun)
+[![PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE.md)
 
-You need [Bun](https://bun.sh/), [Node.js](https://nodejs.org/) 20.19.4+, and Xcode for iOS.
+<p align="center">
+  <img src="docs/screenshots/home.png" width="31%" alt="Home dashboard with deterministic demo data">
+  <img src="docs/screenshots/gym.png" width="31%" alt="Gym overview with deterministic demo data">
+  <img src="docs/screenshots/lifting.png" width="31%" alt="Lifting programme overview">
+</p>
+<p align="center"><sub>Web preview with deterministic demo data. On iOS, dashboard readings come from Apple Health.</sub></p>
 
-Speaking practice lets you shadow a topic script or speak solo for 5 or 15 minutes. Speech is transcribed on-device; optional iOS video can be reviewed, shared, or discarded. On-device post-mortems track progress across sessions and can be reviewed or deleted from Speaking History.
+![Animated screen tour from Home to Gym to Lifting](docs/screenshots/workout-flow.gif)
+[Open the screen tour as MP4 (QuickTime-compatible)](docs/screenshots/workout-flow.mp4)
 
-On a paired Apple Watch, **Gym** shows today's lifting day. Pick an exercise and tap the centre of its red set-progress ring to log. Swipe left to adjust reps and kg (they start at the target and your last load; BW is body weight) or **Undo** the last set. Taps go over WatchConnectivity into the iPhone's on-device lifting log, so the iPhone must be reachable. The watch saves nothing itself and writes nothing to Health.
+## What it is
 
-To estimate reps, tap the watch's figure icon (**Count reps**), adjust the motion threshold if needed, and tap **Start**. Get into position within 3 seconds, then hold still for the start tap. It counts vertical wrist-motion cycles and stops about 8 seconds after the last rep; waking the screen also stops the set for review. Stationary-wrist exercises need manual entry or the camera; turn the Digital Crown to correct the estimate before **Log**.
+HealthKit readings are read on-device; workouts and other approved logs stay on-device too. There is no app account or backend. Web and Android use deterministic demo data.
 
-On iOS 17+, **Count** in a Lifting exercise uses the front camera instead: prop the phone with only you in frame, your side visible, and choose Knees, Hips, or Elbows. Adjust the bend threshold to your movement, then **Start counting**. Start straight, bend, and straighten; missing joints or a second person reset the unfinished rep rather than guessing. **Done counting** stops the camera; **Use** fills the editable reps field without logging a set.
+- Daily activity, recovery, and health dashboard
+- Lifting programme, on-device workout log, and optional Apple Watch remote
+- Prayer times, speaking practice, and a Today planner
 
-Both counters need native build 1.0.18 or later. Frames and motion samples stay in memory, are never saved, and are not Health or coach input. Counts are estimates, not form or safety assessments. The watch uses a `physical-therapy` extended runtime session without Health access; if watchOS rejects or interrupts it, counting stops with an error. Wrist-down behaviour, coexistence with Apple's Workout app, sensor thresholds, and App Review suitability still require real-device/release qualification. Simulators cover builds, UI/error paths, and synthetic detector checks, not live motion/camera accuracy.
+## Run locally
 
-The watch's native progress and rep-detector checks run without a simulator:
+Requires macOS, [Bun 1.3.5](https://bun.sh/), Node.js 20.19.4+, Xcode 26, and CocoaPods for iOS.
 
-```bash
-swiftc modules/gym-watch/watch/WorkoutState.swift modules/gym-watch/watch/RepDetector.swift modules/gym-watch/Tests/main.swift -o /tmp/gym-watch-check && /tmp/gym-watch-check
-```
-
-## Quick start
-
-### Prerequisites
-
-- [Bun](https://bun.sh/) 1.3.5
-- Node.js 20.19.4 or newer
-- Xcode 26 for iOS development, or a web browser for the web version
-
-### Install
-
-```bash
+```sh
 bun install
-bun run ios   # iOS simulator
-bun run web   # browser, mock data
+bun run ios   # build and launch on an iOS simulator
+bun run web   # browser preview; uses demo data
 ```
 
-### Daily rings widget (iOS)
+`bun run start` starts Expo for an already-installed development client. The first native build can take several minutes; a physical device also needs Apple signing. No backend or environment file is required.
 
-Version 1.0.15 adds a medium Home Screen widget with three rings for Steps,
-Water, and Active calories. Its fixed display targets are 20,000 steps, 2.5 L,
-and 500 active kcal; these do not change the dashboard's goals or provide
-medical recommendations. Missing readings show `--`; recorded zeroes remain
-zeroes. Tap the widget to open the dashboard.
+Run the local checks:
 
-This requires a **new native build**, not Expo Go or an OTA to an older binary.
-Open today's dashboard, then hold the Home Screen, choose **Edit → Add Widget**,
-and search for **gym → Daily rings**. The widget follows the supplied dark
-three-ring reference in both system appearances.
+```sh
+bun run lint
+bun run typecheck
+bun run test:unit -- --runInBand --no-watchman
+```
 
-The widget shares only today's formatted steps, water, active calories, ring
-progress, and update/expiry times through the `group.io.raghib.gym` App Group,
-which only the app and its widget extension use. Historical and demo readings are never published. Readings are hidden
-after one hour or local midnight, whichever comes first; this is display expiry,
-not guaranteed storage deletion. The app does not fetch Health data in the
-background.
+## Build for TestFlight with EAS
 
-### Today planner (iOS)
+You need an Expo account, Apple Developer Program membership, and an App Store Connect app record. EAS cloud builds may use paid plan resources.
 
-Native version **1.0.20** provides Today as the first Home page; the existing goal
-tiles remain on the following pages. Today summarizes measured activity and
-on-device logs, then proposes an agenda around Apple Calendar, weekday work
-and an optional metro commute. Morning, Afternoon and Night group the plan;
-undated, overdue and all-day items stay under Anytime. Suggested activities
-fit open gaps and are not Calendar bookings. Secondary readings are expandable.
-Apple Reminders supplies tasks, not email.
+For your own app or a fork, set your bundle IDs and widget App Group in `app.json`, remove or replace this repo's `extra.eas.projectId` and `updates.url`, and set `submit.production.ios.ascAppId` in `eas.json` to your App Store Connect app ID. Replace the OAuth client IDs if you use Spotify or Google sign-in.
 
-Calendar and Reminders require **a new iOS 17+ development/native build**, not
-an OTA to 1.0.19 or Expo Go. The new Reminders completion boundary and updated
-permission-purpose text require this isolated runtime. Tap each Connect action
-to request access. Calendar stays read-only. Reminders checkbox taps alone
-can complete or uncomplete existing tasks, after native authorization and save
-confirmation; there is no creation, deletion or title/date editing. The app
-reads eligible incomplete tasks and tasks actually completed today.
-Those readings stay in memory on the phone and
-never become Health coach context. Web/Android show explicitly unavailable
-connections rather than sample events or transit departures.
+```sh
+bunx eas-cli login
+bunx eas-cli init
+bunx eas-cli update:configure
+bunx eas-cli build --platform ios --profile production --auto-submit
+```
 
-For metro times, open **Commute setup** and save your own
-[Digitransit subscription key](https://portal-api.digitransit.fi/) into the
-iPhone's device-only Keychain. Search and select home/work stations, confirm
-work hours and walking estimates, then save the local preferences. No key is
-bundled in the app or stored in AsyncStorage. Both the key and commute
-preferences can be removed in setup. Only station searches, station coordinates
-and journey times go to HSL. Routing uses the current HSL v2 API, metro-only,
-with walking time; schedules are not claimed to be live predictions.
+On the first build, follow EAS prompts to configure Apple signing and App Store Connect credentials. After Apple processes the upload, add testers in App Store Connect → TestFlight. A successful build or upload does not mean the build is already available to testers.
 
-Work hours use the device's local timezone and Monday–Friday schedule; review
-them when travelling or changing work patterns. Suggestions do not write
-bookings, estimate travel to calendar event locations, send background alerts,
-or infer unmeasured reading, prayer, journaling or screen time.
+In this repository, merging to `main` runs a fingerprint-gated release: JavaScript/assets can publish an OTA update, while native changes require a new build and a version bump in both `app.json` and `package.json`. CI needs an `EXPO_TOKEN` secret. The automated submission guard is limited to `ragmha/gym`; forks should use the manual EAS command above or update that guard for their own repository.
 
-The planner's native date and reminder-boundary checks run without a simulator:
+## Project
 
-```bash
+```text
+src/app/        Expo Router screens
+src/components/ Shared UI
+src/lib/        HealthKit, workout, and feature logic
+src/stores/     Approved on-device logs and preferences
+modules/        iOS and watchOS native modules
+```
+
+More detail: [Product](PRODUCT.md) · [Design](DESIGN.md) · [Developer evaluations](evals/README.md)
+
+<details>
+<summary>Native checks that do not need a simulator</summary>
+
+```sh
+swiftc modules/gym-watch/watch/WorkoutState.swift modules/gym-watch/watch/RepDetector.swift modules/gym-watch/Tests/main.swift -o /tmp/gym-watch-check && /tmp/gym-watch-check
 swiftc modules/day-planner/ios/PlannerValues.swift modules/day-planner/Tests/main.swift -o /tmp/gym-day-planner-check && /tmp/gym-day-planner-check
 ```
 
-## Developer evaluations
-
-See [evaluation cases and run instructions](evals/README.md) for synthetic
-on-device AI evaluations and evidence-based coding-agent comparisons. They use
-the existing development build and Bun/Jest tooling, not a cloud AI service.
+</details>
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE.md): free for noncommercial use.
+[PolyForm Noncommercial 1.0.0](LICENSE.md).
