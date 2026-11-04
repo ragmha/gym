@@ -106,6 +106,7 @@ export function ActivityDetail({
   detail,
   stats,
   recent,
+  beforeSummary,
   children,
 }: {
   testID: string
@@ -116,6 +117,7 @@ export function ActivityDetail({
   detail: string
   stats: { label: string; value: string }[]
   recent: RecentDay[] | null
+  beforeSummary?: ReactNode
   children?: ReactNode
 }) {
   const theme = useTheme()
@@ -125,6 +127,7 @@ export function ActivityDetail({
 
   return (
     <ActivityScreen testID={testID} title={title} date={date}>
+      {beforeSummary}
       <GoalTileSurface
         id={testID}
         icon={icon}

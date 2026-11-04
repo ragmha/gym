@@ -391,6 +391,77 @@ describe('Gym detail screens', () => {
     expect(screen.getByText(/Plan \d+ AM · \d+ PM/)).toBeTruthy()
     expect(screen.getByLabelText('Streak: --')).toBeTruthy()
   })
+
+  it('shows running workout metrics from the selected Health day', () => {
+    jest.mocked(useHealthSnapshot).mockReturnValue({
+      snapshot: {
+        ...mockToday,
+        workouts: [
+          {
+            kind: 'running',
+            activityName: 'Running',
+            averageHeartRate: null,
+            calories: 0,
+            distance: 5.25,
+            durationMinutes: 25.5,
+            startISO: '2026-10-17T06:00:00.000Z',
+            endISO: '2026-10-17T06:25:30.000Z',
+          },
+        ],
+      },
+      status: 'ready',
+      isDemoMode: false,
+    } as never)
+
+    render(<CardioScreen />)
+
+    expect(screen.getByTestId('cardio-session')).toBeTruthy()
+    expect(screen.getByLabelText('Distance: 5.25 km')).toBeTruthy()
+    expect(screen.getByLabelText('Time: 25:30')).toBeTruthy()
+    expect(screen.getByLabelText('Calories: 0 kcal')).toBeTruthy()
+    expect(screen.getByText('Apple Health workouts')).toBeTruthy()
+  })
+
+  it('keeps unavailable run distance and calories unknown', () => {
+    jest.mocked(useHealthSnapshot).mockReturnValue({
+      snapshot: {
+        ...mockToday,
+        workouts: [
+          {
+            kind: 'running',
+            activityName: 'Running',
+            averageHeartRate: null,
+            calories: null,
+            distance: null,
+            durationMinutes: 25,
+            startISO: '2026-10-17T06:00:00.000Z',
+            endISO: '2026-10-17T06:25:00.000Z',
+          },
+        ],
+      },
+      status: 'ready',
+      isDemoMode: false,
+    } as never)
+
+    render(<CardioScreen />)
+
+    expect(screen.getByLabelText('Distance: --')).toBeTruthy()
+    expect(screen.getByLabelText('Calories: --')).toBeTruthy()
+  })
+
+  it('shows a Health error instead of stale cardio progress', () => {
+    jest.mocked(useHealthSnapshot).mockReturnValue({
+      snapshot: mockToday,
+      status: 'error',
+      error: 'Unable to load health data',
+      isDemoMode: false,
+    } as never)
+
+    render(<CardioScreen />)
+
+    expect(screen.getByText('Health data unavailable')).toBeTruthy()
+    expect(screen.getByText('Unable to load health data')).toBeTruthy()
+  })
 })
 
 describe('Weight screen', () => {

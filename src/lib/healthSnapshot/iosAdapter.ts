@@ -215,7 +215,10 @@ function mapWorkout(workout: NativeWorkout): HealthWorkout {
       workout.totalEnergyBurned?.quantity == null
         ? null
         : roundInt(workout.totalEnergyBurned.quantity),
-    distance: workout.totalDistance?.quantity ?? null,
+    distance:
+      workout.totalDistance?.unit === 'meters'
+        ? workout.totalDistance.quantity / 1000
+        : null,
     durationMinutes: workout.duration.quantity / 60,
     startISO: start.toISOString(),
     endISO: end.toISOString(),

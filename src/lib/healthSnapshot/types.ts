@@ -24,6 +24,7 @@ export interface HealthWorkout {
   /** A workout-specific average, never evidence of time in a heart-rate zone. */
   averageHeartRate: number | null
   calories: number | null
+  /** Workout distance in kilometres; null when HealthKit has no distance. */
   distance: number | null
   durationMinutes: number
   startISO: string
